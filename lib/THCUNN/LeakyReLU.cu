@@ -47,7 +47,7 @@ void THNN_CudaLeakyReLU_updateOutput(THCState *state, THCudaTensor *input, THCud
     THC_pointwiseApply2(state, output, input, LeakyReLUUpdateOutput(negval));
   }
 
-  THCudaCheck(cudaGetLastError());
+  THCudaCheck(hipGetLastError());
 }
 
 struct LeakyReLUUpdateGradInput
@@ -99,5 +99,5 @@ void THNN_CudaLeakyReLU_updateGradInput(THCState *state, THCudaTensor *input, TH
     THC_pointwiseApply3(state, gradInput, input, gradOutput, LeakyReLUUpdateGradInput(negval));
   }
 
-  THCudaCheck(cudaGetLastError());
+  THCudaCheck(hipGetLastError());
 }

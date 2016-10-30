@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 #include "THCUNN.h"
 #include "common.h"
 
@@ -22,7 +23,7 @@ __device__ __forceinline__ bool warpHasCollision(int val)
   // wrapping around at 32. If any pair of values is the same than
   // there is a collision in the warp.
   bool dup = 0;
-  const int laneId = threadIdx.x % 32;
+  const int laneId = hipThreadIdx_x % 32;
 
 #if __CUDA_ARCH__ >= 300
 
@@ -35,8 +36,8 @@ __device__ __forceinline__ bool warpHasCollision(int val)
 #else
 
   volatile __shared__ int values[128];
-  values[threadIdx.x] = val;
-  const int offset = threadIdx.x - laneId;
+  values[hipThreadIdx_x] = val;
+  const int offset = hipThreadIdx_x - laneId;
 
   #pragma unroll
   for (int i = 1; i <= 16; i++)
@@ -53,7 +54,7 @@ __global__ void cunn_LookupTable_accGradParametersKernelByFeature(
   long *input, float *gradOutput, float *gradWeight, float scale, long numel,
   long stride, int paddingValue) {
 
-  const int featureDim = blockIdx.x * 4 + threadIdx.x / 32;
+  const int featureDim = hipBlockIdx_x * 4 + hipThreadIdx_x / 32;
   if (featureDim >= stride) {
     return;
   }
@@ -71,7 +72,7 @@ __global__ void cunn_LookupTable_accGradParametersKernelByFeature(
   // non-colliding updates separately from colliding ones. Colliding
   // updates are serialized in their order of execution by using the
   // warp-wide collision detector `warpHasCollision`.
-  const int laneId = threadIdx.x % 32;
+  const int laneId = hipThreadIdx_x % 32;
   for (int i = laneId; i < numel; i += WARP_SIZE) {
     const int weightIndex = (int) (input[i] - TH_INDEX_BASE);
     if (weightIndex == paddingValue - TH_INDEX_BASE) {
@@ -99,7 +100,7 @@ __global__ void cunn_LookupTable_accGradParametersKernel(
   long *input, long *indices, float *gradOutput, float *gradWeight,
   long *count, float defaultScale, long numel, long stride, int paddingValue) {
 
-  int idx = blockIdx.x * 4 + threadIdx.y;
+  int idx = hipBlockIdx_x * 4 + hipThreadIdx_y;
 
   // Each warp is responsible for an input into the LookupTable.
   // If the preceeding input has the same as this input, then the warp
@@ -119,7 +120,7 @@ __global__ void cunn_LookupTable_accGradParametersKernel(
       && (idx == 0 || input[idx] != input[idx - 1])
       && input[idx] != paddingValue) {
     do {
-      const int startFeature = threadIdx.x + blockIdx.y * blockDim.x * SZ;
+      const int startFeature = hipThreadIdx_x + hipBlockIdx_y * hipBlockDim_x * SZ;
       const int weightRow = ((int) input[idx] - TH_INDEX_BASE) * stride;
       const int gradOutputRow = ((int) indices[idx] - TH_INDEX_BASE) * stride;
       const float scale = count ? defaultScale / count[idx] : defaultScale;
@@ -186,10 +187,10 @@ void THNN_CudaLookupTable_accGradParameters(
   long numel = THIndexTensor_(nElement)(state, input);
   long stride = gradWeight->stride[0];
 
-  cudaStream_t stream = THCState_getCurrentStream(state);
+  hipStream_t stream = THCState_getCurrentStream(state);
 
   if (numel <= 768 && !scaleGradByFreq) {
-    cunn_LookupTable_accGradParametersKernelByFeature<<<DIVUP(stride,4), 128, 0, stream>>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(cunn_LookupTable_accGradParametersKernelByFeature), dim3(DIVUP(stride,4)), dim3(128), 0, stream, 
       THIndexTensor_(data)(state, input),
       THCudaTensor_data(state, gradOutput),
       THCudaTensor_data(state, gradWeight),
@@ -197,7 +198,7 @@ void THNN_CudaLookupTable_accGradParameters(
       numel,
       stride,
       paddingValue);
-    THCudaCheck(cudaGetLastError());
+    THCudaCheck(hipGetLastError());
     return;
   }
 
@@ -252,7 +253,7 @@ void THNN_CudaLookupTable_accGradParameters(
 
   dim3 grid(DIVUP(numel,4), DIVUP(stride,128));
   dim3 block(32, 4);
-  cunn_LookupTable_accGradParametersKernel<<<grid, block, 0, stream>>>(
+  hipLaunchKernel(HIP_KERNEL_NAME(cunn_LookupTable_accGradParametersKernel), dim3(grid), dim3(block), 0, stream, 
     sorted_data,
     indices_data,
     THCudaTensor_data(state, gradOutput),
@@ -263,7 +264,7 @@ void THNN_CudaLookupTable_accGradParameters(
     stride,
     paddingValue
   );
-  THCudaCheck(cudaGetLastError());
+  THCudaCheck(hipGetLastError());
 }
 
 /*

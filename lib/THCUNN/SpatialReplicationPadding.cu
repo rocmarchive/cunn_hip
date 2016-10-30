@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 #include "THCUNN.h"
 
 #include "THCDeviceTensor.cuh"
@@ -10,9 +11,9 @@ __global__ void SpatialReplicationPadding_updateOutput(
   THCDeviceTensor<float, 4> output,
   int padT, int padB, int padL, int padR) {
 
-  int outputPointId = threadIdx.x + blockIdx.x * blockDim.x;
-  int plane = blockIdx.y;
-  int batch = blockIdx.z;
+  int outputPointId = hipThreadIdx_x + hipBlockIdx_x * hipBlockDim_x;
+  int plane = hipBlockIdx_y;
+  int batch = hipBlockIdx_z;
   if (outputPointId >= output.getSize(2) * output.getSize(3)) {
     return;
   }
@@ -83,7 +84,7 @@ void THNN_CudaSpatialReplicationPadding_updateOutput(THCState *state,
             devOutput.getSize(0));
   dim3 blockSize(outputPlaneSize > 256 ? 256 : outputPlaneSize);
 
-  SpatialReplicationPadding_updateOutput<<<gridSize, blockSize, 0, THCState_getCurrentStream(state)>>>(
+  hipLaunchKernel(HIP_KERNEL_NAME(SpatialReplicationPadding_updateOutput), dim3(gridSize), dim3(blockSize), 0, THCState_getCurrentStream(state), 
     devInput, devOutput, padT, padB, padL, padR);
 
 }
@@ -93,9 +94,9 @@ __global__ void SpatialReplicationPadding_updateGradInput(
   THCDeviceTensor<float, 4> gradOutput,
   int padT, int padB, int padL, int padR) {
 
-  int outputPointId = threadIdx.x + blockIdx.x * blockDim.x;
-  int plane = blockIdx.y;
-  int batch = blockIdx.z;
+  int outputPointId = hipThreadIdx_x + hipBlockIdx_x * hipBlockDim_x;
+  int plane = hipBlockIdx_y;
+  int batch = hipBlockIdx_z;
   if (outputPointId >= gradOutput.getSize(2) * gradOutput.getSize(3)) {
     return;
   }
@@ -157,7 +158,7 @@ void THNN_CudaSpatialReplicationPadding_updateGradInput(THCState *state,
             devGradOutput.getSize(0));
   dim3 blockSize(outputPlaneSize > 256 ? 256 : outputPlaneSize);
 
-  SpatialReplicationPadding_updateGradInput<<<gridSize, blockSize, 0, THCState_getCurrentStream(state)>>>(
+  hipLaunchKernel(HIP_KERNEL_NAME(SpatialReplicationPadding_updateGradInput), dim3(gridSize), dim3(blockSize), 0, THCState_getCurrentStream(state), 
     devGradInput, devGradOutput, padT, padB, padL, padR);
 
 }

@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 #include "THCUNN.h"
 #include "common.h"
 
@@ -7,17 +8,17 @@ template <int P>
 __global__ void cunn_MultiMarginCriterion_updateOutput_kernel(float *output, float *input, float *target, float *weights, int nframe, int dim, bool sizeAverage, float margin)
 {
   __shared__ float buffer[MULTIMARGIN_THREADS];
-  int k = blockIdx.x;
+  int k = hipBlockIdx_x;
   float *input_k = input + k*dim;
   float *output_k = output + k;
   int target_k = ((int)target[k]) - TH_INDEX_BASE;
   float input_target_k = input_k[target_k];
 
-  int i_start = threadIdx.x;
+  int i_start = hipThreadIdx_x;
   int i_end = dim;
-  int i_step = blockDim.x;
+  int i_step = hipBlockDim_x;
 
-  buffer[threadIdx.x] = 0;
+  buffer[hipThreadIdx_x] = 0;
   for (int i = i_start; i < i_end; i += i_step)
   {
     float z = margin - input_target_k + input_k[i];
@@ -28,16 +29,16 @@ __global__ void cunn_MultiMarginCriterion_updateOutput_kernel(float *output, flo
       float h = (P==1) ? z : z*z;
       if(weights)
         h *= weights[target_k];
-      buffer[threadIdx.x] += h;
+      buffer[hipThreadIdx_x] += h;
     }
   }
   __syncthreads();
 
   // reduce
-  if (threadIdx.x == 0)
+  if (hipThreadIdx_x == 0)
   {
     float sum = 0;
-    for (int i=0; i < blockDim.x; i++)
+    for (int i=0; i < hipBlockDim_x; i++)
       sum += buffer[i];
 
     *output_k = sum/dim;
@@ -50,18 +51,18 @@ template <int P>
 __global__ void cunn_MultiMarginCriterion_updateGradInput_kernel(float *gradInput, float *input, float *target, float *weights, int nframe, int dim, bool sizeAverage, float margin)
 {
   __shared__ float buffer[MULTIMARGIN_THREADS];
-  int k = blockIdx.x;
+  int k = hipBlockIdx_x;
   float *input_k = input + k*dim;
   float *gradInput_k = gradInput + k*dim;
   int target_k = ((int)target[k]) - TH_INDEX_BASE;
   float input_target_k = input_k[target_k];
   float g = (sizeAverage ? 1./((float)(nframe*dim)) : 1./((float)dim));
 
-  int i_start = threadIdx.x;
+  int i_start = hipThreadIdx_x;
   int i_end = dim;
-  int i_step = blockDim.x;
+  int i_step = hipBlockDim_x;
 
-  buffer[threadIdx.x] = 0;
+  buffer[hipThreadIdx_x] = 0;
   for (int i=i_start; i<i_end; i+=i_step)
   {
     float z = margin - input_target_k + input_k[i];
@@ -73,7 +74,7 @@ __global__ void cunn_MultiMarginCriterion_updateGradInput_kernel(float *gradInpu
       float h = (P == 1) ? g : 2*g*z;
       if(weights)
         h *= weights[target_k];
-      buffer[threadIdx.x] -= h;
+      buffer[hipThreadIdx_x] -= h;
       gradInput_k[i] = h;
     }
     else
@@ -83,10 +84,10 @@ __global__ void cunn_MultiMarginCriterion_updateGradInput_kernel(float *gradInpu
   __syncthreads();
 
   // reduce
-  if (threadIdx.x == 0)
+  if (hipThreadIdx_x == 0)
   {
     float gradInput_target_k = 0;
-    for (int i=0; i<blockDim.x; i++)
+    for (int i=0; i<hipBlockDim_x; i++)
       gradInput_target_k += buffer[i];
     gradInput_k[target_k] = gradInput_target_k;
   }
@@ -107,7 +108,7 @@ void THNN_CudaMultiMarginCriterion_updateOutput(THCState *state, THCudaTensor *i
     dim3 threads(MULTIMARGIN_THREADS);
     if (p == 1)
     {
-      cunn_MultiMarginCriterion_updateOutput_kernel<1> <<<blocks,threads, 0, THCState_getCurrentStream(state)>>>(
+      hipLaunchKernel(HIP_KERNEL_NAME(cunn_MultiMarginCriterion_updateOutput_kernel<1>), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), 
         THCudaTensor_data(state, output),
         THCudaTensor_data(state, input),
         THCudaTensor_data(state, target),
@@ -119,7 +120,7 @@ void THNN_CudaMultiMarginCriterion_updateOutput(THCState *state, THCudaTensor *i
     }
     else if (p == 2)
     {
-      cunn_MultiMarginCriterion_updateOutput_kernel<2> <<<blocks,threads, 0, THCState_getCurrentStream(state)>>>(
+      hipLaunchKernel(HIP_KERNEL_NAME(cunn_MultiMarginCriterion_updateOutput_kernel<2>), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), 
         THCudaTensor_data(state, output),
         THCudaTensor_data(state, input),
         THCudaTensor_data(state, target),
@@ -129,7 +130,7 @@ void THNN_CudaMultiMarginCriterion_updateOutput(THCState *state, THCudaTensor *i
         margin
       );
     }
-    THCudaCheck(cudaGetLastError());
+    THCudaCheck(hipGetLastError());
   }
   else if (input->nDimension == 2)
   {
@@ -138,7 +139,7 @@ void THNN_CudaMultiMarginCriterion_updateOutput(THCState *state, THCudaTensor *i
     dim3 threads(MULTIMARGIN_THREADS);
     if (p == 1)
     {
-      cunn_MultiMarginCriterion_updateOutput_kernel<1> <<<blocks,threads, 0, THCState_getCurrentStream(state)>>>(
+      hipLaunchKernel(HIP_KERNEL_NAME(cunn_MultiMarginCriterion_updateOutput_kernel<1>), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), 
         THCudaTensor_data(state, output_),
         THCudaTensor_data(state, input),
         THCudaTensor_data(state, target),
@@ -150,7 +151,7 @@ void THNN_CudaMultiMarginCriterion_updateOutput(THCState *state, THCudaTensor *i
     }
     else if (p == 2)
     {
-      cunn_MultiMarginCriterion_updateOutput_kernel<2> <<<blocks,threads, 0, THCState_getCurrentStream(state)>>>(
+      hipLaunchKernel(HIP_KERNEL_NAME(cunn_MultiMarginCriterion_updateOutput_kernel<2>), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), 
         THCudaTensor_data(state, output_),
         THCudaTensor_data(state, input),
         THCudaTensor_data(state, target),
@@ -160,7 +161,7 @@ void THNN_CudaMultiMarginCriterion_updateOutput(THCState *state, THCudaTensor *i
         margin
       );
     }
-    THCudaCheck(cudaGetLastError());
+    THCudaCheck(hipGetLastError());
     float sum = THCudaTensor_sumall(state, output_);
     THCudaTensor_set1d(state, output, 0, sum);
     THCudaTensor_free(state, output_);
@@ -193,7 +194,7 @@ void THNN_CudaMultiMarginCriterion_updateGradInput(THCState *state, THCudaTensor
 
     if (p == 1)
     {
-      cunn_MultiMarginCriterion_updateGradInput_kernel<1> <<<blocks,threads, 0, THCState_getCurrentStream(state)>>>(
+      hipLaunchKernel(HIP_KERNEL_NAME(cunn_MultiMarginCriterion_updateGradInput_kernel<1>), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), 
         THCudaTensor_data(state, gradInput),
         THCudaTensor_data(state, input),
         THCudaTensor_data(state, target),
@@ -205,7 +206,7 @@ void THNN_CudaMultiMarginCriterion_updateGradInput(THCState *state, THCudaTensor
     }
     else if (p == 2)
     {
-      cunn_MultiMarginCriterion_updateGradInput_kernel<2> <<<blocks,threads, 0, THCState_getCurrentStream(state)>>>(
+      hipLaunchKernel(HIP_KERNEL_NAME(cunn_MultiMarginCriterion_updateGradInput_kernel<2>), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), 
         THCudaTensor_data(state, gradInput),
         THCudaTensor_data(state, input),
         THCudaTensor_data(state, target),
@@ -215,7 +216,7 @@ void THNN_CudaMultiMarginCriterion_updateGradInput(THCState *state, THCudaTensor
         margin
       );
     }
-    THCudaCheck(cudaGetLastError());
+    THCudaCheck(hipGetLastError());
   }
   else if (input->nDimension == 2)
   {
@@ -224,7 +225,7 @@ void THNN_CudaMultiMarginCriterion_updateGradInput(THCState *state, THCudaTensor
 
     if (p == 1)
     {
-      cunn_MultiMarginCriterion_updateGradInput_kernel<1> <<<blocks,threads, 0, THCState_getCurrentStream(state)>>>(
+      hipLaunchKernel(HIP_KERNEL_NAME(cunn_MultiMarginCriterion_updateGradInput_kernel<1>), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), 
         THCudaTensor_data(state, gradInput),
         THCudaTensor_data(state, input),
         THCudaTensor_data(state, target),
@@ -236,7 +237,7 @@ void THNN_CudaMultiMarginCriterion_updateGradInput(THCState *state, THCudaTensor
     }
     else if (p == 2)
     {
-      cunn_MultiMarginCriterion_updateGradInput_kernel<2> <<<blocks,threads, 0, THCState_getCurrentStream(state)>>>(
+      hipLaunchKernel(HIP_KERNEL_NAME(cunn_MultiMarginCriterion_updateGradInput_kernel<2>), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), 
         THCudaTensor_data(state, gradInput),
         THCudaTensor_data(state, input),
         THCudaTensor_data(state, target),
@@ -246,7 +247,7 @@ void THNN_CudaMultiMarginCriterion_updateGradInput(THCState *state, THCudaTensor
         margin
       );
     }
-    THCudaCheck(cudaGetLastError());
+    THCudaCheck(hipGetLastError());
   }
   else
   {

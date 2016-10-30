@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 #include "THCUNN.h"
 #include "common.h"
 
@@ -13,7 +14,7 @@ __global__ void cunn_ClassNLLCriterion_updateOutput_kernel1(float *output,
                                                            float *weights,
                                                            int size_average,
                                                            int n_classes) {
-  assert(threadIdx.x == 0 && threadIdx.y == 0 && threadIdx.z == 0);
+  assert(hipThreadIdx_x == 0 && hipThreadIdx_y == 0 && hipThreadIdx_z == 0);
 
   // TODO: T4951791 Reuse code between updateOutput_kernel1 and
   // updateOutput_kernel.
@@ -41,21 +42,21 @@ __global__ void cunn_ClassNLLCriterion_updateOutput_kernel(float *output,
   int i, t;
   float cur_weight;
 
-  shInputs[threadIdx.x] = 0.0f;
-  acc_weight[threadIdx.x] = 0.0f;
-  for (i = threadIdx.x; i < nframe; i += NTHREADS) {
+  shInputs[hipThreadIdx_x] = 0.0f;
+  acc_weight[hipThreadIdx_x] = 0.0f;
+  for (i = hipThreadIdx_x; i < nframe; i += NTHREADS) {
       t = target[i] - TH_INDEX_BASE;
       assert(t >= 0 && t < n_classes);
       cur_weight = weights ? weights[t] : 1.0f;
-      shInputs[threadIdx.x] -= input[i * ndim + t] * cur_weight;
-      acc_weight[threadIdx.x] += cur_weight;
+      shInputs[hipThreadIdx_x] -= input[i * ndim + t] * cur_weight;
+      acc_weight[hipThreadIdx_x] += cur_weight;
   }
   __syncthreads();
 
   // TODO: T4951791 Reuse code between updateOutput_kernel1 and
   // updateOutput_kernel
 
-  if (threadIdx.x == 0) {
+  if (hipThreadIdx_x == 0) {
     *output = *total_weight = 0;
     for (i = 0; i < NTHREADS; ++i){
       *output += shInputs[i];
@@ -100,7 +101,7 @@ __global__ void cunn_ClassNLLCriterion_updateGradInput_kernel(
   int i, t;
   float norm = size_average ? (1.0f / *total_weight) : 1.0f;
 
-  for (i = threadIdx.x; i < nframe; i += NTHREADS) {
+  for (i = hipThreadIdx_x; i < nframe; i += NTHREADS) {
     t = (int)target[i] - TH_INDEX_BASE;
     assert(t >= 0 && t < n_classes);
     gradInput[i * ndim + t] = -(weights ? weights[t] : 1.0f) * norm;
@@ -143,8 +144,7 @@ void THNN_CudaClassNLLCriterion_updateOutput(THCState *state, THCudaTensor *inpu
   float *total_weight_data = THCudaTensor_data(state, total_weight);
 
   if (THCudaTensor_nDimension(state, input) == 1) {
-    cunn_ClassNLLCriterion_updateOutput_kernel1
-      <<<1, 1, 0, THCState_getCurrentStream(state)>>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(cunn_ClassNLLCriterion_updateOutput_kernel1), dim3(1), dim3(1), 0, THCState_getCurrentStream(state), 
         output_data,
         total_weight_data,
         input_data,
@@ -155,8 +155,7 @@ void THNN_CudaClassNLLCriterion_updateOutput(THCState *state, THCudaTensor *inpu
     );
 
   } else if (THCudaTensor_nDimension(state, input) == 2) {
-    cunn_ClassNLLCriterion_updateOutput_kernel
-      <<<1, NTHREADS, 0, THCState_getCurrentStream(state)>>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(cunn_ClassNLLCriterion_updateOutput_kernel), dim3(1), dim3(NTHREADS), 0, THCState_getCurrentStream(state), 
         output_data,
         total_weight_data,
         input_data,
@@ -168,7 +167,7 @@ void THNN_CudaClassNLLCriterion_updateOutput(THCState *state, THCudaTensor *inpu
         n_classes
     );
   }
-  THCudaCheck(cudaGetLastError());
+  THCudaCheck(hipGetLastError());
 
   if (weights) {
     THCudaTensor_free(state, weights);
@@ -214,8 +213,7 @@ void THNN_CudaClassNLLCriterion_updateGradInput(THCState *state, THCudaTensor *i
   float *total_weight_data = THCudaTensor_data(state, total_weight);
 
   if (THCudaTensor_nDimension(state, input) == 1) {
-    cunn_ClassNLLCriterion_updateGradInput_kernel1
-      <<<1, 1, 0, THCState_getCurrentStream(state)>>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(cunn_ClassNLLCriterion_updateGradInput_kernel1), dim3(1), dim3(1), 0, THCState_getCurrentStream(state), 
         gradInput_data,
         weights_data,
         target_data,
@@ -224,8 +222,7 @@ void THNN_CudaClassNLLCriterion_updateGradInput(THCState *state, THCudaTensor *i
         n_classes
     );
   } else {
-    cunn_ClassNLLCriterion_updateGradInput_kernel
-      <<<1, NTHREADS, 0, THCState_getCurrentStream(state)>>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(cunn_ClassNLLCriterion_updateGradInput_kernel), dim3(1), dim3(NTHREADS), 0, THCState_getCurrentStream(state), 
         gradInput_data,
         target_data,
         weights_data,
@@ -236,7 +233,7 @@ void THNN_CudaClassNLLCriterion_updateGradInput(THCState *state, THCudaTensor *i
         n_classes
     );
   }
-  THCudaCheck(cudaGetLastError());
+  THCudaCheck(hipGetLastError());
 
   if (weights) {
     THCudaTensor_free(state, weights);

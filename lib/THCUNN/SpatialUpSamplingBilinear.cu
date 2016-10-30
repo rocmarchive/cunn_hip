@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 // Adapted from interp.cpp from Caffe util by Pauline Luc
 // Originally developed by George Papandreou
 #include "THCUNN.h"
@@ -9,7 +10,7 @@
 __global__ void caffe_gpu_interp2_kernel(const int n,
     const float rheight, const float rwidth,
     const THCDeviceTensor<float, 4> data1, THCDeviceTensor<float, 4> data2) {
-  int index = threadIdx.x + blockIdx.x * blockDim.x;
+  int index = hipThreadIdx_x + hipBlockIdx_x * hipBlockDim_x;
   const int batchsize = data1.getSize(0);
   const int channels = data1.getSize(1);
   const int height1 = data1.getSize(2);
@@ -79,10 +80,9 @@ void THNN_CudaSpatialUpSamplingBilinear_updateOutput(
   const int num_kernels = height2 * width2;
   const int num_threads =
     THCState_getCurrentDeviceProperties(state)->maxThreadsPerBlock;
-  cudaStream_t stream = THCState_getCurrentStream(state);
-  caffe_gpu_interp2_kernel<<<THCCeilDiv(num_kernels, num_threads), num_threads ,
-   0 , stream>>>(num_kernels, rheight, rwidth, idata, odata);
-  THCudaCheck(cudaGetLastError());
+  hipStream_t stream = THCState_getCurrentStream(state);
+  hipLaunchKernel(HIP_KERNEL_NAME(caffe_gpu_interp2_kernel), dim3(THCCeilDiv(num_kernels, num_threads)), dim3(num_threads ), 0 , stream, num_kernels, rheight, rwidth, idata, odata);
+  THCudaCheck(hipGetLastError());
   THCudaTensor_free(state, input);
   THCudaTensor_free(state, output);
 }
@@ -92,7 +92,7 @@ void THNN_CudaSpatialUpSamplingBilinear_updateOutput(
 __global__ void caffe_gpu_interp2_kernel_backward(const int n,
     const float rheight, const float rwidth,
     THCDeviceTensor<float, 4> data1, const THCDeviceTensor<float, 4> data2){
-  int index = threadIdx.x + blockIdx.x * blockDim.x;
+  int index = hipThreadIdx_x + hipBlockIdx_x * hipBlockDim_x;
   const int batchsize = data1.getSize(0);
   const int channels = data1.getSize(1);
   const int height1 = data1.getSize(2);
@@ -167,10 +167,9 @@ void THNN_CudaSpatialUpSamplingBilinear_updateGradInput(
   const int num_kernels = height2 * width2;
   const int num_threads =
     THCState_getCurrentDeviceProperties(state)->maxThreadsPerBlock;
-  cudaStream_t stream = THCState_getCurrentStream(state);
-  caffe_gpu_interp2_kernel_backward<<<THCCeilDiv(num_kernels, num_threads),
-  num_threads, 0, stream>>>(num_kernels, rheight, rwidth, data1, data2);
-  THCudaCheck(cudaGetLastError());
+  hipStream_t stream = THCState_getCurrentStream(state);
+  hipLaunchKernel(HIP_KERNEL_NAME(caffe_gpu_interp2_kernel_backward), dim3(THCCeilDiv(num_kernels, num_threads)), dim3(num_threads), 0, stream, num_kernels, rheight, rwidth, data1, data2);
+  THCudaCheck(hipGetLastError());
   THCudaTensor_free(state, gradInput);
   THCudaTensor_free(state, gradOutput);
 }

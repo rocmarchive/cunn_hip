@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 #include "THCUNN.h"
 #include "common.h"
 
@@ -78,11 +79,11 @@ static __device__ __forceinline__ float warpSum(float val) {
   }
 #else
   __shared__ float values[MAX_BLOCK_SIZE];
-  values[threadIdx.x] = val;
+  values[hipThreadIdx_x] = val;
   __threadfence_block();
-  const int base = (threadIdx.x / WARP_SIZE) * WARP_SIZE;
+  const int base = (hipThreadIdx_x / WARP_SIZE) * WARP_SIZE;
   for (int i = 1; i < WARP_SIZE; i++) {
-    val += values[base + ((i + threadIdx.x) % WARP_SIZE)];
+    val += values[base + ((i + hipThreadIdx_x) % WARP_SIZE)];
   }
 #endif
   return val;
@@ -99,7 +100,7 @@ template<typename T, typename Op>
 __device__ T reduce(Op op, DeviceTensor3 tensor, int plane) {
   T sum = (T)0;
   for (int batch = 0; batch < tensor.getSize(0); ++batch) {
-    for (int x = threadIdx.x; x < tensor.getSize(2); x += blockDim.x) {
+    for (int x = hipThreadIdx_x; x < tensor.getSize(2); x += hipBlockDim_x) {
       sum += op(batch, plane, x);
     }
   }
@@ -110,17 +111,17 @@ __device__ T reduce(Op op, DeviceTensor3 tensor, int plane) {
   // 'transpose', and reduce within warp again
   __shared__ T shared[32];
   __syncthreads();
-  if (threadIdx.x % WARP_SIZE == 0) {
-    shared[threadIdx.x / WARP_SIZE] = sum;
+  if (hipThreadIdx_x % WARP_SIZE == 0) {
+    shared[hipThreadIdx_x / WARP_SIZE] = sum;
   }
-  if (threadIdx.x >= blockDim.x / WARP_SIZE && threadIdx.x < WARP_SIZE) {
+  if (hipThreadIdx_x >= hipBlockDim_x / WARP_SIZE && hipThreadIdx_x < WARP_SIZE) {
     // zero out the other entries in shared
-    shared[threadIdx.x] = (T)0;
+    shared[hipThreadIdx_x] = (T)0;
   }
   __syncthreads();
-  if (threadIdx.x / WARP_SIZE == 0) {
-    sum = warpSum(shared[threadIdx.x]);
-    if (threadIdx.x == 0) {
+  if (hipThreadIdx_x / WARP_SIZE == 0) {
+    sum = warpSum(shared[hipThreadIdx_x]);
+    if (hipThreadIdx_x == 0) {
       shared[0] = sum;
     }
   }
@@ -165,7 +166,7 @@ __global__ void BatchNormalizationUpdateOutputInference_kernel(
     const DeviceTensor1 bias,
     float epsilon) {
 
-  int plane = blockIdx.x;
+  int plane = hipBlockIdx_x;
 
   float invstd = 1.0f / sqrt(runningVar[plane].ldg() + epsilon);
   float mean = runningMean[plane].ldg();
@@ -174,7 +175,7 @@ __global__ void BatchNormalizationUpdateOutputInference_kernel(
 
   // Write normalized and update the output
   for (int batch = 0; batch < input.getSize(0); batch++) {
-    for (int x = threadIdx.x; x < input.getSize(2); x += blockDim.x) {
+    for (int x = hipThreadIdx_x; x < input.getSize(2); x += hipBlockDim_x) {
       float inp = input[batch][plane][x].ldg();
       output[batch][plane][x] = gamma * (inp - mean) * invstd + beta;
     }
@@ -193,7 +194,7 @@ __global__ void BatchNormalizationUpdateOutput_kernel(
     DeviceTensor1 saveMean,
     DeviceTensor1 saveStd) {
 
-  int plane = blockIdx.x;
+  int plane = hipBlockIdx_x;
   int N = input.getSize(0) * input.getSize(2);
 
   float norm = 1.0f / N;
@@ -208,7 +209,7 @@ __global__ void BatchNormalizationUpdateOutput_kernel(
   }
 
   // Save the mean, variance, and moving averages
-  if (threadIdx.x == 0) {
+  if (hipThreadIdx_x == 0) {
     // Momentum based writeback
     float unbiasedVar = varN / (N - 1);
     saveMean[plane] = mean;
@@ -221,7 +222,7 @@ __global__ void BatchNormalizationUpdateOutput_kernel(
   float gamma = weight.numElements() > 0 ? weight[plane] : 1.0f;
   float beta = bias.numElements() > 0 ? bias[plane] : 0.0f;
   for (int batch = 0; batch < input.getSize(0); ++batch) {
-    for (int x = threadIdx.x; x < input.getSize(2); x += blockDim.x) {
+    for (int x = hipThreadIdx_x; x < input.getSize(2); x += hipBlockDim_x) {
       float inp = input[batch][plane][x].ldg();
       output[batch][plane][x] = gamma * (inp - mean) * invStd + beta;
     }
@@ -245,22 +246,22 @@ void THNN_CudaBatchNormalization_updateOutput(
   DeviceTensor1 saveMean = devicetensor<1>(state, saveMean_);
   DeviceTensor1 saveStd = devicetensor<1>(state, saveStd_);
 
-  cudaStream_t s = THCState_getCurrentStream(state);
-  cudaDeviceProp *prop = THCState_getCurrentDeviceProperties(state);
+  hipStream_t s = THCState_getCurrentStream(state);
+  hipDeviceProp_t *prop = THCState_getCurrentDeviceProperties(state);
 
   if (!train) {
     dim3 blocks(input.getSize(1));
     dim3 threads(getNumThreads(input.getSize(2)));
-    BatchNormalizationUpdateOutputInference_kernel<<<blocks, threads, 0, s>>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(BatchNormalizationUpdateOutputInference_kernel), dim3(blocks), dim3(threads), 0, s, 
       input, output, runningMean, runningVar, weight, bias, eps);
   } else {
     dim3 blocks(input.getSize(1));
     dim3 threads(getNumThreads(input.getSize(2)));
-    BatchNormalizationUpdateOutput_kernel<<<blocks, threads, 0, s>>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(BatchNormalizationUpdateOutput_kernel), dim3(blocks), dim3(threads), 0, s, 
       input, output, weight, bias, eps, momentum, runningMean, runningVar,
       saveMean, saveStd);
   }
-  THCudaCheck(cudaGetLastError());
+  THCudaCheck(hipGetLastError());
 }
 
 __global__ void BatchNormalizationBackward_kernel(
@@ -278,7 +279,7 @@ __global__ void BatchNormalizationBackward_kernel(
     float scale,
     double eps) {
 
-  int plane = blockIdx.x;
+  int plane = hipBlockIdx_x;
   int N = gradOutput.getSize(0) * gradOutput.getSize(2);
 
   float mean, stdVal;
@@ -306,7 +307,7 @@ __global__ void BatchNormalizationBackward_kernel(
 
   if (gradInput.numElements() > 0) {
     for (int batch = 0; batch < gradOutput.getSize(0); ++batch) {
-      for (int x = threadIdx.x; x < gradOutput.getSize(2); x += blockDim.x) {
+      for (int x = hipThreadIdx_x; x < gradOutput.getSize(2); x += hipBlockDim_x) {
         float gradOut = gradOutput[batch][plane][x];
         if (train) {
           float inp = input[batch][plane][x];
@@ -320,13 +321,13 @@ __global__ void BatchNormalizationBackward_kernel(
   }
 
   if (gradWeight.numElements() > 0) {
-    if (threadIdx.x == 0) {
+    if (hipThreadIdx_x == 0) {
       gradWeight[plane] += scale * dotP * stdVal;
     }
   }
 
   if (gradBias.numElements() > 0) {
-    if (threadIdx.x == 0) {
+    if (hipThreadIdx_x == 0) {
       gradBias[plane] += scale * gradOutputSum;
     }
   }
@@ -351,12 +352,12 @@ void THNN_CudaBatchNormalization_backward(
   DeviceTensor1 saveMean = devicetensor<1>(state, saveMean_);
   DeviceTensor1 saveStd = devicetensor<1>(state, saveStd_);
 
-  cudaStream_t s = THCState_getCurrentStream(state);
+  hipStream_t s = THCState_getCurrentStream(state);
 
   dim3 blocks(gradOutput.getSize(1));
   dim3 threads(getNumThreads(gradOutput.getSize(2)));
-  BatchNormalizationBackward_kernel<<<blocks, threads, 0, s>>>(
+  hipLaunchKernel(HIP_KERNEL_NAME(BatchNormalizationBackward_kernel), dim3(blocks), dim3(threads), 0, s, 
     input, gradOutput, gradInput, gradWeight, gradBias, weight, runningMean, runningVar,
     saveMean, saveStd, train, scale, eps);
-  THCudaCheck(cudaGetLastError());
+  THCudaCheck(hipGetLastError());
 }

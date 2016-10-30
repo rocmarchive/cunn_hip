@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 #include "THCUNN.h"
 #include "common.h"
 #include "THCDeviceTensor.cuh"
@@ -13,10 +14,10 @@ __global__ void cuda_VolumetricMaxUnpooling_updateOutput(
   int dT, int dH, int dW,
   int padT, int padH, int padW, int offsetZ)
 {
-  long iColumn = blockIdx.x * blockDim.x + threadIdx.x;
-  long iRow    = blockIdx.y * blockDim.y + threadIdx.y;
-  long iFrame  = (blockIdx.z + offsetZ) % input.getSize(1); // intput frame/time
-  long slice   = (blockIdx.z + offsetZ) / input.getSize(1); // intput slice/feature
+  long iColumn = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x;
+  long iRow    = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
+  long iFrame  = (hipBlockIdx_z + offsetZ) % input.getSize(1); // intput frame/time
+  long slice   = (hipBlockIdx_z + offsetZ) / input.getSize(1); // intput slice/feature
 
   if (iRow < input.getSize(2) && iColumn < input.getSize(3))
   {
@@ -114,12 +115,11 @@ void THNN_CudaVolumetricMaxUnpooling_updateOutput(
               THCCeilDiv(inputHeight, static_cast<int>(block.y)),
               totalZ > 65535 ? 65535 : totalZ);
 
-    cuda_VolumetricMaxUnpooling_updateOutput<<<grid, block,
-          0, THCState_getCurrentStream(state)>>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(cuda_VolumetricMaxUnpooling_updateOutput), dim3(grid), dim3(block), 0, THCState_getCurrentStream(state), 
                              cudaInput, cudaIndices, cudaOutput,
                              dT, dH, dW,
                              padT, padH, padW, offsetZ);
-    THCudaCheck(cudaGetLastError());
+    THCudaCheck(hipGetLastError());
     totalZ -= 65535;
     offsetZ += 65535;
   }
@@ -135,10 +135,10 @@ __global__ void cuda_VolumetricMaxUnpooling_updateGradInput(
   int dT, int dH, int dW,
   int padT, int padH, int padW, int offsetZ)
 {
-  int iColumn = blockIdx.x * blockDim.x + threadIdx.x;
-  int iRow    = blockIdx.y * blockDim.y + threadIdx.y;
-  int iFrame  = (blockIdx.z + offsetZ) % gradInput.getSize(1); // output frame/time
-  int slice   = (blockIdx.z + offsetZ) / gradInput.getSize(1); // output slice/feature
+  int iColumn = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x;
+  int iRow    = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
+  int iFrame  = (hipBlockIdx_z + offsetZ) % gradInput.getSize(1); // output frame/time
+  int slice   = (hipBlockIdx_z + offsetZ) / gradInput.getSize(1); // output slice/feature
 
   if (iRow < gradInput.getSize(2) && iColumn < gradInput.getSize(3))
   {
@@ -227,14 +227,13 @@ void THNN_CudaVolumetricMaxUnpooling_updateGradInput(
               THCCeilDiv(inputHeight, static_cast<int>(block.y)),
               totalZ > 65535 ? 65535 : totalZ);
 
-    cuda_VolumetricMaxUnpooling_updateGradInput<<<grid, block,
-      0, THCState_getCurrentStream(state)>>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(cuda_VolumetricMaxUnpooling_updateGradInput), dim3(grid), dim3(block), 0, THCState_getCurrentStream(state), 
                                              cudaGradOutput,
                                              cudaIndices,
                                              cudaGradInput,
                                              dT, dH, dW,
                                              padT, padH, padW, offsetZ);
-    THCudaCheck(cudaGetLastError());
+    THCudaCheck(hipGetLastError());
     totalZ -= 65535;
     offsetZ += 65535;
   }

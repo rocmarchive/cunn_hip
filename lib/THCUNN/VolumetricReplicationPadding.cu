@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 #include "THCUNN.h"
 
 #include "THCDeviceTensor.cuh"
@@ -10,9 +11,9 @@ __global__ void VolumetricReplicationPadding_updateOutput(
   THCDeviceTensor<float, 5> output,
   int pfront, int pback, int ptop, int pbottom, int pleft, int pright) {
 
-  int outputPointId = threadIdx.x + blockIdx.x * blockDim.x;
-  int plane = blockIdx.y;
-  int batch = blockIdx.z;
+  int outputPointId = hipThreadIdx_x + hipBlockIdx_x * hipBlockDim_x;
+  int plane = hipBlockIdx_y;
+  int batch = hipBlockIdx_z;
   if (outputPointId >= (output.getSize(2) * output.getSize(3) *
                         output.getSize(4))) {
     return;
@@ -98,7 +99,7 @@ void THNN_CudaVolumetricReplicationPadding_updateOutput(THCState *state,
             devOutput.getSize(0));
   dim3 blockSize(outputPlaneSize > 256 ? 256 : outputPlaneSize);
 
-  VolumetricReplicationPadding_updateOutput<<<gridSize, blockSize, 0, THCState_getCurrentStream(state)>>>(
+  hipLaunchKernel(HIP_KERNEL_NAME(VolumetricReplicationPadding_updateOutput), dim3(gridSize), dim3(blockSize), 0, THCState_getCurrentStream(state), 
     devInput, devOutput, pfront, pback, ptop, pbottom, pleft, pright);
 }
 
@@ -106,9 +107,9 @@ __global__ void VolumetricReplicationPadding_updateGradInput(
   THCDeviceTensor<float, 5> gradInput,
   THCDeviceTensor<float, 5> gradOutput,
   int pfront, int pback, int ptop, int pbottom, int pleft, int pright) {
-  int outputPointId = threadIdx.x + blockIdx.x * blockDim.x;
-  int plane = blockIdx.y;
-  int batch = blockIdx.z;
+  int outputPointId = hipThreadIdx_x + hipBlockIdx_x * hipBlockDim_x;
+  int plane = hipBlockIdx_y;
+  int batch = hipBlockIdx_z;
 
   if (outputPointId >= (gradOutput.getSize(2) * gradOutput.getSize(3) *
                         gradOutput.getSize(4))) {
@@ -184,6 +185,6 @@ void THNN_CudaVolumetricReplicationPadding_updateGradInput(
             devGradOutput.getSize(0));
   dim3 blockSize(outputPlaneSize > 256 ? 256 : outputPlaneSize);
 
-  VolumetricReplicationPadding_updateGradInput<<<gridSize, blockSize, 0, THCState_getCurrentStream(state)>>>(
+  hipLaunchKernel(HIP_KERNEL_NAME(VolumetricReplicationPadding_updateGradInput), dim3(gridSize), dim3(blockSize), 0, THCState_getCurrentStream(state), 
     devGradInput, devGradOutput, pfront, pback, ptop, pbottom, pleft, pright);
 }

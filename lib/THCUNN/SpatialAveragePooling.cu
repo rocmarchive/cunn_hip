@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 #include "THCUNN.h"
 #include "common.h"
 
@@ -90,18 +91,16 @@ void THNN_CudaSpatialAveragePooling_updateOutput(THCState *state, THCudaTensor *
   int count = THCudaTensor_nElement(state, output);
 
   if(count_include_pad)
-    AvePoolForward<float, true>
-      <<<GET_BLOCKS(count), CUDA_NUM_THREADS, 0, THCState_getCurrentStream(state) >>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(AvePoolForward<float, true>), dim3(GET_BLOCKS(count)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state) , 
         count, input_data,
         batchSize, nInputPlane, nInputRows, nInputCols, nOutputRows, nOutputCols,
         kH, kW, dH, dW, padH, padW, output_data);
   else
-    AvePoolForward<float, false>
-      <<<GET_BLOCKS(count), CUDA_NUM_THREADS, 0, THCState_getCurrentStream(state) >>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(AvePoolForward<float, false>), dim3(GET_BLOCKS(count)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state) , 
         count, input_data,
         batchSize, nInputPlane, nInputRows, nInputCols, nOutputRows, nOutputCols,
         kH, kW, dH, dW, padH, padW, output_data);
-  THCudaCheck(cudaGetLastError());
+  THCudaCheck(hipGetLastError());
 
   if(input->nDimension == 3)
     THCudaTensor_resize3d(state, output, nInputPlane, nOutputRows, nOutputCols);
@@ -200,22 +199,18 @@ void THNN_CudaSpatialAveragePooling_updateGradInput(THCState *state, THCudaTenso
   int count = THCudaTensor_nElement(state, input);
 
   if(count_include_pad)
-    AvePoolBackward<float, true>
-      <<< GET_BLOCKS(count), CUDA_NUM_THREADS, 0, THCState_getCurrentStream(state) >>>
-        (count,
+    hipLaunchKernel(HIP_KERNEL_NAME(AvePoolBackward<float, true>), dim3(GET_BLOCKS(count)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state) , count,
         THCudaTensor_data(state, gradOutput),
         batchSize, nInputPlane, nInputRows, nInputCols, nOutputRows, nOutputCols,
         kH, kW, dH, dW, padH, padW,
         THCudaTensor_data(state, gradInput));
   else
-    AvePoolBackward<float, false>
-      <<< GET_BLOCKS(count), CUDA_NUM_THREADS, 0, THCState_getCurrentStream(state) >>>
-        (count,
+    hipLaunchKernel(HIP_KERNEL_NAME(AvePoolBackward<float, false>), dim3(GET_BLOCKS(count)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state) , count,
         THCudaTensor_data(state, gradOutput),
         batchSize, nInputPlane, nInputRows, nInputCols, nOutputRows, nOutputCols,
         kH, kW, dH, dW, padH, padW,
         THCudaTensor_data(state, gradInput));
-  THCudaCheck(cudaGetLastError());
+  THCudaCheck(hipGetLastError());
 
   // clean
   THCudaTensor_free(state, input);

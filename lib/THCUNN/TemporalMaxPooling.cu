@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 #include "THCUNN.h"
 #include "common.h"
 
@@ -5,12 +6,12 @@
 
 __global__ void cunn_TemporalMaxPooling_updateOutputKernel(float *input, float *output, float *indices, int input_w, int input_n, int output_w, int kW, int dW) {
   // Block idx is the batch index, thread idx + block idx y * MAX_THREADS is the time index
-  float *input_data = input + blockIdx.x * input_w * input_n + (
-      threadIdx.x + blockIdx.y * TEMPORAL_MAX_POOLING_THREADS) * input_n * dW;
-  float *output_data = output + blockIdx.x * output_w * input_n + (
-      threadIdx.x + blockIdx.y * TEMPORAL_MAX_POOLING_THREADS) * input_n;
-  float *indices_data = indices + blockIdx.x * output_w * input_n + (
-      threadIdx.x + blockIdx.y * TEMPORAL_MAX_POOLING_THREADS) * input_n;
+  float *input_data = input + hipBlockIdx_x * input_w * input_n + (
+      hipThreadIdx_x + hipBlockIdx_y * TEMPORAL_MAX_POOLING_THREADS) * input_n * dW;
+  float *output_data = output + hipBlockIdx_x * output_w * input_n + (
+      hipThreadIdx_x + hipBlockIdx_y * TEMPORAL_MAX_POOLING_THREADS) * input_n;
+  float *indices_data = indices + hipBlockIdx_x * output_w * input_n + (
+      hipThreadIdx_x + hipBlockIdx_y * TEMPORAL_MAX_POOLING_THREADS) * input_n;
 
   int feat = 0;
   int time = 0;
@@ -19,7 +20,7 @@ __global__ void cunn_TemporalMaxPooling_updateOutputKernel(float *input, float *
   float max_value;
   float max_index = 0.0;
 
-  if (threadIdx.x + blockIdx.y * TEMPORAL_MAX_POOLING_THREADS < output_w) {
+  if (hipThreadIdx_x + hipBlockIdx_y * TEMPORAL_MAX_POOLING_THREADS < output_w) {
     // For all features
     for (feat = 0; feat < input_n; ++feat) {
       max_value = -FLT_MAX;
@@ -38,16 +39,16 @@ __global__ void cunn_TemporalMaxPooling_updateOutputKernel(float *input, float *
 
 __global__ void cunn_TemporalMaxPooling_updateGradInputKernel(float *gradInput, float *gradOutput, float *indices, int input_w, int input_n, int output_w, int kW, int dW) {
   // Block idx is the batch index, thread idx + block idx y * MAX_THREADS is the time index
-  float *gradInput_data = gradInput + blockIdx.x * input_w * input_n + (
-      threadIdx.x + blockIdx.y * TEMPORAL_MAX_POOLING_THREADS) * input_n * dW;
-  float *gradOutput_data = gradOutput + blockIdx.x * output_w * input_n + (
-      threadIdx.x + blockIdx.y * TEMPORAL_MAX_POOLING_THREADS) * input_n;
-  float *indices_data = indices + blockIdx.x * output_w * input_n + (
-      threadIdx.x + blockIdx.y * TEMPORAL_MAX_POOLING_THREADS) * input_n;
+  float *gradInput_data = gradInput + hipBlockIdx_x * input_w * input_n + (
+      hipThreadIdx_x + hipBlockIdx_y * TEMPORAL_MAX_POOLING_THREADS) * input_n * dW;
+  float *gradOutput_data = gradOutput + hipBlockIdx_x * output_w * input_n + (
+      hipThreadIdx_x + hipBlockIdx_y * TEMPORAL_MAX_POOLING_THREADS) * input_n;
+  float *indices_data = indices + hipBlockIdx_x * output_w * input_n + (
+      hipThreadIdx_x + hipBlockIdx_y * TEMPORAL_MAX_POOLING_THREADS) * input_n;
 
   int feat = 0;
 
-  if (threadIdx.x + blockIdx.y * TEMPORAL_MAX_POOLING_THREADS < output_w) {
+  if (hipThreadIdx_x + hipBlockIdx_y * TEMPORAL_MAX_POOLING_THREADS < output_w) {
     // For all features
     for (feat = 0; feat < input_n; ++feat) {
       gradInput_data[(int)indices_data[feat] * input_n + feat] += gradOutput_data[feat];
@@ -57,16 +58,16 @@ __global__ void cunn_TemporalMaxPooling_updateGradInputKernel(float *gradInput, 
 
 __global__ void cunn_TemporalMaxPooling_updateGradInputKernelAtomic(float *gradInput, float *gradOutput, float *indices, int input_w, int input_n, int output_w, int kW, int dW) {
   // Block idx is the batch index, thread idx + block idx y * MAX_THREADS is the time index
-  float *gradInput_data = gradInput + blockIdx.x * input_w * input_n + (
-      threadIdx.x + blockIdx.y * TEMPORAL_MAX_POOLING_THREADS) * input_n * dW;
-  float *gradOutput_data = gradOutput + blockIdx.x * output_w * input_n + (
-      threadIdx.x + blockIdx.y * TEMPORAL_MAX_POOLING_THREADS) * input_n;
-  float *indices_data = indices + blockIdx.x * output_w * input_n + (
-      threadIdx.x + blockIdx.y * TEMPORAL_MAX_POOLING_THREADS) * input_n;
+  float *gradInput_data = gradInput + hipBlockIdx_x * input_w * input_n + (
+      hipThreadIdx_x + hipBlockIdx_y * TEMPORAL_MAX_POOLING_THREADS) * input_n * dW;
+  float *gradOutput_data = gradOutput + hipBlockIdx_x * output_w * input_n + (
+      hipThreadIdx_x + hipBlockIdx_y * TEMPORAL_MAX_POOLING_THREADS) * input_n;
+  float *indices_data = indices + hipBlockIdx_x * output_w * input_n + (
+      hipThreadIdx_x + hipBlockIdx_y * TEMPORAL_MAX_POOLING_THREADS) * input_n;
 
   int feat = 0;
 
-  if (threadIdx.x + blockIdx.y * TEMPORAL_MAX_POOLING_THREADS < output_w) {
+  if (hipThreadIdx_x + hipBlockIdx_y * TEMPORAL_MAX_POOLING_THREADS < output_w) {
     // For all features
     for (feat = 0; feat < input_n; ++feat) {
       atomicAdd(&gradInput_data[(int)indices_data[feat] * input_n + feat], gradOutput_data[feat]);
@@ -141,9 +142,9 @@ void THNN_CudaTemporalMaxPooling_updateOutput(
   }
 
   dim3 threads(nthreads);
-  cunn_TemporalMaxPooling_updateOutputKernel <<< blocks, threads, 0, THCState_getCurrentStream(state) >>>(
+  hipLaunchKernel(HIP_KERNEL_NAME(cunn_TemporalMaxPooling_updateOutputKernel), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state) , 
       input_data, output_data, indices_data, input_w, input_n, output_w, kW, dW);
-  THCudaCheck(cudaGetLastError());
+  THCudaCheck(hipGetLastError());
   THCudaTensor_free(state, input);
 
 }
@@ -209,13 +210,13 @@ void THNN_CudaTemporalMaxPooling_updateGradInput(
 
   dim3 threads(nthreads);
   if (kW <= dW) {
-    cunn_TemporalMaxPooling_updateGradInputKernel <<< blocks, threads, 0, THCState_getCurrentStream(state) >>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(cunn_TemporalMaxPooling_updateGradInputKernel), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state) , 
         gradInput_data, gradOutput_data, indices_data, input_w, input_n, output_w, kW, dW);
   } else {
-    cunn_TemporalMaxPooling_updateGradInputKernelAtomic <<< blocks, threads, 0, THCState_getCurrentStream(state) >>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(cunn_TemporalMaxPooling_updateGradInputKernelAtomic), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state) , 
         gradInput_data, gradOutput_data, indices_data, input_w, input_n, output_w, kW, dW);
   }
-  THCudaCheck(cudaGetLastError());
+  THCudaCheck(hipGetLastError());
   THCudaTensor_free(state, gradOutput);
 
 }

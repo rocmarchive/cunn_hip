@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 #include "THCUNN.h"
 #include "common.h"
 
@@ -25,11 +26,11 @@ __global__ void cunn_SpatialClassNLLCriterion_updateOutput_kernel(
   float input_sum = 0;
   float acc_weight = 0;
 
-  int sample = blockIdx.x / blocks_per_sample;
+  int sample = hipBlockIdx_x / blocks_per_sample;
   int toffset = sample * map_nelem;
   int ioffset = sample * map_nelem * n_classes;
-  int step = blockDim.x * blocks_per_sample;
-  for (i = (blockIdx.x % blocks_per_sample) * blockDim.x + threadIdx.x;
+  int step = hipBlockDim_x * blocks_per_sample;
+  for (i = (hipBlockIdx_x % blocks_per_sample) * hipBlockDim_x + hipThreadIdx_x;
        i < map_nelem;
        i += step) {
     t = target[toffset + i] - TH_INDEX_BASE;
@@ -41,13 +42,13 @@ __global__ void cunn_SpatialClassNLLCriterion_updateOutput_kernel(
 
   __syncthreads();
 
-  input_sum = reduceBlock(partial_sums, blockDim.x, input_sum, thrust::plus<float>(), 0.0f);
-  acc_weight = reduceBlock(partial_sums, blockDim.x, acc_weight, thrust::plus<float>(), 0.0f);
+  input_sum = reduceBlock(partial_sums, hipBlockDim_x, input_sum, thrust::plus<float>(), 0.0f);
+  acc_weight = reduceBlock(partial_sums, hipBlockDim_x, acc_weight, thrust::plus<float>(), 0.0f);
 
-  if (threadIdx.x == 0) {
+  if (hipThreadIdx_x == 0) {
     atomicAdd(total_weight, acc_weight);
     if (size_average && acc_weight > 0)
-      atomicAdd(output, input_sum / acc_weight / gridDim.x);
+      atomicAdd(output, input_sum / acc_weight / hipGridDim_x);
     else
       atomicAdd(output, input_sum);
   }
@@ -70,11 +71,11 @@ __global__ void cunn_SpatialClassNLLCriterion_updateGradInput_kernel(
   int i, t;
   float norm = size_average ? (1.0f / *total_weight) : 1.0f;
 
-  int sample = blockIdx.x / blocks_per_sample;
-  int step = blockDim.x * blocks_per_sample;
+  int sample = hipBlockIdx_x / blocks_per_sample;
+  int step = hipBlockDim_x * blocks_per_sample;
   int toffset = sample * map_nelem;
   int ioffset = sample * map_nelem * n_classes;
-  for (i = (blockIdx.x % blocks_per_sample) * blockDim.x + threadIdx.x;
+  for (i = (hipBlockIdx_x % blocks_per_sample) * hipBlockDim_x + hipThreadIdx_x;
        i < map_nelem;
        i += step) {
     t = (int)target[toffset + i] - TH_INDEX_BASE;
@@ -124,8 +125,7 @@ void THNN_CudaSpatialClassNLLCriterion_updateOutput(
   THCudaTensor_fill(state, output, 0);
   THCudaTensor_fill(state, total_weight, 0);
 
-  cunn_SpatialClassNLLCriterion_updateOutput_kernel
-    <<<total_blocks, CUDA_NUM_THREADS, 0, THCState_getCurrentStream(state)>>>(
+  hipLaunchKernel(HIP_KERNEL_NAME(cunn_SpatialClassNLLCriterion_updateOutput_kernel), dim3(total_blocks), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state), 
       output_data,
       total_weight_data,
       input_data,
@@ -137,7 +137,7 @@ void THNN_CudaSpatialClassNLLCriterion_updateOutput(
       THCudaTensor_size(state, input, 2) * THCudaTensor_size(state, input, 3),
       blocks_per_sample
   );
-  THCudaCheck(cudaGetLastError());
+  THCudaCheck(hipGetLastError());
 
   if (weights)
     THCudaTensor_free(state, weights);
@@ -184,8 +184,7 @@ void THNN_CudaSpatialClassNLLCriterion_updateGradInput(
   blocks_per_sample = (blocks_per_sample == 0) ? 1 : blocks_per_sample;
   int total_blocks = blocks_per_sample * batch_size;
 
-  cunn_SpatialClassNLLCriterion_updateGradInput_kernel
-    <<<total_blocks, CUDA_NUM_THREADS, 0, THCState_getCurrentStream(state)>>>(
+  hipLaunchKernel(HIP_KERNEL_NAME(cunn_SpatialClassNLLCriterion_updateGradInput_kernel), dim3(total_blocks), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state), 
       gradInput_data,
       target_data,
       weights_data,
@@ -196,7 +195,7 @@ void THNN_CudaSpatialClassNLLCriterion_updateGradInput(
       THCudaTensor_size(state, input, 2) *THCudaTensor_size(state, input, 3),
       blocks_per_sample
   );
-  THCudaCheck(cudaGetLastError());
+  THCudaCheck(hipGetLastError());
 
   if (weights)
     THCudaTensor_free(state, weights);

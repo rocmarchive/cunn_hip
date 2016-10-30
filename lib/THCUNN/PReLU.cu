@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 #include "THCUNN.h"
 #include "THCReduce.cuh"
 #include "common.h"
@@ -56,13 +57,13 @@ void THNN_CudaPReLU_updateOutput(
     else if (ndim == 4)
       mapSize = (input->size[2] * input->size[3]);
     int nElemsPerSample = nOutputPlane * mapSize;
-    preluForward<<<GET_BLOCKS(n), CUDA_NUM_THREADS, 0, THCState_getCurrentStream(state)>>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(preluForward), dim3(GET_BLOCKS(n)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state), 
       THCudaTensor_data(state, output),
       THCudaTensor_data(state, input),
       w,
       n, nElemsPerSample, mapSize
     );
-    THCudaCheck(cudaGetLastError());
+    THCudaCheck(hipGetLastError());
     THCudaTensor_free(state, input);
   }
 }
@@ -124,14 +125,14 @@ void THNN_CudaPReLU_updateGradInput(
     else if (ndim == 4)
       mapSize = (input->size[2] * input->size[3]);
     int nElemsPerSample = nOutputPlane * mapSize;
-    preluBackward<<<GET_BLOCKS(n), CUDA_NUM_THREADS, 0, THCState_getCurrentStream(state)>>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(preluBackward), dim3(GET_BLOCKS(n)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state), 
       THCudaTensor_data(state, gradInput),
       THCudaTensor_data(state, input),
       w,
       THCudaTensor_data(state, gradOutput),
       n, nElemsPerSample, mapSize
     );
-    THCudaCheck(cudaGetLastError());
+    THCudaCheck(hipGetLastError());
     THCudaTensor_free(state, input);
     THCudaTensor_free(state, gradOutput);
   }

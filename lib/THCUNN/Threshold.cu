@@ -55,7 +55,7 @@ void THNN_CudaThreshold_updateOutput(THCState *state, THCudaTensor *input, THCud
     );
   }
 
-  THCudaCheck(cudaGetLastError());
+  THCudaCheck(hipGetLastError());
 }
 
 struct ThresholdUpdateGradInput
@@ -108,5 +108,5 @@ void THNN_CudaThreshold_updateGradInput(THCState *state, THCudaTensor *input, TH
     );
   }
 
-  THCudaCheck(cudaGetLastError());
+  THCudaCheck(hipGetLastError());
 }

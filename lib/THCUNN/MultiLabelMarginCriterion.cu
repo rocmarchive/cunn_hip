@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 #include "THCUNN.h"
 #include "common.h"
 #include "THCReduceApplyUtils.cuh"
@@ -18,20 +19,20 @@ __global__ void cunn_MultiLabelMarginCriterion_updateOutput_kernel(float *output
   __shared__ float sums[MULTILABELMARGIN_THREADS];
 
   // vectors:
-  int k = blockIdx.x;
+  int k = hipBlockIdx_x;
   float *input_k = input + k*dim;
   float *target_k = target + k*dim;
   float *output_k = output + k;
   float *istarget_k = istarget + k*dim;
 
   // zero istarget
-  for (int d = threadIdx.x; d < dim; d += blockDim.x) {
+  for (int d = hipThreadIdx_x; d < dim; d += hipBlockDim_x) {
     istarget_k[d] = 0;
   }
   __syncthreads();
 
   // mark targets in istarget
-  if (threadIdx.x == 0) {
+  if (hipThreadIdx_x == 0) {
     for (int dt = 0; dt < dim; dt++) {
       int target_idx = (int)target_k[dt] - TH_INDEX_BASE;
       if (target_idx < 0) break;
@@ -51,7 +52,7 @@ __global__ void cunn_MultiLabelMarginCriterion_updateOutput_kernel(float *output
     float input_target_k = input_k[target_idx];
 
     // compare to all inputs (multithreaded):
-    for (int d = threadIdx.x; d < dim; d += blockDim.x) {
+    for (int d = hipThreadIdx_x; d < dim; d += hipBlockDim_x) {
       // contribute to loss only if not a target
       if (!istarget_k[d]) {
         float z = 1 - input_target_k + input_k[d];
@@ -62,8 +63,8 @@ __global__ void cunn_MultiLabelMarginCriterion_updateOutput_kernel(float *output
   }
 
   // reduce
-  float totalSum = reduceBlock(sums, blockDim.x, sum, thrust::plus<float>(), 0.0f);
-  if (threadIdx.x == 0) {
+  float totalSum = reduceBlock(sums, hipBlockDim_x, sum, thrust::plus<float>(), 0.0f);
+  if (hipThreadIdx_x == 0) {
     if (sizeaverage) {
       *output_k = (totalSum / dim) / nframe;
     } else {
@@ -84,7 +85,7 @@ __global__ void cunn_MultiLabelMarginCriterion_updateGradInput_kernel(float *gra
   __shared__ float sums[MULTILABELMARGIN_THREADS];
 
   // vectors:
-  int k = blockIdx.x;
+  int k = hipBlockIdx_x;
   float *input_k = input + k*dim;
   float *gradInput_k = gradInput + k*dim;
   float *target_k = target + k*dim;
@@ -94,7 +95,7 @@ __global__ void cunn_MultiLabelMarginCriterion_updateGradInput_kernel(float *gra
   float g = ( sizeaverage ? 1./((float)(nframe*dim)) : 1./((float)dim) );
 
   // zero gradients:
-  for (int d = threadIdx.x; d < dim; d += blockDim.x) {
+  for (int d = hipThreadIdx_x; d < dim; d += hipBlockDim_x) {
     gradInput_k[d] = 0;
   }
   __syncthreads();
@@ -110,7 +111,7 @@ __global__ void cunn_MultiLabelMarginCriterion_updateGradInput_kernel(float *gra
 
     // compare to all inputs (multithreaded):
     float sum = 0;
-    for (int d = threadIdx.x; d < dim; d += blockDim.x) {
+    for (int d = hipThreadIdx_x; d < dim; d += hipBlockDim_x) {
       // contribute to loss only if not a target
       if (!istarget_k[d]) {
         float z = 1 - input_target_k + input_k[d];
@@ -123,8 +124,8 @@ __global__ void cunn_MultiLabelMarginCriterion_updateGradInput_kernel(float *gra
     __syncthreads();
 
     // reduce sum
-    float totalSum = reduceBlock(sums, blockDim.x, sum, thrust::plus<float>(), 0.0f);
-    if (threadIdx.x == 0) {
+    float totalSum = reduceBlock(sums, hipBlockDim_x, sum, thrust::plus<float>(), 0.0f);
+    if (hipThreadIdx_x == 0) {
       gradInput_k[target_idx] += totalSum;
     }
     __syncthreads();
@@ -151,7 +152,7 @@ void THNN_CudaMultiLabelMarginCriterion_updateOutput(
     dim3 blocks(1);
     dim3 threads(MULTILABELMARGIN_THREADS);
 
-    cunn_MultiLabelMarginCriterion_updateOutput_kernel<<<blocks,threads>>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(cunn_MultiLabelMarginCriterion_updateOutput_kernel), dim3(blocks), dim3(threads), 0, 0, 
         THCudaTensor_data(state, output),
         THCudaTensor_data(state, input),
         THCudaTensor_data(state, target),
@@ -159,7 +160,7 @@ void THNN_CudaMultiLabelMarginCriterion_updateOutput(
         1, input->size[0],
         sizeaverage
         );
-    THCudaCheck(cudaGetLastError());
+    THCudaCheck(hipGetLastError());
   }
   else if(input->nDimension == 2)
   {
@@ -168,7 +169,7 @@ void THNN_CudaMultiLabelMarginCriterion_updateOutput(
     dim3 blocks(input->size[0]);
     dim3 threads(MULTILABELMARGIN_THREADS);
 
-    cunn_MultiLabelMarginCriterion_updateOutput_kernel<<<blocks,threads>>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(cunn_MultiLabelMarginCriterion_updateOutput_kernel), dim3(blocks), dim3(threads), 0, 0, 
         THCudaTensor_data(state, output_tmp),
         THCudaTensor_data(state, input),
         THCudaTensor_data(state, target),
@@ -176,7 +177,7 @@ void THNN_CudaMultiLabelMarginCriterion_updateOutput(
         input->size[0], input->size[1],
         sizeaverage
         );
-    THCudaCheck(cudaGetLastError());
+    THCudaCheck(hipGetLastError());
     THCudaTensor_resize1d(state, output, 1);
     THCudaTensor_set1d(state, output, 0, THCudaTensor_sumall(state, output_tmp));
     THCudaTensor_free(state, output_tmp);
@@ -207,7 +208,7 @@ void THNN_CudaMultiLabelMarginCriterion_updateGradInput(
     dim3 blocks(1);
     dim3 threads(MULTILABELMARGIN_THREADS);
 
-    cunn_MultiLabelMarginCriterion_updateGradInput_kernel<<<blocks,threads>>>(THCudaTensor_data(state, gradInput),
+    hipLaunchKernel(HIP_KERNEL_NAME(cunn_MultiLabelMarginCriterion_updateGradInput_kernel), dim3(blocks), dim3(threads), 0, 0, THCudaTensor_data(state, gradInput),
         THCudaTensor_data(state, input),
         THCudaTensor_data(state, target),
         THCudaTensor_data(state, istarget),
@@ -220,7 +221,7 @@ void THNN_CudaMultiLabelMarginCriterion_updateGradInput(
     dim3 blocks(gradInput->size[0]);
     dim3 threads(MULTILABELMARGIN_THREADS);
 
-    cunn_MultiLabelMarginCriterion_updateGradInput_kernel<<<blocks,threads>>>(THCudaTensor_data(state, gradInput),
+    hipLaunchKernel(HIP_KERNEL_NAME(cunn_MultiLabelMarginCriterion_updateGradInput_kernel), dim3(blocks), dim3(threads), 0, 0, THCudaTensor_data(state, gradInput),
         THCudaTensor_data(state, input),
         THCudaTensor_data(state, target),
         THCudaTensor_data(state, istarget),
@@ -230,7 +231,7 @@ void THNN_CudaMultiLabelMarginCriterion_updateGradInput(
   else
     THError("vector or matrix expected");
 
-  THCudaCheck(cudaGetLastError());
+  THCudaCheck(hipGetLastError());
 
   THCudaTensor_free(state, input);
   THCudaTensor_free(state, target);
