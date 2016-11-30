@@ -50,7 +50,7 @@ __device__ __forceinline__ bool warpHasCollision(int val)
   return __any(dup) != 0;
 }
 
-__global__ void cunn_LookupTable_accGradParametersKernelByFeature(
+__global__ void cunn_LookupTable_accGradParametersKernelByFeature(hipLaunchParm lp, 
   long *input, float *gradOutput, float *gradWeight, float scale, long numel,
   long stride, int paddingValue) {
 
@@ -96,7 +96,7 @@ __global__ void cunn_LookupTable_accGradParametersKernelByFeature(
   }
 }
 
-__global__ void cunn_LookupTable_accGradParametersKernel(
+__global__ void cunn_LookupTable_accGradParametersKernel(hipLaunchParm lp, 
   long *input, long *indices, float *gradOutput, float *gradWeight,
   long *count, float defaultScale, long numel, long stride, int paddingValue) {
 

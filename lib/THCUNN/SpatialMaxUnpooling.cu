@@ -3,7 +3,7 @@
 #include "common.h"
 
 template <typename Dtype>
-__global__ void MaxUnpoolForward(const int nthreads, const Dtype* bottom_data, const Dtype* bottom_mask,
+__global__ void MaxUnpoolForward(hipLaunchParm lp, const int nthreads, const Dtype* bottom_data, const Dtype* bottom_mask,
     const int num, const int channels, const int iheight, const int iwidth, const int oheight, const int owidth, Dtype* top_data) {
   CUDA_KERNEL_LOOP(index, nthreads) { //index here indices the input pixels
     int c = (index / iwidth / iheight) % channels;
@@ -16,7 +16,7 @@ __global__ void MaxUnpoolForward(const int nthreads, const Dtype* bottom_data, c
 }
 
 template <typename Dtype>
-__global__ void MaxUnpoolBackward(const int nthreads, const Dtype* top_diff, const Dtype* bottom_mask,
+__global__ void MaxUnpoolBackward(hipLaunchParm lp, const int nthreads, const Dtype* top_diff, const Dtype* bottom_mask,
     const int num, const int channels, const int iheight, const int iwidth, const int oheight, const int owidth, Dtype* bottom_diff) {
   CUDA_KERNEL_LOOP(index, nthreads) {
     int c = (index / iwidth / iheight) % channels;

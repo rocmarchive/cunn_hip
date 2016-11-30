@@ -7,7 +7,7 @@
 
 #include <cfloat>
 
-__global__ void cuda_VolumetricDilatedMaxPooling_updateOutput(
+__global__ void cuda_VolumetricDilatedMaxPooling_updateOutput(hipLaunchParm lp, 
   THCDeviceTensor<float, 4> input,
   THCDeviceTensor<float, 4> indices,
   THCDeviceTensor<float, 4> output,
@@ -72,7 +72,7 @@ __global__ void cuda_VolumetricDilatedMaxPooling_updateOutput(
 }
 
 template <int KERNEL_WIDTH>
-__global__ void cuda_VolumetricDilatedMaxPooling_updateOutput(
+__global__ void cuda_VolumetricDilatedMaxPooling_updateOutput(hipLaunchParm lp, 
   THCDeviceTensor<float, 4> input, THCDeviceTensor<float, 4> indices,
   THCDeviceTensor<float, 4> output,
   int kT, int kH,
@@ -136,8 +136,8 @@ __global__ void cuda_VolumetricDilatedMaxPooling_updateOutput(
 }
 
 #define UPDATE_OUTPUT_KERNEL_WIDTH(KW) case KW:                         \
-  cuda_VolumetricDilatedMaxPooling_updateOutput<KW><<<grid, block,             \
-    0, THCState_getCurrentStream(state)>>>(                             \
+  hipLaunchKernel(cuda_VolumetricDilatedMaxPooling_updateOutput<KW>, grid, block,             \
+    0, THCState_getCurrentStream(state),                             \
     cudaInput, cudaIndices, cudaOutput, kT, kH, dT, dH, dW, padT, padH, padW,\
     dilationT, dilationH, dilationW, offsetZ); \
     break
@@ -315,7 +315,7 @@ void THNN_CudaVolumetricDilatedMaxPooling_updateOutput(
 
 #undef UPDATE_OUTPUT_KERNEL_WIDTH
 
-__global__ void cuda_VolumetricDilatedMaxPooling_updateGradInput(
+__global__ void cuda_VolumetricDilatedMaxPooling_updateGradInput(hipLaunchParm lp,
   THCDeviceTensor<float, 4> gradOutput,
   THCDeviceTensor<float, 4> indices,
   THCDeviceTensor<float, 4> gradInput,

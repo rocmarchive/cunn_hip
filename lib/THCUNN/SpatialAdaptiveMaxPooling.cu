@@ -9,7 +9,7 @@
  *    this function adaptively maxpools an input 4D tensor along dimensions 2 and 3
  *    4D input, 4D output, 4D argmax x and y
  */
-__global__ void adaptivemaxpool(float *input, float *output, float *indices_x, float *indices_y,
+__global__ void adaptivemaxpool(hipLaunchParm lp, float *input, float *output, float *indices_x, float *indices_y,
                         int input_n, int input_h, int input_w,
                         int output_h, int output_w,
                         int strideh, int stridew,
@@ -82,7 +82,7 @@ __global__ void adaptivemaxpool(float *input, float *output, float *indices_x, f
  * Description:
  *    this function computes the gradInput from weight and gradOutput
  */
-__global__ void adaptivemaxgradinput(float *gradInput, float *gradOutput, float *indices_x, float *indices_y,
+__global__ void adaptivemaxgradinput(hipLaunchParm lp, float *gradInput, float *gradOutput, float *indices_x, float *indices_y,
                              int input_n, int input_h, int input_w,
                              int output_h, int output_w)
 {
@@ -136,7 +136,7 @@ __global__ void adaptivemaxgradinput(float *gradInput, float *gradOutput, float 
  *    this function computes the gradInput from weight and gradOutput
  *    when kH != dH or kW != dW (uses atomic add)
  */
-__global__ void atomicadaptivemaxgradinput(
+__global__ void atomicadaptivemaxgradinput(hipLaunchParm lp, 
   float *gradInput, float *gradOutput, float *indices_x, float *indices_y,
   int input_n, int input_h, int input_w, int output_h, int output_w
 )

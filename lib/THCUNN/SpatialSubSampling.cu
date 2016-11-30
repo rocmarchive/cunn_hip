@@ -9,7 +9,7 @@
  *    this function subsamples an input 3D tensor along dimensions 1 and 2
  *    3D input, 3D output, 1D weight, 1D bias
  */
-__global__ void subsample(float *input, float *output, float *weight, float *bias,
+__global__ void subsample(hipLaunchParm lp, float *input, float *output, float *weight, float *bias,
                           int input_n, int input_h, int input_w,
                           int kH, int kW, int dH, int dW)
 {
@@ -66,7 +66,7 @@ __global__ void subsample(float *input, float *output, float *weight, float *bia
  * Description:
  *    this function computes the gradWeight from input and gradOutput
  */
-__global__ void subgradweight(float *input, float *gradOutput, float *gradWeight, float *gradBias,
+__global__ void subgradweight(hipLaunchParm lp, float *input, float *gradOutput, float *gradWeight, float *gradBias,
                               int input_n, int input_h, int input_w,
                               int kH, int kW, int dH, int dW,
                               float scale)
@@ -143,7 +143,7 @@ __global__ void subgradweight(float *input, float *gradOutput, float *gradWeight
  * Description:
  *    this function computes the gradInput from weight and gradOutput
  */
-__global__ void subgradinput(float *gradInput, float *gradOutput, float *weight,
+__global__ void subgradinput(hipLaunchParm lp, float *gradInput, float *gradOutput, float *weight,
                              int input_n, int input_h, int input_w,
                              int kH, int kW, int dH, int dW)
 {
@@ -194,7 +194,7 @@ __global__ void subgradinput(float *gradInput, float *gradOutput, float *weight,
  * Description:
  *    this function computes the gradInput from weight and gradOutput
  */
-__global__ void subgradinputAtomic(float *gradInput, float *gradOutput, float *weight,
+__global__ void subgradinputAtomic(hipLaunchParm lp, float *gradInput, float *gradOutput, float *weight,
                                    int input_n, int input_h, int input_w,
                                    int kH, int kW, int dH, int dW)
 {

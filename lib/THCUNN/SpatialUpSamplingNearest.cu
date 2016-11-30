@@ -47,7 +47,7 @@ __device__ int translate_idx_inv(int ii, int d1, int d2, int d3, int scale_facto
 
 }
 
-__global__ void upscale(float *input, float *output, long no_elements,
+__global__ void upscale(hipLaunchParm lp, float *input, float *output, long no_elements,
                         int scale_factor, int d1, int d2, int d3)
 {
   // output offset:
@@ -114,7 +114,7 @@ void THNN_CudaSpatialUpSamplingNearest_updateOutput(THCState *state, THCudaTenso
 /*
  * Description:
  */
-__global__ void downscale(float *gradInput_data, float *gradOutput_data, long no_elements,
+__global__ void downscale(hipLaunchParm lp, float *gradInput_data, float *gradOutput_data, long no_elements,
                               int scale_factor, int d1, int d2, int d3)
 {
   // output offset:

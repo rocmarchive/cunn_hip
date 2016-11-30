@@ -4,7 +4,7 @@
 
 // kernels borrowed from Caffe
 template <typename Dtype>
-__global__ void MaxPoolForward(const int nthreads, const Dtype* bottom_data,
+__global__ void MaxPoolForward(hipLaunchParm lp, const int nthreads, const Dtype* bottom_data,
     const int num, const int channels, const int height,
     const int width, const int pooled_height, const int pooled_width,
     const int kernel_h, const int kernel_w, const int stride_h,
@@ -42,7 +42,7 @@ __global__ void MaxPoolForward(const int nthreads, const Dtype* bottom_data,
 
 
 template <typename Dtype>
-__global__ void MaxPoolBackward(const int nthreads, const Dtype* top_diff,
+__global__ void MaxPoolBackward(hipLaunchParm lp, const int nthreads, const Dtype* top_diff,
     const Dtype* top_mask, const int num, const int channels,
     const int height, const int width, const int pooled_height,
     const int pooled_width, const int kernel_h, const int kernel_w,

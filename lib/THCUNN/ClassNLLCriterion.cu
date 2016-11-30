@@ -7,7 +7,7 @@
 
 static const int NTHREADS = 32;
 
-__global__ void cunn_ClassNLLCriterion_updateOutput_kernel1(float *output,
+__global__ void cunn_ClassNLLCriterion_updateOutput_kernel1(hipLaunchParm lp, float *output,
                                                            float *total_weight,
                                                            float *input,
                                                            long  *target,
@@ -29,7 +29,7 @@ __global__ void cunn_ClassNLLCriterion_updateOutput_kernel1(float *output,
   }
 }
 
-__global__ void cunn_ClassNLLCriterion_updateOutput_kernel(float *output,
+__global__ void cunn_ClassNLLCriterion_updateOutput_kernel(hipLaunchParm lp, float *output,
                                                            float *total_weight,
                                                            float *input,
                                                            long *target,
@@ -68,7 +68,7 @@ __global__ void cunn_ClassNLLCriterion_updateOutput_kernel(float *output,
   }
 }
 
-__global__ void cunn_ClassNLLCriterion_updateGradInput_kernel1(
+__global__ void cunn_ClassNLLCriterion_updateGradInput_kernel1(hipLaunchParm lp, 
   float* gradInput,
   float* weights,
   long* target,
@@ -85,7 +85,7 @@ __global__ void cunn_ClassNLLCriterion_updateGradInput_kernel1(
   gradInput[t] = -(weights ? weights[t] : 1.0f) * norm;
 }
 
-__global__ void cunn_ClassNLLCriterion_updateGradInput_kernel(
+__global__ void cunn_ClassNLLCriterion_updateGradInput_kernel(hipLaunchParm lp, 
   float *gradInput,
   long *target,
   float *weights,

@@ -3,7 +3,7 @@
 #include "common.h"
 
 template <typename Dtype, bool COUNT_INCLUDE_PAD>
-__global__ void AvePoolForward(const int nthreads,
+__global__ void AvePoolForward(hipLaunchParm lp, const int nthreads,
     const Dtype* const bottom_data, const int num, const int channels,
     const int height, const int width, const int pooled_height,
     const int pooled_width, const int kernel_h, const int kernel_w,
@@ -110,7 +110,7 @@ void THNN_CudaSpatialAveragePooling_updateOutput(THCState *state, THCudaTensor *
 }
 
 template <typename Dtype, bool COUNT_INCLUDE_PAD>
-__global__ void AvePoolBackward(const int nthreads, const Dtype* const top_diff,
+__global__ void AvePoolBackward(hipLaunchParm lp, const int nthreads, const Dtype* const top_diff,
     const int num, const int channels, const int height,
     const int width, const int pooled_height, const int pooled_width,
     const int kernel_h, const int kernel_w, const int stride_h,

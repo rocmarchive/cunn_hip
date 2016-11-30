@@ -7,7 +7,7 @@ __global__ void
 #if __CUDA_ARCH__ >= 320
 __launch_bounds__(CUDA_NUM_THREADS)
 #endif
-LRNFillScale(const int nthreads, const Dtype* const in,
+LRNFillScale(hipLaunchParm lp, const int nthreads, const Dtype* const in,
     const int num, const int channels, const int height,
     const int width, const int size, const Dtype alpha_over_size,
     const Dtype k, Dtype* const scale) {
@@ -52,7 +52,7 @@ LRNFillScale(const int nthreads, const Dtype* const in,
   }
 }
 
-__global__ void LRNComputeOutput(const int nthreads, const float* in,
+__global__ void LRNComputeOutput(hipLaunchParm lp, const int nthreads, const float* in,
     const float* scale, const float negative_beta, float* out) {
   CUDA_KERNEL_LOOP(index, nthreads) {
     out[index] = in[index] * pow(scale[index], negative_beta);
@@ -60,7 +60,7 @@ __global__ void LRNComputeOutput(const int nthreads, const float* in,
 }
 
 template <typename Dtype>
-__global__ void LRNComputeDiff(const int nthreads,
+__global__ void LRNComputeDiff(hipLaunchParm lp, const int nthreads,
     const Dtype* const bottom_data, const Dtype* const top_data,
     const Dtype* const scale, const Dtype* const top_diff,
     const int num, const int channels, const int height,

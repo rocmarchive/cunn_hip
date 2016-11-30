@@ -2,7 +2,7 @@
 #include "THCUNN.h"
 #include "common.h"
 
-__global__ void cunn_SpatialLogSoftMax_updateOutput_kernel(float *output, float *input, int classSize, int height, int width)
+__global__ void cunn_SpatialLogSoftMax_updateOutput_kernel(hipLaunchParm lp, float *output, float *input, int classSize, int height, int width)
 {
   int batchIndex = hipBlockIdx_x;
   int index = hipThreadIdx_x;
@@ -38,7 +38,7 @@ __global__ void cunn_SpatialLogSoftMax_updateOutput_kernel(float *output, float 
   }
 }
 
-__global__ void cunn_SpatialLogSoftMax_updateGradInput_kernel(float *gradInput, float *output, float *gradOutput, int classSize, int height, int width)
+__global__ void cunn_SpatialLogSoftMax_updateGradInput_kernel(hipLaunchParm lp, float *gradInput, float *output, float *gradOutput, int classSize, int height, int width)
 {
   int batchIndex = hipBlockIdx_x;
   int index = hipThreadIdx_x;
@@ -230,7 +230,7 @@ ilpReduce(float* data,
 
 template <int ILP>
 __global__ void
-cunn_LogSoftMax_updateOutput_kernel(float *output, float *input, int classes)
+cunn_LogSoftMax_updateOutput_kernel(hipLaunchParm lp, float *output, float *input, int classes)
 {
   HIP_DYNAMIC_SHARED( float, buffer)
   // forward pointers to batch[hipBlockIdx_x]
@@ -279,7 +279,7 @@ cunn_LogSoftMax_updateOutput_kernel(float *output, float *input, int classes)
 
 template <int ILP>
 __global__ void
-cunn_LogSoftMax_updateGradInput_kernel(float *gradInput,
+cunn_LogSoftMax_updateGradInput_kernel(hipLaunchParm lp, float *gradInput,
                                        float *output,
                                        float *gradOutput,
                                        int classes)

@@ -5,7 +5,7 @@
 #define MULTIMARGIN_THREADS 128
 
 template <int P>
-__global__ void cunn_MultiMarginCriterion_updateOutput_kernel(float *output, float *input, float *target, float *weights, int nframe, int dim, bool sizeAverage, float margin)
+__global__ void cunn_MultiMarginCriterion_updateOutput_kernel(hipLaunchParm lp, float *output, float *input, float *target, float *weights, int nframe, int dim, bool sizeAverage, float margin)
 {
   __shared__ float buffer[MULTIMARGIN_THREADS];
   int k = hipBlockIdx_x;
@@ -48,7 +48,7 @@ __global__ void cunn_MultiMarginCriterion_updateOutput_kernel(float *output, flo
 }
 
 template <int P>
-__global__ void cunn_MultiMarginCriterion_updateGradInput_kernel(float *gradInput, float *input, float *target, float *weights, int nframe, int dim, bool sizeAverage, float margin)
+__global__ void cunn_MultiMarginCriterion_updateGradInput_kernel(hipLaunchParm lp, float *gradInput, float *input, float *target, float *weights, int nframe, int dim, bool sizeAverage, float margin)
 {
   __shared__ float buffer[MULTIMARGIN_THREADS];
   int k = hipBlockIdx_x;

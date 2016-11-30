@@ -4,7 +4,7 @@
 
 #define SOFTMAX_THREADS 128
 
-__global__ void cunn_SoftMax_updateOutput_kernel(
+__global__ void cunn_SoftMax_updateOutput_kernel(hipLaunchParm lp, 
   float *output, float *input, int nframe, int dim, int stride0, int stride1)
 {
   __shared__ float buffer[SOFTMAX_THREADS+1];
@@ -69,7 +69,7 @@ __global__ void cunn_SoftMax_updateOutput_kernel(
     output_k[i*stride0] = output_k[i*stride0] / sum_k;
 }
 
-__global__ void cunn_SoftMax_updateGradInput_kernel(
+__global__ void cunn_SoftMax_updateGradInput_kernel(hipLaunchParm lp, 
   float *gradInput, float *output, float *gradOutput, int nframe, int dim, int stride0, int stride1)
 {
   __shared__ float buffer[SOFTMAX_THREADS];

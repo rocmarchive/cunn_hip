@@ -5,7 +5,7 @@
 // Kernel for fast unfold+copy
 // Borrowed from Theano
 // Authors: Arjun Jain, Frédéric Bastien, Jan Schlüter, Nicolas Ballas
-__global__ void im3d2col_kernel(const int n, const float* data_im,
+__global__ void im3d2col_kernel(hipLaunchParm lp, const int n, const float* data_im,
                                 const int height, const int width, const int depth,
                                 const int kernel_h, const int kernel_w, const int kernel_d,
                                 const int pad_h, const int pad_w, const int pad_d,
@@ -81,7 +81,7 @@ void im3d2col(hipStream_t stream, const float* data_im, const int channels,
 }
 
 
-__global__ void col2im3d_kernel(const int n, const float* data_col,
+__global__ void col2im3d_kernel(hipLaunchParm lp, const int n, const float* data_col,
                                 const int height, const int width, const int depth,
                                 const int channels,
                                 const int patch_h, const int patch_w, const int patch_d,

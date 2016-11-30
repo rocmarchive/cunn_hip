@@ -1,4 +1,5 @@
 #include "hip/hip_runtime.h"
+#include "hip/hip_runtime.h"
 #ifndef THCUNN_VOL2COL_H
 #define THCUNN_VOL2COL_H
 
@@ -6,7 +7,7 @@
 
 // Kernel for fast unfold+copy on volumes
 template <typename Dtype>
-__global__ void vol2col_kernel(const int n, const Dtype* data_vol,
+__global__ void vol2col_kernel(hipLaunchParm lp, const int n, const Dtype* data_vol,
     const int depth, const int height, const int width,
     const int ksize_t, const int ksize_h, const int ksize_w,
     const int pad_t, const int pad_h, const int pad_w,
@@ -67,7 +68,7 @@ void vol2col(hipStream_t stream, const Dtype* data_vol, const int channels,
 }
 
 template <typename Dtype>
-__global__ void vol2im_kernel(const int n, const Dtype* data_col,
+__global__ void vol2im_kernel(hipLaunchParm lp, const int n, const Dtype* data_col,
     const int depth, const int height, const int width, const int channels,
     const int kernel_t, const int kernel_h, const int kernel_w,
     const int pad_t, const int pad_h, const int pad_w,

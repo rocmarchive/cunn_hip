@@ -1,4 +1,5 @@
 #include "hip/hip_runtime.h"
+#include "hip/hip_runtime.h"
 #ifndef THCUNN_IM2COL_H
 #define THCUNN_IM2COL_H
 
@@ -7,7 +8,7 @@
 // Kernel for fast unfold+copy
 // (borrowed from Caffe: https://github.com/BVLC/caffe/blob/master/src/caffe/layers/conv_layer.cu)
 template <typename Dtype>
-__global__ void im2col_kernel(const int n, const Dtype* data_im,
+__global__ void im2col_kernel(hipLaunchParm lp, const int n, const Dtype* data_im,
                               const int height, const int width,
                               const int ksize_h, const int ksize_w,
                               const int pad_h, const int pad_w,
@@ -61,7 +62,7 @@ void im2col(hipStream_t stream, const Dtype* data_im, const int channels,
 }
 
 template <typename Dtype>
-__global__ void col2im_kernel(const int n, const Dtype* data_col,
+__global__ void col2im_kernel(hipLaunchParm lp, const int n, const Dtype* data_col,
                                   const int height, const int width, const int channels,
                                   const int kernel_h, const int kernel_w,
                                   const int pad_h, const int pad_w,

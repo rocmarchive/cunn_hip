@@ -7,7 +7,7 @@
 #include "THCDeviceTensorUtils.cuh"
 #include "THCDeviceUtils.cuh"
 
-__global__ void caffe_gpu_interp2_kernel(const int n,
+__global__ void caffe_gpu_interp2_kernel(hipLaunchParm lp, const int n,
     const float rheight, const float rwidth,
     const THCDeviceTensor<float, 4> data1, THCDeviceTensor<float, 4> data2) {
   int index = hipThreadIdx_x + hipBlockIdx_x * hipBlockDim_x;
@@ -89,7 +89,7 @@ void THNN_CudaSpatialUpSamplingBilinear_updateOutput(
 
 
 // Backward (adjoint) operation 1 <- 2 (accumulates)
-__global__ void caffe_gpu_interp2_kernel_backward(const int n,
+__global__ void caffe_gpu_interp2_kernel_backward(hipLaunchParm lp, const int n,
     const float rheight, const float rwidth,
     THCDeviceTensor<float, 4> data1, const THCDeviceTensor<float, 4> data2){
   int index = hipThreadIdx_x + hipBlockIdx_x * hipBlockDim_x;

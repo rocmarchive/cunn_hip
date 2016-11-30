@@ -6,7 +6,7 @@
 #include "THCDeviceUtils.cuh"
 #include "THCReduceApplyUtils.cuh"
 
-__global__ void SpatialReplicationPadding_updateOutput(
+__global__ void SpatialReplicationPadding_updateOutput(hipLaunchParm lp,
   THCDeviceTensor<float, 4> input,
   THCDeviceTensor<float, 4> output,
   int padT, int padB, int padL, int padR) {
@@ -89,7 +89,7 @@ void THNN_CudaSpatialReplicationPadding_updateOutput(THCState *state,
 
 }
 
-__global__ void SpatialReplicationPadding_updateGradInput(
+__global__ void SpatialReplicationPadding_updateGradInput(hipLaunchParm lp,
   THCDeviceTensor<float, 4> gradInput,
   THCDeviceTensor<float, 4> gradOutput,
   int padT, int padB, int padL, int padR) {

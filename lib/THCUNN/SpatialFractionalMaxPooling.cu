@@ -22,7 +22,7 @@ __device__ inline float getInterval(float sample,
 
 // We template on poolSizeW to allow the innermost loop to be unrolled
 template <int PoolSizeWStatic>
-__global__ void SpatialFractionalMaxPooling_updateOutput(
+__global__ void SpatialFractionalMaxPooling_updateOutput(hipLaunchParm lp, 
   THCDeviceTensor<float, 4> input,
   THCDeviceTensor<float, 4> output,
   THCDeviceTensor<float, 4> indices,
@@ -143,8 +143,8 @@ void THNN_CudaSpatialFractionalMaxPooling_updateOutput(
   dim3 block(outputPlaneSize > 128 ? 128 : outputPlaneSize);
 
 #define SFMP_UPDATE_OUTPUT(POOL_W)                                      \
-  SpatialFractionalMaxPooling_updateOutput<POOL_W>                      \
-    <<<grid, block, 0, THCState_getCurrentStream(state)>>>(             \
+  hipLaunchKernel(SpatialFractionalMaxPooling_updateOutput<POOL_W>                      \
+    ,grid, block, 0, THCState_getCurrentStream(state),            \
       devInput, devOutput, devIndices, devSamples, poolSizeW, poolSizeH);
 
 #define SFMP_UPDATE_OUTPUT_CASE(POOL_W)                 \
@@ -164,7 +164,7 @@ void THNN_CudaSpatialFractionalMaxPooling_updateOutput(
   THCudaCheck(hipGetLastError());
 }
 
-__global__ void SpatialFractionalMaxPooling_updateGradInput(
+__global__ void SpatialFractionalMaxPooling_updateGradInput(hipLaunchParm lp,
   THCDeviceTensor<float, 4> gradInput,
   THCDeviceTensor<float, 4> gradOutput,
   THCDeviceTensor<float, 4> indices) {

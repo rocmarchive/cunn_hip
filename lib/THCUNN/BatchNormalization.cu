@@ -157,7 +157,7 @@ static THCDeviceTensor<float, Dim> devicetensor(THCState *state, THCudaTensor *t
   return THCDeviceTensor<float, Dim>(THCudaTensor_data(state, t), size);
 }
 
-__global__ void BatchNormalizationUpdateOutputInference_kernel(
+__global__ void BatchNormalizationUpdateOutputInference_kernel(hipLaunchParm lp,
     const DeviceTensor3 input,
     DeviceTensor3 output,
     DeviceTensor1 runningMean,
@@ -182,7 +182,7 @@ __global__ void BatchNormalizationUpdateOutputInference_kernel(
   }
 }
 
-__global__ void BatchNormalizationUpdateOutput_kernel(
+__global__ void BatchNormalizationUpdateOutput_kernel(hipLaunchParm lp, 
     const DeviceTensor3 input,
     DeviceTensor3 output,
     const DeviceTensor1 weight,
@@ -264,7 +264,7 @@ void THNN_CudaBatchNormalization_updateOutput(
   THCudaCheck(hipGetLastError());
 }
 
-__global__ void BatchNormalizationBackward_kernel(
+__global__ void BatchNormalizationBackward_kernel(hipLaunchParm lp,
     const DeviceTensor3 input,
     const DeviceTensor3 gradOutput,
     DeviceTensor3 gradInput,

@@ -7,7 +7,7 @@
 
 #include <thrust/functional.h>
 
-__global__ void cunn_SpatialClassNLLCriterion_updateOutput_kernel(
+__global__ void cunn_SpatialClassNLLCriterion_updateOutput_kernel(hipLaunchParm lp, 
           float *output,
           float *total_weight,
           float *input,
@@ -54,7 +54,7 @@ __global__ void cunn_SpatialClassNLLCriterion_updateOutput_kernel(
   }
 }
 
-__global__ void cunn_SpatialClassNLLCriterion_updateGradInput_kernel(
+__global__ void cunn_SpatialClassNLLCriterion_updateGradInput_kernel(hipLaunchParm lp, 
           float *gradInput,
           long *target,
           float *weights,

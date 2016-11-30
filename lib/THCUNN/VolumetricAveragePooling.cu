@@ -5,7 +5,7 @@
 #include "THCDeviceTensorUtils.cuh"
 #include "THCDeviceUtils.cuh"
 
-__global__ void cuda_VolumetricAveragePooling_updateOutput(
+__global__ void cuda_VolumetricAveragePooling_updateOutput(hipLaunchParm lp,
   THCDeviceTensor<float, 4> input, THCDeviceTensor<float, 4> output,
   int kT, int kH, int kW, int dT, int dH, int dW, float normFactor, int offsetZ)
 {
@@ -51,7 +51,7 @@ __global__ void cuda_VolumetricAveragePooling_updateOutput(
 // performance reasons.
 //
 template<int KERNEL_WIDTH>
-__global__ void cuda_VolumetricAveragePooling_updateOutput(
+__global__ void cuda_VolumetricAveragePooling_updateOutput(hipLaunchParm lp, 
   THCDeviceTensor<float, 4> input, THCDeviceTensor<float, 4> output,
   int kT, int kH, int dT, int dH, int dW, float normFactor, int offsetZ)
 {
@@ -215,7 +215,7 @@ void THNN_CudaVolumetricAveragePooling_updateOutput(
   THCudaTensor_free(state, input);
 }
 
-__global__ void cuda_VolumetricAveragePooling_updateGradInput_Stride1(
+__global__ void cuda_VolumetricAveragePooling_updateGradInput_Stride1(hipLaunchParm lp, 
   THCDeviceTensor<float, 4> gradOutput,
   THCDeviceTensor<float, 4> gradInput,
   int kT, int kH, int kW, float normFactor, int offsetZ)
@@ -257,7 +257,7 @@ __global__ void cuda_VolumetricAveragePooling_updateGradInput_Stride1(
   }
 }
 
-__global__ void cuda_VolumetricAveragePooling_updateGradInput_atomicAdd(
+__global__ void cuda_VolumetricAveragePooling_updateGradInput_atomicAdd(hipLaunchParm lp, 
   THCDeviceTensor<float, 4> gradOutput,
   THCDeviceTensor<float, 4> gradInput,
   int kT, int kH, int kW, int dT, int dH, int dW, int offsetZ)
@@ -284,7 +284,7 @@ __global__ void cuda_VolumetricAveragePooling_updateGradInput_atomicAdd(
   }
 }
 
-__global__ void cuda_VolumetricAveragePooling_updateGradInput(
+__global__ void cuda_VolumetricAveragePooling_updateGradInput(hipLaunchParm lp,
   THCDeviceTensor<float, 4> gradOutput,
   THCDeviceTensor<float, 4> gradInput,
   int kT, int kH, int kW,

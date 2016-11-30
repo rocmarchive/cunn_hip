@@ -6,7 +6,7 @@
 #include "THCDeviceUtils.cuh"
 #include "THCReduceApplyUtils.cuh"
 
-__global__ void VolumetricReplicationPadding_updateOutput(
+__global__ void VolumetricReplicationPadding_updateOutput(hipLaunchParm lp, 
   THCDeviceTensor<float, 5> input,
   THCDeviceTensor<float, 5> output,
   int pfront, int pback, int ptop, int pbottom, int pleft, int pright) {
@@ -103,7 +103,7 @@ void THNN_CudaVolumetricReplicationPadding_updateOutput(THCState *state,
     devInput, devOutput, pfront, pback, ptop, pbottom, pleft, pright);
 }
 
-__global__ void VolumetricReplicationPadding_updateGradInput(
+__global__ void VolumetricReplicationPadding_updateGradInput(hipLaunchParm lp,
   THCDeviceTensor<float, 5> gradInput,
   THCDeviceTensor<float, 5> gradOutput,
   int pfront, int pback, int ptop, int pbottom, int pleft, int pright) {

@@ -20,7 +20,7 @@ struct PReLUUpdateOutput
   }
 };
 
-__global__ void preluForward(float *output, const float *input, const float *weight, int n, int nElemsPerSample, int mapSize)
+__global__ void preluForward(hipLaunchParm lp, float *output, const float *input, const float *weight, int n, int nElemsPerSample, int mapSize)
 {
   CUDA_KERNEL_LOOP(i, n)
   {
@@ -82,7 +82,7 @@ struct PReLUUpdateGradInput
   }
 };
 
-__global__ void preluBackward(
+__global__ void preluBackward(hipLaunchParm lp, 
   float *gradInput,
   const float *input,
   const float *weight,

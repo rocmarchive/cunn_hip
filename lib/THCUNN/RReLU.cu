@@ -9,7 +9,7 @@
 #define BLOCK_SIZE 256
 #define NUM_BLOCKS(n) min((int)THCCeilDiv(n, (long) BLOCK_SIZE), MAX_NUM_BLOCKS)
 
-__global__ void rreluUpdateOutputTrain(int n, curandStateMtgp32 *state,
+__global__ void rreluUpdateOutputTrain(hipLaunchParm lp, int n, curandStateMtgp32 *state,
   float *input, float* noise, float *output, double a, double b)
 {
   CUDA_KERNEL_LOOP(i, n)

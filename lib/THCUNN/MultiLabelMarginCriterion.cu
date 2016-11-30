@@ -7,7 +7,7 @@
 
 #define MULTILABELMARGIN_THREADS 1024
 
-__global__ void cunn_MultiLabelMarginCriterion_updateOutput_kernel(float *output,
+__global__ void cunn_MultiLabelMarginCriterion_updateOutput_kernel(hipLaunchParm lp, float *output,
                                                                    float *input,
                                                                    float *target,
                                                                    float *istarget,
@@ -73,7 +73,7 @@ __global__ void cunn_MultiLabelMarginCriterion_updateOutput_kernel(float *output
   }
 }
 
-__global__ void cunn_MultiLabelMarginCriterion_updateGradInput_kernel(float *gradInput,
+__global__ void cunn_MultiLabelMarginCriterion_updateGradInput_kernel(hipLaunchParm lp, float *gradInput,
                                                                       float *input,
                                                                       float *target,
                                                                       float *istarget,

@@ -7,7 +7,7 @@
 
 #include <cfloat>
 
-__global__ void cuda_VolumetricMaxUnpooling_updateOutput(
+__global__ void cuda_VolumetricMaxUnpooling_updateOutput(hipLaunchParm lp, 
   THCDeviceTensor<float, 4> input,
   THCDeviceTensor<float, 4> indices,
   THCDeviceTensor<float, 4> output,
@@ -35,7 +35,7 @@ __global__ void cuda_VolumetricMaxUnpooling_updateOutput(
   }
 }
 
-void THNN_CudaVolumetricMaxUnpooling_updateOutput(
+void THNN_CudaVolumetricMaxUnpooling_updateOutput(hipLaunchParm lp, 
   THCState *state, THCudaTensor *input, THCudaTensor *output, THCudaTensor *indices,
   int outputTime, int outputWidth, int outputHeight,
   int dT, int dW, int dH,
@@ -128,7 +128,7 @@ void THNN_CudaVolumetricMaxUnpooling_updateOutput(
   THCudaTensor_free(state, indices);
 }
 
-__global__ void cuda_VolumetricMaxUnpooling_updateGradInput(
+__global__ void cuda_VolumetricMaxUnpooling_updateGradInput(hipLaunchParm lp, 
   THCDeviceTensor<float, 4> gradOutput,
   THCDeviceTensor<float, 4> indices,
   THCDeviceTensor<float, 4> gradInput,
