@@ -1,3 +1,4 @@
+#if 0
 #include "hip/hip_runtime.h"
 #include "THCUNN.h"
 #include "common.h"
@@ -341,3 +342,4 @@ void THNN_CudaLookupTable_renorm(
     }
   }
 }
+#endif

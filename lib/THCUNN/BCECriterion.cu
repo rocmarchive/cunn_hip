@@ -1,3 +1,4 @@
+#if 0
 #include "THCUNN.h"
 #include "common.h"
 
@@ -152,3 +153,4 @@ void THNN_CudaBCECriterion_updateGradInput(THCState *state, THCudaTensor *input,
   THCudaTensor_free(state, input);
   THCudaTensor_free(state, target);
 }
+#endif
