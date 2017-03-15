@@ -100,11 +100,12 @@ void THNN_CudaDistKLDivCriterion_updateGradInput(THCState *state, THCudaTensor *
   auto target_data = THCudaTensor_data(state, target);
   auto gradInput_data = THCudaTensor_data(state, gradInput);
 
-  bolt::amp::transform(input_data, 
-                       input_data+size, 
-                       target_data, 
-                       gradInput_data, 
-                       kl_updateGradInput_functor(norm));
+// WSTHORNTON
+//  bolt::amp::transform(input_data, 
+//                       input_data+size, 
+//                       target_data, 
+//                       gradInput_data, 
+//                       kl_updateGradInput_functor(norm));
 #endif
 
   THCudaTensor_free(state, input);

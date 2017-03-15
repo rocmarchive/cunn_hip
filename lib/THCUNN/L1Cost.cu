@@ -11,14 +11,19 @@
 #else
     #include <bolt/amp/functional.h>
     #include <bolt/amp/reduce.h>
+    #include <bolt/amp/transform.h>
 #endif
 
 struct l1cost_functor
 {
-  __host__ __device__ float operator()(float x, float y) const
+  __host__ __device__ 
+  float operator()(float x, float y) const
   {
     return abs(x) + abs(y);
   }
+
+  __host__ __device__ 
+  ~l1cost_functor() {}
 };
 
 void THNN_CudaL1Cost_updateOutput(THCState *state, THCudaTensor *input, THCudaTensor *output)
@@ -32,9 +37,11 @@ void THNN_CudaL1Cost_updateOutput(THCState *state, THCudaTensor *input, THCudaTe
   sum = thrust::reduce(input_data, input_data+size, (float) 0, l1cost_functor());
 #else
   auto input_data = THCudaTensor_data(state, input);
-  sum = bolt::amp::reduce(input_data, 
-                          input_data+size, 0.0f, 
-                          l1cost_functor());
+  // WSTHORNTON
+//  sum = bolt::amp::reduce(input_data, 
+//                          input_data+size, 
+//                          (float) 0,
+//                          l1cost_functor());
 #endif
 
   THCudaTensor_free(state, input);

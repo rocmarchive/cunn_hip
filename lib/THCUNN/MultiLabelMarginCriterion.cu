@@ -138,7 +138,7 @@ __global__ void cunn_MultiLabelMarginCriterion_updateGradInput_kernel(hipLaunchP
 #if THRUST_PATH
     float totalSum = reduceBlock(sums, hipBlockDim_x, sum, thrust::plus<float>(), 0.0f);
 #else
-    float totalSum = reduceBlock(sums, hipBlockDim_x, sum, thrust::plus<float>(), 0.0f);
+    float totalSum = reduceBlock(sums, hipBlockDim_x, sum, bolt::amp::plus<float>(), 0.0f);
 #endif
     if (hipThreadIdx_x == 0) {
       gradInput_k[target_idx] += totalSum;

@@ -127,7 +127,8 @@ struct LSMFinal
 
 template <typename Reduction, typename Finalize>
 __device__ __forceinline__ float
-blockReduce(float* smem, float val,
+//blockReduce(float* smem, float val,
+blockReduce(__attribute__((address_space(3))) float* smem, float val,
             const Reduction& r,
             float defaultVal,
             const Finalize& f)
@@ -182,7 +183,8 @@ blockReduce(float* smem, float val,
 
 template <typename Reduction>
 __device__ __forceinline__ float
-blockReduce(float* smem, float val,
+//blockReduce(float* smem, float val,
+blockReduce(__attribute__((address_space(3))) float* smem, float val,
             const Reduction& r,
             float defaultVal)
 {
