@@ -19,7 +19,7 @@ struct l1cost_functor
   __host__ __device__ 
   float operator()(float x, float y) const
   {
-    return abs(x) + abs(y);
+    return std::abs(x) + std::abs(y);
   }
 
   __host__ __device__ 

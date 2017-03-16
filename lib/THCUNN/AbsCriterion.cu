@@ -58,13 +58,19 @@ void THNN_CudaAbsCriterion_updateOutput(THCState *state, THCudaTensor *input, TH
 
 struct abs_updateGradInput_functor
 {
-  const float norm;
+  float norm;
 
-  abs_updateGradInput_functor(float norm_)
+  explicit abs_updateGradInput_functor(float norm_)
     : norm(norm_)
   {}
 
-  __host__ __device__ float operator()(const float& x, const float& y) const
+  __host__ __device__ 
+  abs_updateGradInput_functor(const abs_updateGradInput_functor& fun) {
+    norm = fun.norm;
+  }
+
+  __host__ __device__ 
+  float operator()(const float& x, const float& y) const
   {
     return (x - y) >= 0 ? norm : -norm;
   }
@@ -94,11 +100,11 @@ void THNN_CudaAbsCriterion_updateGradInput(THCState *state, THCudaTensor *input,
   auto gradInput_data = THCudaTensor_data(state, gradInput);
 
 // WSTHORNTON
-//  bolt::amp::transform(input_data, 
-//                       input_data+size, 
-//                       target_data, 
-//                       gradInput_data, 
-//                       abs_updateGradInput_functor(norm));
+  bolt::amp::transform(input_data, 
+                       input_data+size, 
+                       target_data, 
+                       gradInput_data, 
+                       abs_updateGradInput_functor(norm));
 #endif
 
   THCudaTensor_free(state, input);

@@ -1,3 +1,4 @@
+// WSTHORNTON
 #if 0
 #include "hip/hip_runtime.h"
 #include "THCUNN.h"

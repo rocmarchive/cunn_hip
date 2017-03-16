@@ -110,7 +110,8 @@ __global__ void cunn_ClassNLLCriterion_updateGradInput_kernel(hipLaunchParm lp,
 
 void THNN_CudaClassNLLCriterion_updateOutput(THCState *state, THCudaTensor *input, THCudaLongTensor *target, THCudaTensor *output, bool sizeAverage, THCudaTensor *weights, THCudaTensor *total_weight) {
   if (THCudaLongTensor_nDimension(state, target) > 1) {
-    THError("multi-target not supported");
+    // WSTHORNTON
+    //THError("multi-target not supported");
   }
 
   int n_dims = THCudaTensor_nDimension(state, input);
@@ -130,7 +131,8 @@ void THNN_CudaClassNLLCriterion_updateOutput(THCState *state, THCudaTensor *inpu
     THArgCheck(0, 2, "vector or matrix expected");
   }
   if (weights && THCudaTensor_nElement(state, weights) != n_classes) {
-    THError("weight tensor should be defined either for all or no classes");
+    // WSTHORNTON 
+    // THError("weight tensor should be defined either for all or no classes");
   }
 
   input = THCudaTensor_newContiguous(state, input);
@@ -178,7 +180,8 @@ void THNN_CudaClassNLLCriterion_updateOutput(THCState *state, THCudaTensor *inpu
 
 void THNN_CudaClassNLLCriterion_updateGradInput(THCState *state, THCudaTensor *input, THCudaLongTensor *target, THCudaTensor *gradInput, bool sizeAverage, THCudaTensor *weights, THCudaTensor *total_weight) {
   if (THCudaLongTensor_nDimension(state, target) > 1) {
-    THError("multi-target not supported");
+    // WSTHORNTON
+    // THError("multi-target not supported");
   }
 
   int n_dims = THCudaTensor_nDimension(state, input);
@@ -201,7 +204,8 @@ void THNN_CudaClassNLLCriterion_updateGradInput(THCState *state, THCudaTensor *i
     THArgCheck(0, 2, "vector or matrix expected");
   }
   if (weights && THCudaTensor_nElement(state, weights) != n_classes) {
-    THError("weight tensor should be defined either for all or no classes");
+    // WSTHORNTON 
+    // THError("weight tensor should be defined either for all or no classes");
   }
 
   weights = weights ? THCudaTensor_newContiguous(state, weights) : NULL;

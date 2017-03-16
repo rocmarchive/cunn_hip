@@ -109,7 +109,8 @@ void THNN_CudaSpatialClassNLLCriterion_updateOutput(
   THArgCheck(THCudaTensor_nDimension(state, input) == 4, 2,
                "only batches of spatial inputs supported (4D tensors)");
   if (weights && THCudaTensor_nElement(state, weights) != THCudaTensor_size(state, input, 1)) {
-    THError("weight tensor should be defined either for all or no classes");
+    // WSTHORNTON
+    // THError("weight tensor should be defined either for all or no classes");
   }
 
   if (weights)
@@ -172,7 +173,8 @@ void THNN_CudaSpatialClassNLLCriterion_updateGradInput(
   THArgCheck(THCudaTensor_isContiguous(state, gradInput), 4,
                "gradInput must be contiguous");
   if (weights && THCudaTensor_nElement(state, weights) != THCudaTensor_size(state, input, 1)) {
-    THError("weight tensor should be defined either for all or no classes");
+    // WSTHORNTON
+    // THError("weight tensor should be defined either for all or no classes");
   }
 
   if (weights)

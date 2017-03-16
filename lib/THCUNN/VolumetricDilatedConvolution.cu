@@ -48,7 +48,8 @@ void THNN_CudaVolumetricDilatedConvolution_updateOutput(
   long outputWidth  = (inputWidth  + 2*padW - (dilationW * (kW - 1) + 1)) / dW + 1;
 
   if (outputDepth < 1 || outputWidth < 1 || outputHeight < 1)
-    THError("Given input size: (%dx%dx%dx%d). Calculated output size: (%dx%dx%dx%d). Output size is too small",
+    // WSTHORNTON
+    // THError("Given input size: (%dx%dx%dx%d). Calculated output size: (%dx%dx%dx%d). Output size is too small",
             nInputPlane,inputDepth,inputHeight,inputWidth,nOutputPlane,outputDepth,outputHeight,outputWidth);
 
   // Batch size + input planes

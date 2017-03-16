@@ -98,7 +98,8 @@ void THNN_CudaSpatialUpSamplingNearest_updateOutput(THCState *state, THCudaTenso
   long n_xblocks = min(max((int)ceil((float)no_elements / nthreads), 1), 65535);
   long n_yblocks = (long)ceil((float)no_elements / (float)(n_xblocks * nthreads));
   if (n_yblocks > 65535) {
-    THError("Input size is too large!  aborting");
+    // WSTHORNTON
+    // THError("Input size is too large!  aborting");
   }
   dim3 blocks(n_xblocks, n_yblocks);
   dim3 threads(nthreads);
@@ -166,7 +167,8 @@ void THNN_CudaSpatialUpSamplingNearest_updateGradInput(THCState *state, THCudaTe
   long n_xblocks = min(max((int)ceil((float)no_elements / nthreads), 1), 65535);
   long n_yblocks = (long)ceil((float)no_elements / (float)(n_xblocks * nthreads));
   if (n_yblocks > 65535) {
-    THError("Input size is too large!  aborting");
+    // WSTHORNTON
+    // THError("Input size is too large!  aborting");
   }
   dim3 blocks(n_xblocks, n_yblocks);
   dim3 threads(nthreads);

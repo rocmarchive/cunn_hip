@@ -217,8 +217,9 @@ void THNN_CudaVolumetricDilatedMaxPooling_updateOutput(
   }
 
   if (outputTime < 1 || outputHeight < 1 || outputWidth < 1)
-    THError("Given input size: (%dx%dx%dx%d). Calculated output size: (%dx%dx%dx%d). Output size is too small",
-            inputSlices,inputTime,inputHeight,inputWidth,inputSlices,outputTime,outputHeight,outputWidth);
+    // WSTHORNTON
+    //THError("Given input size: (%dx%dx%dx%d). Calculated output size: (%dx%dx%dx%d). Output size is too small",
+     //       inputSlices,inputTime,inputHeight,inputWidth,inputSlices,outputTime,outputHeight,outputWidth);
 
   if (padT || padW || padH)
   {

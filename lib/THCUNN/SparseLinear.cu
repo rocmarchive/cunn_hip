@@ -1,3 +1,4 @@
+// WSTHORNTON
 #if 0
 #include "THCUNN.h"
 #include <cusparse.h>
