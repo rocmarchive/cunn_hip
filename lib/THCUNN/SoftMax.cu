@@ -2,6 +2,8 @@
 #include "THCUNN.h"
 #include "common.h"
 
+#include "/root/grid_launch_variadic/headers/implementation/functions/grid_launch.hpp"
+
 #define SOFTMAX_THREADS 128
 
 __global__ void cunn_SoftMax_updateOutput_kernel(hipLaunchParm lp, 
@@ -161,7 +163,7 @@ void THNN_CudaSoftMax_updateOutput(THCState *state, THCudaTensor *input, THCudaT
 
   dim3 blocks(batchSize, blocksY, blocksZ);
   dim3 threads(SOFTMAX_THREADS);
-  hipLaunchKernel(HIP_KERNEL_NAME(cunn_SoftMax_updateOutput_kernel), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), 
+  hipLaunchKernelV2(HIP_KERNEL_NAME(cunn_SoftMax_updateOutput_kernel), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), 
     THCudaTensor_data(state, output),
     THCudaTensor_data(state, input),
     batchSize, dim, stride0, stride1
@@ -230,7 +232,7 @@ void THNN_CudaSoftMax_updateGradInput(THCState *state, THCudaTensor *input, THCu
 
   dim3 blocks(batchSize, blocksY, blocksZ);
   dim3 threads(SOFTMAX_THREADS);
-  hipLaunchKernel(HIP_KERNEL_NAME(cunn_SoftMax_updateGradInput_kernel), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), 
+  hipLaunchKernelV2(HIP_KERNEL_NAME(cunn_SoftMax_updateGradInput_kernel), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), 
     THCudaTensor_data(state, gradInput),
     THCudaTensor_data(state, output),
     THCudaTensor_data(state, gradOutput),

@@ -2,6 +2,8 @@
 #include "THCUNN.h"
 #include "common.h"
 
+#include "/root/grid_launch_variadic/headers/implementation/functions/grid_launch.hpp"
+
 #define TEMPORAL_MAX_POOLING_THREADS 1024
 
 __global__ void cunn_TemporalMaxPooling_updateOutputKernel(hipLaunchParm lp, float *input, float *output, float *indices, int input_w, int input_n, int output_w, int kW, int dW) {
@@ -142,7 +144,7 @@ void THNN_CudaTemporalMaxPooling_updateOutput(
   }
 
   dim3 threads(nthreads);
-  hipLaunchKernel(HIP_KERNEL_NAME(cunn_TemporalMaxPooling_updateOutputKernel), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state) , 
+  hipLaunchKernelV2(HIP_KERNEL_NAME(cunn_TemporalMaxPooling_updateOutputKernel), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state) , 
       input_data, output_data, indices_data, input_w, input_n, output_w, kW, dW);
   THCudaCheck(hipGetLastError());
   THCudaTensor_free(state, input);
@@ -210,10 +212,10 @@ void THNN_CudaTemporalMaxPooling_updateGradInput(
 
   dim3 threads(nthreads);
   if (kW <= dW) {
-    hipLaunchKernel(HIP_KERNEL_NAME(cunn_TemporalMaxPooling_updateGradInputKernel), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state) , 
+    hipLaunchKernelV2(HIP_KERNEL_NAME(cunn_TemporalMaxPooling_updateGradInputKernel), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state) , 
         gradInput_data, gradOutput_data, indices_data, input_w, input_n, output_w, kW, dW);
   } else {
-    hipLaunchKernel(HIP_KERNEL_NAME(cunn_TemporalMaxPooling_updateGradInputKernelAtomic), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state) , 
+    hipLaunchKernelV2(HIP_KERNEL_NAME(cunn_TemporalMaxPooling_updateGradInputKernelAtomic), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state) , 
         gradInput_data, gradOutput_data, indices_data, input_w, input_n, output_w, kW, dW);
   }
   THCudaCheck(hipGetLastError());

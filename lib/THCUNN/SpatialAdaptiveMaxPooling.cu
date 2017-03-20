@@ -2,6 +2,8 @@
 #include "THCUNN.h"
 #include "common.h"
 
+#include "/root/grid_launch_variadic/headers/implementation/functions/grid_launch.hpp"
+
 #define CUDA_MAX_THREADS 1024   // this is safe, in reality 256 is our limit
 
 /*
@@ -220,7 +222,7 @@ void THNN_CudaSpatialAdaptiveMaxPooling_updateOutput(THCState *state, THCudaTens
     dim3 threads(32,8);
 
     // run maxpool kernel
-    hipLaunchKernel(HIP_KERNEL_NAME(adaptivemaxpool), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), input_data, output_data,
+    hipLaunchKernelV2(HIP_KERNEL_NAME(adaptivemaxpool), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), input_data, output_data,
                                    indices_data+nInputPlane*nOutputCols*nOutputRows, indices_data,
                                    nInputPlane, nInputRows, nInputCols, nOutputRows, nOutputCols,
                                    istride_h, istride_w, istride_d);
@@ -252,7 +254,7 @@ void THNN_CudaSpatialAdaptiveMaxPooling_updateOutput(THCState *state, THCudaTens
     dim3 threads(32,8);
 
     // run maxpool kernel
-    hipLaunchKernel(HIP_KERNEL_NAME(adaptivemaxpool), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), input_data, output_data,
+    hipLaunchKernelV2(HIP_KERNEL_NAME(adaptivemaxpool), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), input_data, output_data,
                                    indices_data+nbatch*nInputPlane*nOutputCols*nOutputRows, indices_data,
                                    nInputPlane, nInputRows, nInputCols, nOutputRows, nOutputCols,
                                    istride_h, istride_w, istride_d);
@@ -299,14 +301,14 @@ void THNN_CudaSpatialAdaptiveMaxPooling_updateGradInput(THCState *state, THCudaT
     if(atomic)
     {
       // run updateGradInput kernel, accumulate gradients atomically
-      hipLaunchKernel(HIP_KERNEL_NAME(atomicadaptivemaxgradinput), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), gradInput_data, gradOutput_data,
+      hipLaunchKernelV2(HIP_KERNEL_NAME(atomicadaptivemaxgradinput), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), gradInput_data, gradOutput_data,
                                           indices_data+nInputPlane*nOutputCols*nOutputRows, indices_data,
                                           nInputPlane, nInputRows, nInputCols, nOutputRows, nOutputCols);
     }
     else
     {
       // run updateGradInput kernel
-      hipLaunchKernel(HIP_KERNEL_NAME(atomicadaptivemaxgradinput), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), gradInput_data, gradOutput_data,
+      hipLaunchKernelV2(HIP_KERNEL_NAME(atomicadaptivemaxgradinput), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), gradInput_data, gradOutput_data,
                                           indices_data+nInputPlane*nOutputCols*nOutputRows, indices_data,
                                           nInputPlane, nInputRows, nInputCols, nOutputRows, nOutputCols);
     }
@@ -337,14 +339,14 @@ void THNN_CudaSpatialAdaptiveMaxPooling_updateGradInput(THCState *state, THCudaT
     if(atomic)
     {
       // run updateGradInput kernel, accumulate gradients atomically
-      hipLaunchKernel(HIP_KERNEL_NAME(atomicadaptivemaxgradinput), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), gradInput_data, gradOutput_data,
+      hipLaunchKernelV2(HIP_KERNEL_NAME(atomicadaptivemaxgradinput), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), gradInput_data, gradOutput_data,
                                           indices_data+nbatch*nInputPlane*nOutputCols*nOutputRows, indices_data,
                                           nInputPlane, nInputRows, nInputCols, nOutputRows, nOutputCols);
     }
     else
     {
       // run updateGradInput kernel, accumulate gradients atomically
-      hipLaunchKernel(HIP_KERNEL_NAME(adaptivemaxgradinput), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), gradInput_data, gradOutput_data,
+      hipLaunchKernelV2(HIP_KERNEL_NAME(adaptivemaxgradinput), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), gradInput_data, gradOutput_data,
                                           indices_data+nbatch*nInputPlane*nOutputCols*nOutputRows, indices_data,
                                           nInputPlane, nInputRows, nInputCols, nOutputRows, nOutputCols);
     }

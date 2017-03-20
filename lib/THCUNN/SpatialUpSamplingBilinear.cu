@@ -7,6 +7,8 @@
 #include "THCDeviceTensorUtils.cuh"
 #include "THCDeviceUtils.cuh"
 
+#include "/root/grid_launch_variadic/headers/implementation/functions/grid_launch.hpp"
+
 __global__ void caffe_gpu_interp2_kernel(hipLaunchParm lp, const int n,
     const float rheight, const float rwidth,
     const THCDeviceTensor<float, 4> data1, THCDeviceTensor<float, 4> data2) {
@@ -81,7 +83,7 @@ void THNN_CudaSpatialUpSamplingBilinear_updateOutput(
   const int num_threads =
     THCState_getCurrentDeviceProperties(state)->maxThreadsPerBlock;
   hipStream_t stream = THCState_getCurrentStream(state);
-  hipLaunchKernel(HIP_KERNEL_NAME(caffe_gpu_interp2_kernel), dim3(THCCeilDiv(num_kernels, num_threads)), dim3(num_threads ), 0 , stream, num_kernels, rheight, rwidth, idata, odata);
+  hipLaunchKernelV2(HIP_KERNEL_NAME(caffe_gpu_interp2_kernel), dim3(THCCeilDiv(num_kernels, num_threads)), dim3(num_threads ), 0 , stream, num_kernels, rheight, rwidth, idata, odata);
   THCudaCheck(hipGetLastError());
   THCudaTensor_free(state, input);
   THCudaTensor_free(state, output);
@@ -168,7 +170,7 @@ void THNN_CudaSpatialUpSamplingBilinear_updateGradInput(
   const int num_threads =
     THCState_getCurrentDeviceProperties(state)->maxThreadsPerBlock;
   hipStream_t stream = THCState_getCurrentStream(state);
-  hipLaunchKernel(HIP_KERNEL_NAME(caffe_gpu_interp2_kernel_backward), dim3(THCCeilDiv(num_kernels, num_threads)), dim3(num_threads), 0, stream, num_kernels, rheight, rwidth, data1, data2);
+  hipLaunchKernelV2(HIP_KERNEL_NAME(caffe_gpu_interp2_kernel_backward), dim3(THCCeilDiv(num_kernels, num_threads)), dim3(num_threads), 0, stream, num_kernels, rheight, rwidth, data1, data2);
   THCudaCheck(hipGetLastError());
   THCudaTensor_free(state, gradInput);
   THCudaTensor_free(state, gradOutput);

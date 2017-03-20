@@ -7,6 +7,8 @@
 
 #include <cfloat>
 
+#include "/root/grid_launch_variadic/headers/implementation/functions/grid_launch.hpp"
+
 __device__ inline float getInterval(float sample,
                                     int index,
                                     int inputSize,
@@ -143,7 +145,7 @@ void THNN_CudaSpatialFractionalMaxPooling_updateOutput(
   dim3 block(outputPlaneSize > 128 ? 128 : outputPlaneSize);
 
 #define SFMP_UPDATE_OUTPUT(POOL_W)                                      \
-  hipLaunchKernel(SpatialFractionalMaxPooling_updateOutput<POOL_W>                      \
+  hipLaunchKernelV2(SpatialFractionalMaxPooling_updateOutput<POOL_W>                      \
     ,grid, block, 0, THCState_getCurrentStream(state),            \
       devInput, devOutput, devIndices, devSamples, poolSizeW, poolSizeH);
 
@@ -243,7 +245,7 @@ void THNN_CudaSpatialFractionalMaxPooling_updateGradInput(
             devGradInput.getSize(0));
   dim3 block(outputPlaneSize > 128 ? 128 : outputPlaneSize);
 
-  hipLaunchKernel(HIP_KERNEL_NAME(SpatialFractionalMaxPooling_updateGradInput), dim3(grid), dim3(block), 0, THCState_getCurrentStream(state), 
+  hipLaunchKernelV2(HIP_KERNEL_NAME(SpatialFractionalMaxPooling_updateGradInput), dim3(grid), dim3(block), 0, THCState_getCurrentStream(state), 
       devGradInput, devGradOutput, devIndices);
   THCudaCheck(hipGetLastError());
 }

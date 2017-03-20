@@ -1,5 +1,4 @@
 #include "hip/hip_runtime.h"
-#include "/root/grid_launch_variadic/headers/implementation/functions/grid_launch.hpp"
 
 #include "THCUNN.h"
 
@@ -8,6 +7,7 @@
 #include "THCDeviceUtils.cuh"
 #include "THCReduceApplyUtils.cuh"
 
+#include "/root/grid_launch_variadic/headers/implementation/functions/grid_launch.hpp"
 
 __global__ void VolumetricReplicationPadding_updateOutput(hipLaunchParm lp, 
   THCDeviceTensor<float, 5> input,
@@ -188,6 +188,6 @@ void THNN_CudaVolumetricReplicationPadding_updateGradInput(
             devGradOutput.getSize(0));
   dim3 blockSize(outputPlaneSize > 256 ? 256 : outputPlaneSize);
 
-  hipLaunchKernel(HIP_KERNEL_NAME(VolumetricReplicationPadding_updateGradInput), dim3(gridSize), dim3(blockSize), 0, THCState_getCurrentStream(state), 
+  hipLaunchKernelV2(HIP_KERNEL_NAME(VolumetricReplicationPadding_updateGradInput), dim3(gridSize), dim3(blockSize), 0, THCState_getCurrentStream(state), 
     devGradInput, devGradOutput, pfront, pback, ptop, pbottom, pleft, pright);
 }

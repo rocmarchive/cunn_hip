@@ -2,6 +2,8 @@
 #include "THCUNN.h"
 #include "common.h"
 
+#include "/root/grid_launch_variadic/headers/implementation/functions/grid_launch.hpp"
+
 __global__ void cunn_SpatialLogSoftMax_updateOutput_kernel(hipLaunchParm lp, float *output, float *input, int classSize, int height, int width)
 {
   int batchIndex = hipBlockIdx_x;
@@ -396,7 +398,7 @@ void THNN_CudaLogSoftMax_updateOutput(THCState *state, THCudaTensor *input, THCu
     dim3 grid(batchSize);
     dim3 block(1024);
 
-    hipLaunchKernel(HIP_KERNEL_NAME(cunn_LogSoftMax_updateOutput_kernel<2>), dim3(grid), dim3(block), block.x * sizeof(float), THCState_getCurrentStream(state), 
+    hipLaunchKernelV2(HIP_KERNEL_NAME(cunn_LogSoftMax_updateOutput_kernel<2>), dim3(grid), dim3(block), block.x * sizeof(float), THCState_getCurrentStream(state), 
         THCudaTensor_data(state, output),
         THCudaTensor_data(state, input),
         classSize
@@ -407,7 +409,7 @@ void THNN_CudaLogSoftMax_updateOutput(THCState *state, THCudaTensor *input, THCu
     dim3 grid(batchSize);
     dim3 block(1024);
 
-    hipLaunchKernel(HIP_KERNEL_NAME(cunn_SpatialLogSoftMax_updateOutput_kernel), dim3(grid), dim3(block), 0, THCState_getCurrentStream(state), 
+    hipLaunchKernelV2(HIP_KERNEL_NAME(cunn_SpatialLogSoftMax_updateOutput_kernel), dim3(grid), dim3(block), 0, THCState_getCurrentStream(state), 
         THCudaTensor_data(state, output),
         THCudaTensor_data(state, input),
         classSize, height, width
@@ -516,7 +518,7 @@ void THNN_CudaLogSoftMax_updateGradInput(THCState *state, THCudaTensor *input, T
     dim3 grid(batchSize);
     dim3 block(1024);
 
-    hipLaunchKernel(HIP_KERNEL_NAME(cunn_LogSoftMax_updateGradInput_kernel<2>), dim3(grid), dim3(block), block.x * sizeof(float), THCState_getCurrentStream(state), 
+    hipLaunchKernelV2(HIP_KERNEL_NAME(cunn_LogSoftMax_updateGradInput_kernel<2>), dim3(grid), dim3(block), block.x * sizeof(float), THCState_getCurrentStream(state), 
         THCudaTensor_data(state, gradInput),
         THCudaTensor_data(state, output),
         THCudaTensor_data(state, gradOutput),
@@ -528,7 +530,7 @@ void THNN_CudaLogSoftMax_updateGradInput(THCState *state, THCudaTensor *input, T
     dim3 grid(batchSize);
     dim3 block(1024);
 
-    hipLaunchKernel(HIP_KERNEL_NAME(cunn_SpatialLogSoftMax_updateGradInput_kernel), dim3(grid), dim3(block), 0, THCState_getCurrentStream(state), 
+    hipLaunchKernelV2(HIP_KERNEL_NAME(cunn_SpatialLogSoftMax_updateGradInput_kernel), dim3(grid), dim3(block), 0, THCState_getCurrentStream(state), 
         THCudaTensor_data(state, gradInput),
         THCudaTensor_data(state, output),
         THCudaTensor_data(state, gradOutput),

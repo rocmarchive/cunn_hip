@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include <assert.h>
 
+#include "/root/grid_launch_variadic/headers/implementation/functions/grid_launch.hpp"
+
 static const int NTHREADS = 32;
 
 __global__ void cunn_ClassNLLCriterion_updateOutput_kernel1(hipLaunchParm lp, float *output,
@@ -144,7 +146,7 @@ void THNN_CudaClassNLLCriterion_updateOutput(THCState *state, THCudaTensor *inpu
   float *total_weight_data = THCudaTensor_data(state, total_weight);
 
   if (THCudaTensor_nDimension(state, input) == 1) {
-    hipLaunchKernel(HIP_KERNEL_NAME(cunn_ClassNLLCriterion_updateOutput_kernel1), dim3(1), dim3(1), 0, THCState_getCurrentStream(state), 
+    hipLaunchKernelV2(HIP_KERNEL_NAME(cunn_ClassNLLCriterion_updateOutput_kernel1), dim3(1), dim3(1), 0, THCState_getCurrentStream(state), 
         output_data,
         total_weight_data,
         input_data,
@@ -155,7 +157,7 @@ void THNN_CudaClassNLLCriterion_updateOutput(THCState *state, THCudaTensor *inpu
     );
 
   } else if (THCudaTensor_nDimension(state, input) == 2) {
-    hipLaunchKernel(HIP_KERNEL_NAME(cunn_ClassNLLCriterion_updateOutput_kernel), dim3(1), dim3(NTHREADS), 0, THCState_getCurrentStream(state), 
+    hipLaunchKernelV2(HIP_KERNEL_NAME(cunn_ClassNLLCriterion_updateOutput_kernel), dim3(1), dim3(NTHREADS), 0, THCState_getCurrentStream(state), 
         output_data,
         total_weight_data,
         input_data,
@@ -213,7 +215,7 @@ void THNN_CudaClassNLLCriterion_updateGradInput(THCState *state, THCudaTensor *i
   float *total_weight_data = THCudaTensor_data(state, total_weight);
 
   if (THCudaTensor_nDimension(state, input) == 1) {
-    hipLaunchKernel(HIP_KERNEL_NAME(cunn_ClassNLLCriterion_updateGradInput_kernel1), dim3(1), dim3(1), 0, THCState_getCurrentStream(state), 
+    hipLaunchKernelV2(HIP_KERNEL_NAME(cunn_ClassNLLCriterion_updateGradInput_kernel1), dim3(1), dim3(1), 0, THCState_getCurrentStream(state), 
         gradInput_data,
         weights_data,
         target_data,
@@ -222,7 +224,7 @@ void THNN_CudaClassNLLCriterion_updateGradInput(THCState *state, THCudaTensor *i
         n_classes
     );
   } else {
-    hipLaunchKernel(HIP_KERNEL_NAME(cunn_ClassNLLCriterion_updateGradInput_kernel), dim3(1), dim3(NTHREADS), 0, THCState_getCurrentStream(state), 
+    hipLaunchKernelV2(HIP_KERNEL_NAME(cunn_ClassNLLCriterion_updateGradInput_kernel), dim3(1), dim3(NTHREADS), 0, THCState_getCurrentStream(state), 
         gradInput_data,
         target_data,
         weights_data,
