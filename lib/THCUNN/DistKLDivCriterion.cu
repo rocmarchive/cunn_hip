@@ -62,13 +62,20 @@ void THNN_CudaDistKLDivCriterion_updateOutput(THCState *state, THCudaTensor *inp
 
 struct kl_updateGradInput_functor
 {
-  const float norm;
+  float norm;
 
+  __host__ __device__ 
+  kl_updateGradInput_functor() = default;
+
+  __host__ __device__ 
   kl_updateGradInput_functor(float norm_)
     : norm(norm_)
   {}
 
-  __host__ __device__ float operator()(const float& x, const float& y) const
+  kl_updateGradInput_functor(const kl_updateGradInput_functor& fun) = default;
+
+  __host__ __device__ 
+  float operator()(const float& x, const float& y) const
   {
       return y > 0 ? norm * (-y) : 0;
   }
@@ -100,12 +107,11 @@ void THNN_CudaDistKLDivCriterion_updateGradInput(THCState *state, THCudaTensor *
   auto target_data = THCudaTensor_data(state, target);
   auto gradInput_data = THCudaTensor_data(state, gradInput);
 
-// WSTHORNTON
-//  bolt::amp::transform(input_data, 
-//                       input_data+size, 
-//                       target_data, 
-//                       gradInput_data, 
-//                       kl_updateGradInput_functor(norm));
+  bolt::amp::transform(input_data, 
+                       input_data+size, 
+                       target_data, 
+                       gradInput_data, 
+                       kl_updateGradInput_functor(norm));
 #endif
 
   THCudaTensor_free(state, input);

@@ -44,9 +44,8 @@ void THNN_CudaSpatialConvolutionMM_updateOutput(THCState *state, THCudaTensor *i
   long outputHeight = (inputHeight + 2*padH - kH) / dH + 1;
 
   if (outputWidth < 1 || outputHeight < 1)
-    // WSTHORNTON
-    //THError("Given input size: (%dx%dx%d). Calculated output size: (%dx%dx%d). Output size is too small",
-    //    nInputPlane,inputHeight,inputWidth,nOutputPlane,outputHeight,outputWidth);
+    THError("Given input size: (%dx%dx%d). Calculated output size: (%dx%dx%d). Output size is too small",
+        nInputPlane,inputHeight,inputWidth,nOutputPlane,outputHeight,outputWidth);
 
   // Batch size + input planes
   long batchSize = input->size[0];

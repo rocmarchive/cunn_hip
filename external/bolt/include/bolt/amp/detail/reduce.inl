@@ -163,10 +163,10 @@ namespace amp{
     static
     inline
     T reduce_enqueue(bolt::amp::control &ctl,
-        DVInputIterator& first,
-        DVInputIterator& last,
-        T& init,
-        BinaryFunction& binary_op)
+        const DVInputIterator& first,
+        const DVInputIterator& last,
+        const T& init,
+        const BinaryFunction& binary_op)
 	{
 
 		        typedef typename std::iterator_traits< DVInputIterator >::value_type iType;

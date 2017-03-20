@@ -70,13 +70,20 @@ void THNN_CudaMSECriterion_updateOutput(THCState *state, THCudaTensor *input, TH
 
 struct mse_updateGradInput_functor
 {
-  const float norm;
+  float norm;
 
+  __host__ __device__ 
+  mse_updateGradInput_functor() = default;
+
+  __host__ __device__ 
   mse_updateGradInput_functor(float norm_)
     : norm(norm_)
   {}
 
-  __host__ __device__ float operator()(const float &x, const float &y) const
+  mse_updateGradInput_functor(const mse_updateGradInput_functor& fun) = default;
+
+  __host__ __device__ 
+  float operator()(const float &x, const float &y) const
   {
     return norm * (x - y);
   }
@@ -113,12 +120,11 @@ void THNN_CudaMSECriterion_updateGradInput(THCState *state, THCudaTensor *input,
   auto target_data = THCudaTensor_data(state, target);
   auto gradInput_data = THCudaTensor_data(state, gradInput);
 
-// WSTHORNTON
-//  bolt::amp::transform(input_data, 
-//                       input_data+size, 
-//                       target_data, 
-//                       gradInput_data,
-//                       mse_updateGradInput_functor(norm));
+  bolt::amp::transform(input_data, 
+                       input_data+size, 
+                       target_data, 
+                       gradInput_data,
+                       mse_updateGradInput_functor(norm));
 #endif
 
   THCudaTensor_free(state, input);

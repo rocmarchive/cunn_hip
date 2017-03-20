@@ -198,8 +198,7 @@ void THNN_CudaMultiLabelMarginCriterion_updateOutput(
     THCudaTensor_free(state, output_tmp);
   }
   else
-    // WSTHORNTON
-    //THError("vector or matrix expected");
+    THError("vector or matrix expected");
 
   THCudaTensor_free(state, input);
   THCudaTensor_free(state, target);
@@ -245,8 +244,7 @@ void THNN_CudaMultiLabelMarginCriterion_updateGradInput(
         sizeaverage);
   }
   else
-    // WSTHORNTON
-    // THError("vector or matrix expected");
+    THError("vector or matrix expected");
 
   THCudaCheck(hipGetLastError());
 

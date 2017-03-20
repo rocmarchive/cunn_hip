@@ -388,8 +388,7 @@ void THNN_CudaLogSoftMax_updateOutput(THCState *state, THCudaTensor *input, THCu
   }
   else
   {
-    // WSTHORNTON
-    // THError("1D, 2D, 3D or 4D Tensor expected");
+    THError("1D, 2D, 3D or 4D Tensor expected");
   }
 
   if (!spatial)
@@ -418,8 +417,7 @@ void THNN_CudaLogSoftMax_updateOutput(THCState *state, THCudaTensor *input, THCu
   hipError_t errcode = hipGetLastError();
   if (errcode != hipSuccess)
   {
-    // WSTHORNTON 
-    // THError(hipGetErrorString(errcode));
+    THError(hipGetErrorString(errcode));
   }
 
   THCudaTensor_free(state, input);
@@ -510,8 +508,7 @@ void THNN_CudaLogSoftMax_updateGradInput(THCState *state, THCudaTensor *input, T
   }
   else
   {
-    // WSTHORNTON
-    // THError("1D, 2D, 3D or 4D Tensor expected");
+    THError("1D, 2D, 3D or 4D Tensor expected");
   }
 
   if (!spatial)
@@ -542,8 +539,7 @@ void THNN_CudaLogSoftMax_updateGradInput(THCState *state, THCudaTensor *input, T
   hipError_t errcode = hipGetLastError();
   if (errcode != hipSuccess)
   {
-    // WSTHORNTON
-    // THError(hipGetErrorString(errcode));
+    THError(hipGetErrorString(errcode));
   }
 
   THCudaTensor_free(state, gradOutput);

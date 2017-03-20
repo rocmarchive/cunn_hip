@@ -168,8 +168,7 @@ void THNN_CudaMultiMarginCriterion_updateOutput(THCState *state, THCudaTensor *i
   }
   else
   {
-    // WSTHORNTON
-    // THError("vector or matrix expected");
+    THError("vector or matrix expected");
   }
 
   THCudaTensor_free(state, input);
@@ -252,8 +251,7 @@ void THNN_CudaMultiMarginCriterion_updateGradInput(THCState *state, THCudaTensor
   }
   else
   {
-    // WSTHORNTON
-    // THError("vector or matrix expected");
+    THError("vector or matrix expected");
   }
 
   THCudaTensor_free(state, input);

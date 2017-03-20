@@ -70,14 +70,21 @@ void THNN_CudaMarginCriterion_updateOutput(THCState *state, THCudaTensor *input,
 
 struct margin_updateGradInput_functor
 {
-  const float margin, norm;
+  float margin, norm;
 
+  __host__ __device__ 
+  margin_updateGradInput_functor() = default;
+
+  __host__ __device__ 
   margin_updateGradInput_functor(float margin_, float norm_)
     : margin(margin_)
     , norm(norm_)
   {}
 
-  __host__ __device__ float operator()(const float &x, const float &y) const
+  margin_updateGradInput_functor(const margin_updateGradInput_functor& fun) = default;
+
+  __host__ __device__ 
+  float operator()(const float &x, const float &y) const
   {
     return (x * y) < margin ? -norm * y : 0;
   }
@@ -106,12 +113,11 @@ void THNN_CudaMarginCriterion_updateGradInput(THCState *state, THCudaTensor *inp
   auto target_data = THCudaTensor_data(state, target);
   auto gradInput_data = THCudaTensor_data(state, gradInput);
 
-// WSTHORNTON
-//  bolt::amp::transform(input_data, 
-//                       input_data+size, 
-//                       target_data, 
-//                       gradInput_data, 
-//                       margin_updateGradInput_functor(margin, norm));
+  bolt::amp::transform(input_data, 
+                       input_data+size, 
+                       target_data, 
+                       gradInput_data, 
+                       margin_updateGradInput_functor(margin, norm));
 #endif
 
   THCudaTensor_free(state, input);

@@ -145,8 +145,7 @@ void THNN_CudaSoftMax_updateOutput(THCState *state, THCudaTensor *input, THCudaT
   }
   else
   {
-    // WSTHORNTON
-    // THError("1D, 2D, 3D or 4D tensor expected");
+    THError("1D, 2D, 3D or 4D tensor expected");
   }
 
   // when possible use only 2d grid of thread blocks to stay compatible with compute capability 2.X devices.
@@ -215,8 +214,7 @@ void THNN_CudaSoftMax_updateGradInput(THCState *state, THCudaTensor *input, THCu
   }
   else
   {
-    // WSTHORNTON
-    // THError("1D, 2D, 3D or 4D tensor expected");
+    THError("1D, 2D, 3D or 4D tensor expected");
   }
 
   // when possible use only 2d grid of thread blocks to stay compatible with compute capability 2.X devices.
