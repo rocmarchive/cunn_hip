@@ -2,7 +2,7 @@
 #include "THCUNN.h"
 #include "common.h"
 
-#include "/root/grid_launch_variadic/headers/implementation/functions/grid_launch.hpp"
+//#include "/root/grid_launch_variadic/headers/implementation/functions/grid_launch.hpp"
 
 template <typename Dtype, bool COUNT_INCLUDE_PAD>
 __global__ void AvePoolForward(hipLaunchParm lp, const int nthreads,
@@ -93,12 +93,12 @@ void THNN_CudaSpatialAveragePooling_updateOutput(THCState *state, THCudaTensor *
   int count = THCudaTensor_nElement(state, output);
 
   if(count_include_pad)
-    hipLaunchKernelV2(HIP_KERNEL_NAME(AvePoolForward<float, true>), dim3(GET_BLOCKS(count)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state) , 
+    wstLaunchKernel(HIP_KERNEL_NAME(AvePoolForward<float, true>), dim3(GET_BLOCKS(count)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state) , 
         count, input_data,
         batchSize, nInputPlane, nInputRows, nInputCols, nOutputRows, nOutputCols,
         kH, kW, dH, dW, padH, padW, output_data);
   else
-    hipLaunchKernelV2(HIP_KERNEL_NAME(AvePoolForward<float, false>), dim3(GET_BLOCKS(count)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state) , 
+    wstLaunchKernel(HIP_KERNEL_NAME(AvePoolForward<float, false>), dim3(GET_BLOCKS(count)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state) , 
         count, input_data,
         batchSize, nInputPlane, nInputRows, nInputCols, nOutputRows, nOutputCols,
         kH, kW, dH, dW, padH, padW, output_data);
@@ -201,13 +201,13 @@ void THNN_CudaSpatialAveragePooling_updateGradInput(THCState *state, THCudaTenso
   int count = THCudaTensor_nElement(state, input);
 
   if(count_include_pad)
-    hipLaunchKernelV2(HIP_KERNEL_NAME(AvePoolBackward<float, true>), dim3(GET_BLOCKS(count)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state) , count,
+    wstLaunchKernel(HIP_KERNEL_NAME(AvePoolBackward<float, true>), dim3(GET_BLOCKS(count)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state) , count,
         THCudaTensor_data(state, gradOutput),
         batchSize, nInputPlane, nInputRows, nInputCols, nOutputRows, nOutputCols,
         kH, kW, dH, dW, padH, padW,
         THCudaTensor_data(state, gradInput));
   else
-    hipLaunchKernelV2(HIP_KERNEL_NAME(AvePoolBackward<float, false>), dim3(GET_BLOCKS(count)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state) , count,
+    wstLaunchKernel(HIP_KERNEL_NAME(AvePoolBackward<float, false>), dim3(GET_BLOCKS(count)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state) , count,
         THCudaTensor_data(state, gradOutput),
         batchSize, nInputPlane, nInputRows, nInputCols, nOutputRows, nOutputCols,
         kH, kW, dH, dW, padH, padW,

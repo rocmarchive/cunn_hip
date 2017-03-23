@@ -4,6 +4,8 @@
 #define THIndexTensor THCudaLongTensor
 #define THIndexTensor_(NAME) THCudaLongTensor_ ## NAME
 
+#define wstLaunchKernel(...) /* whitespace */ 
+
 TH_API void THNN_CudaAbs_updateOutput(
           THCState *state,
           THCudaTensor *input,

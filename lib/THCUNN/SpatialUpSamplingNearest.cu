@@ -12,7 +12,7 @@
     #include <thrust/functional.h>
 #endif
 
-#include "/root/grid_launch_variadic/headers/implementation/functions/grid_launch.hpp"
+//#include "/root/grid_launch_variadic/headers/implementation/functions/grid_launch.hpp"
 
 /*
  * Description:
@@ -110,7 +110,7 @@ void THNN_CudaSpatialUpSamplingNearest_updateOutput(THCState *state, THCudaTenso
   dim3 threads(nthreads);
 
   // kernel:
-  hipLaunchKernelV2(HIP_KERNEL_NAME(upscale), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), input_data, output_data, no_elements, scale_factor, d1, d2, d3);
+  wstLaunchKernel(HIP_KERNEL_NAME(upscale), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), input_data, output_data, no_elements, scale_factor, d1, d2, d3);
   THCudaCheck(hipGetLastError());
 
   // final cut:
@@ -178,7 +178,7 @@ void THNN_CudaSpatialUpSamplingNearest_updateGradInput(THCState *state, THCudaTe
   dim3 threads(nthreads);
 
   // kernel:
-  hipLaunchKernelV2(HIP_KERNEL_NAME(downscale), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), gradInput_data, gradOutput_data, no_elements,
+  wstLaunchKernel(HIP_KERNEL_NAME(downscale), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), gradInput_data, gradOutput_data, no_elements,
     scale_factor, d1, d2, d3);
   THCudaCheck(hipGetLastError());
 }

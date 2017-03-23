@@ -7,7 +7,7 @@
 
 #include <cfloat>
 
-#include "/root/grid_launch_variadic/headers/implementation/functions/grid_launch.hpp"
+//#include "/root/grid_launch_variadic/headers/implementation/functions/grid_launch.hpp"
 
 __global__ void cuda_VolumetricDilatedMaxPooling_updateOutput(hipLaunchParm lp, 
   THCDeviceTensor<float, 4> input,
@@ -138,7 +138,7 @@ __global__ void cuda_VolumetricDilatedMaxPooling_updateOutput(hipLaunchParm lp,
 }
 
 #define UPDATE_OUTPUT_KERNEL_WIDTH(KW) case KW:                         \
-  hipLaunchKernelV2(cuda_VolumetricDilatedMaxPooling_updateOutput<KW>, grid, block,             \
+  wstLaunchKernel(cuda_VolumetricDilatedMaxPooling_updateOutput<KW>, grid, block,             \
     0, THCState_getCurrentStream(state),                             \
     cudaInput, cudaIndices, cudaOutput, kT, kH, dT, dH, dW, padT, padH, padW,\
     dilationT, dilationH, dilationW, offsetZ); \
@@ -301,7 +301,7 @@ void THNN_CudaVolumetricDilatedMaxPooling_updateOutput(
         UPDATE_OUTPUT_KERNEL_WIDTH(6);
         UPDATE_OUTPUT_KERNEL_WIDTH(7);
       default:
-        hipLaunchKernelV2(HIP_KERNEL_NAME(cuda_VolumetricDilatedMaxPooling_updateOutput), dim3(grid), dim3(block), 0, THCState_getCurrentStream(state), 
+        wstLaunchKernel(HIP_KERNEL_NAME(cuda_VolumetricDilatedMaxPooling_updateOutput), dim3(grid), dim3(block), 0, THCState_getCurrentStream(state), 
                              cudaInput, cudaIndices, cudaOutput,
                              kT, kH, kW, dT, dH, dW,
                              padT, padH, padW, dilationT, dilationH, dilationW, offsetZ);
@@ -420,7 +420,7 @@ void THNN_CudaVolumetricDilatedMaxPooling_updateGradInput(
               THCCeilDiv(outputHeight, static_cast<int>(block.y)),
               totalZ > 65535 ? 65535 : totalZ);
 
-    hipLaunchKernelV2(HIP_KERNEL_NAME(cuda_VolumetricDilatedMaxPooling_updateGradInput), dim3(grid), dim3(block), 0, THCState_getCurrentStream(state), 
+    wstLaunchKernel(HIP_KERNEL_NAME(cuda_VolumetricDilatedMaxPooling_updateGradInput), dim3(grid), dim3(block), 0, THCState_getCurrentStream(state), 
                                              cudaGradOutput,
                                              cudaIndices,
                                              cudaGradInput,

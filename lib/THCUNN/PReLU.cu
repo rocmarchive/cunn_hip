@@ -3,7 +3,7 @@
 #include "THCReduce.cuh"
 #include "common.h"
 
-#include "/root/grid_launch_variadic/headers/implementation/functions/grid_launch.hpp"
+//#include "/root/grid_launch_variadic/headers/implementation/functions/grid_launch.hpp"
 
 #define THRUST_PATH 0
 
@@ -63,7 +63,7 @@ void THNN_CudaPReLU_updateOutput(
     else if (ndim == 4)
       mapSize = (input->size[2] * input->size[3]);
     int nElemsPerSample = nOutputPlane * mapSize;
-    hipLaunchKernelV2(HIP_KERNEL_NAME(preluForward), dim3(GET_BLOCKS(n)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state), 
+    wstLaunchKernel(HIP_KERNEL_NAME(preluForward), dim3(GET_BLOCKS(n)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state), 
       THCudaTensor_data(state, output),
       THCudaTensor_data(state, input),
       w,
@@ -131,7 +131,7 @@ void THNN_CudaPReLU_updateGradInput(
     else if (ndim == 4)
       mapSize = (input->size[2] * input->size[3]);
     int nElemsPerSample = nOutputPlane * mapSize;
-    hipLaunchKernelV2(HIP_KERNEL_NAME(preluBackward), dim3(GET_BLOCKS(n)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state), 
+    wstLaunchKernel(HIP_KERNEL_NAME(preluBackward), dim3(GET_BLOCKS(n)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state), 
       THCudaTensor_data(state, gradInput),
       THCudaTensor_data(state, input),
       w,

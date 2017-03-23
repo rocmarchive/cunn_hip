@@ -2,7 +2,7 @@
 #include "THCUNN.h"
 #include "common.h"
 
-#include "/root/grid_launch_variadic/headers/implementation/functions/grid_launch.hpp"
+//#include "/root/grid_launch_variadic/headers/implementation/functions/grid_launch.hpp"
 
 // kernels borrowed from Caffe
 template <typename Dtype>
@@ -139,7 +139,7 @@ if (padW || padH)
 
   int count = THCudaTensor_nElement(state, output);
 
-  hipLaunchKernelV2(HIP_KERNEL_NAME(MaxPoolForward), dim3(GET_BLOCKS(count)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state) , count, input_data,
+  wstLaunchKernel(HIP_KERNEL_NAME(MaxPoolForward), dim3(GET_BLOCKS(count)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state) , count, input_data,
       batchSize, nInputPlane, nInputRows, nInputCols, nOutputRows, nOutputCols,
       kH, kW, dH, dW, padH, padW, dilationH, dilationW, output_data, indices_data);
   THCudaCheck(hipGetLastError());
@@ -193,7 +193,7 @@ void THNN_CudaSpatialDilatedMaxPooling_updateGradInput(THCState *state, THCudaTe
 
   int count = THCudaTensor_nElement(state, input);
 
-  hipLaunchKernelV2(HIP_KERNEL_NAME(MaxPoolBackward), dim3(GET_BLOCKS(count)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state) , count,
+  wstLaunchKernel(HIP_KERNEL_NAME(MaxPoolBackward), dim3(GET_BLOCKS(count)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state) , count,
       THCudaTensor_data(state, gradOutput),
       THCudaTensor_data(state, indices),
       batchSize, nInputPlane, nInputRows, nInputCols, nOutputRows, nOutputCols,

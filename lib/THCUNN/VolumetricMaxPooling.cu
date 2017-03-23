@@ -6,7 +6,7 @@
 
 #include <cfloat>
 
-#include "/root/grid_launch_variadic/headers/implementation/functions/grid_launch.hpp"
+//#include "/root/grid_launch_variadic/headers/implementation/functions/grid_launch.hpp"
 
 void THNN_CudaVolumetricMaxPooling_updateOutput(
   THCState *state, THCudaTensor *input, THCudaTensor *output, THCudaTensor *indices,
