@@ -5,6 +5,7 @@ struct LeakyReLUUpdateOutput
 {
   const float negval_;
 
+  __host__ __device__
   LeakyReLUUpdateOutput(float negval)
     : negval_(negval)
   {}
@@ -14,6 +15,9 @@ struct LeakyReLUUpdateOutput
     float x = *in;
     *out = (x > 0) ? x : x * negval_;
   }
+  
+  __host__ __device__
+  ~LeakyReLUUpdateOutput() {}
 };
 
 // in-place variant
@@ -21,6 +25,7 @@ struct LeakyReLUUpdateOutputIP
 {
   const float negval_;
 
+  __host__ __device__
   LeakyReLUUpdateOutputIP(float negval)
     : negval_(negval)
   {}
@@ -29,6 +34,9 @@ struct LeakyReLUUpdateOutputIP
   {
     *x = (*x > 0) ? *x : negval_ * (*x);
   }
+  
+  __host__ __device__
+  ~LeakyReLUUpdateOutputIP() {}
 };
 
 void THNN_CudaLeakyReLU_updateOutput(THCState *state, THCudaTensor *input, THCudaTensor *output,
@@ -54,6 +62,7 @@ struct LeakyReLUUpdateGradInput
 {
   const float negval_;
 
+  __host__ __device__
   LeakyReLUUpdateGradInput(float negval)
     : negval_(negval)
   {}
@@ -65,12 +74,16 @@ struct LeakyReLUUpdateGradInput
   {
     *gradInput = (*input > 0) ? *gradOutput : (*gradOutput) * negval_;
   }
+
+  __host__ __device__
+  ~LeakyReLUUpdateGradInput() {}
 };
 
 struct LeakyReLUUpdateGradInputIP
 {
   const float negval_;
 
+  __host__ __device__
   LeakyReLUUpdateGradInputIP(float negval)
     : negval_(negval)
   {}
@@ -81,6 +94,9 @@ struct LeakyReLUUpdateGradInputIP
   {
     *gradOutput = (*input > 0) ? *gradOutput : (*gradOutput) * negval_;
   }
+
+  __host__ __device__
+  ~LeakyReLUUpdateGradInputIP() {}
 };
 
 void THNN_CudaLeakyReLU_updateGradInput(THCState *state, THCudaTensor *input, THCudaTensor *gradOutput,

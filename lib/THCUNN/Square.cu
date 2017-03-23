@@ -7,6 +7,9 @@ struct squareupdateOutput_functor
   {
     *output = (*input) * (*input);
   }
+
+  __device__
+  ~squareupdateOutput_functor() {}
 };
 
 void THNN_CudaSquare_updateOutput(THCState *state, THCudaTensor *input, THCudaTensor *output)
@@ -22,6 +25,9 @@ struct squareupdateGradInput_functor
   {
     *gradInput = 2.0 * (*gradOutput) * (*input);
   }
+
+  __device__
+  ~squareupdateGradInput_functor() {}
 };
 
 void THNN_CudaSquare_updateGradInput(THCState *state, THCudaTensor *input, THCudaTensor *gradOutput, THCudaTensor *gradInput)

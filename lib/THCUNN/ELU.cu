@@ -3,8 +3,9 @@
 
 struct ELUupdateOutput_functor
 {
-  const float alpha_;
+  float alpha_;
 
+  __host__ __device__
   ELUupdateOutput_functor(float alpha)
     : alpha_(alpha)
   {}
@@ -13,13 +14,16 @@ struct ELUupdateOutput_functor
   {
     *output = *input <= 0 ? (exp(*input) - 1) * alpha_ : *input;
   }
+  __host__ __device__
+  ~ELUupdateOutput_functor() {}
 };
 
 // in-place variant
 struct ELUupdateOutputIP_functor
 {
-  const float alpha_;
+  float alpha_;
 
+  __host__ __device__
   ELUupdateOutputIP_functor(float alpha)
     : alpha_(alpha)
   {}
@@ -28,6 +32,8 @@ struct ELUupdateOutputIP_functor
   {
     *x = *x <= 0 ? (exp(*x) - 1) * alpha_ : *x;
   }
+  __host__ __device__
+  ~ELUupdateOutputIP_functor() {}
 };
 
 void THNN_CudaELU_updateOutput(THCState *state, THCudaTensor *input, THCudaTensor *output,
@@ -49,8 +55,9 @@ void THNN_CudaELU_updateOutput(THCState *state, THCudaTensor *input, THCudaTenso
 
 struct ELUupdateGradInput_functor
 {
-  const float alpha_;
+  float alpha_;
 
+  __host__ __device__
   ELUupdateGradInput_functor(float alpha)
     : alpha_(alpha)
   {}
@@ -59,12 +66,15 @@ struct ELUupdateGradInput_functor
   {
     *gradInput = (*output) <= 0 ? (*gradOutput * (*output + alpha_)) : (*gradOutput);
   }
+  __host__ __device__
+  ~ELUupdateGradInput_functor() {}
 };
 
 struct ELUupdateGradInputIP_functor
 {
-  const float alpha_;
+  float alpha_;
 
+  __host__ __device__
   ELUupdateGradInputIP_functor(float alpha)
     : alpha_(alpha)
   {}
@@ -73,6 +83,8 @@ struct ELUupdateGradInputIP_functor
   {
     *gradOutput = (*output) <= 0 ? (*gradOutput * (*output + alpha_)) : (*gradOutput);
   }
+  __host__ __device__
+  ~ELUupdateGradInputIP_functor(){}
 };
 
 void THNN_CudaELU_updateGradInput(THCState *state, THCudaTensor *input, THCudaTensor *gradOutput,

@@ -3,9 +3,10 @@
 
 struct softPlusupdateOutput_functor
 {
-  const float threshold;
-  const float beta;
+  float threshold;
+  float beta;
 
+  __host__ __device__
   softPlusupdateOutput_functor(float threshold_, float beta_)
     : threshold(threshold_)
     , beta(beta_)
@@ -16,6 +17,9 @@ struct softPlusupdateOutput_functor
     float betain = beta * (*input);
     *output = ((betain) > threshold) ? *input : (1/beta) * log1p(exp(betain));
   }
+
+  __host__ __device__
+  ~softPlusupdateOutput_functor() {}
 };
 
 void THNN_CudaSoftPlus_updateOutput(THCState *state, THCudaTensor *input, THCudaTensor *output, float beta, float threshold)
@@ -27,9 +31,10 @@ void THNN_CudaSoftPlus_updateOutput(THCState *state, THCudaTensor *input, THCuda
 
 struct softPlusupdateGradInput_functor
 {
-  const float threshold;
-  const float beta;
+  float threshold;
+  float beta;
 
+  __host__ __device__
   softPlusupdateGradInput_functor(float threshold_, float beta_)
     : threshold(threshold_)
     , beta(beta_)
@@ -41,6 +46,9 @@ struct softPlusupdateGradInput_functor
     float exp_bo = exp(betaout);
     *gradInput = ((betaout) > threshold) ? *gradOutput : *gradOutput * (exp_bo - 1) / exp_bo;
   }
+
+  __host__ __device__
+  ~softPlusupdateGradInput_functor() {}
 };
 
 void THNN_CudaSoftPlus_updateGradInput(THCState *state, THCudaTensor *input, THCudaTensor *gradOutput, THCudaTensor *gradInput,

@@ -3,10 +3,13 @@
 
 struct absupdateOutput_functor
 {
-  __device__ void operator()(float* output, const float* input) const
+  __device__ 
+  void operator()(float* output, const float* input) const
   {
     *output = abs(*input);
   }
+  __device__
+  ~absupdateOutput_functor() {}
 };
 
 void THNN_CudaAbs_updateOutput(THCState *state, THCudaTensor *input, THCudaTensor *output)
@@ -22,6 +25,8 @@ struct absupdateGradInput_functor
   {
     *gradInput = *input < 0 ? - *gradOutput : *gradOutput;
   }
+  __device__
+  ~absupdateGradInput_functor() {}
 };
 
 void THNN_CudaAbs_updateGradInput(THCState *state, THCudaTensor *input, THCudaTensor *gradOutput, THCudaTensor *gradInput)

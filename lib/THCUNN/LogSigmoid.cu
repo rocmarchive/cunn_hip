@@ -8,6 +8,9 @@ struct logSigmoid_updateOutput_functor
     float z = exp(-*input);
     *output = -log(1. + z);
   }
+
+  __device__
+  ~logSigmoid_updateOutput_functor() {}
 };
 
 void THNN_CudaLogSigmoid_updateOutput(THCState *state, THCudaTensor *input, THCudaTensor *output, THCudaTensor *buffer)
@@ -24,6 +27,9 @@ struct logSigmoid_updateGradInput_functor
     float z = exp(-*input);
     *gradInput = *gradOutput * z / (1. + z);
   }
+
+  __device__
+  ~logSigmoid_updateGradInput_functor() {}
 };
 
 void THNN_CudaLogSigmoid_updateGradInput(THCState *state, THCudaTensor *input, THCudaTensor *gradOutput,

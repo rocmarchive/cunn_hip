@@ -3,8 +3,6 @@
 #include "THCReduce.cuh"
 #include "common.h"
 
-//#include "/root/grid_launch_variadic/headers/implementation/functions/grid_launch.hpp"
-
 #define THRUST_PATH 0
 
 #if THRUST_PATH
@@ -15,6 +13,7 @@ struct PReLUUpdateOutput
 {
   float* weight_;
 
+  __host__ __device__
   PReLUUpdateOutput(float* weight)
     : weight_(weight)
   {}
@@ -24,6 +23,9 @@ struct PReLUUpdateOutput
     float x = *in;
     *out = (x > 0) ? x : weight_[0] * x;
   }
+
+  __host__ __device__
+  ~PReLUUpdateOutput() {} 
 };
 
 __global__ void preluForward(hipLaunchParm lp, float *output, const float *input, const float *weight, int n, int nElemsPerSample, int mapSize)
@@ -78,6 +80,7 @@ struct PReLUUpdateGradInput
 {
   float *weight_;
 
+  __host__ __device__
   PReLUUpdateGradInput(float *weight)
     : weight_(weight)
   {}
@@ -86,6 +89,9 @@ struct PReLUUpdateGradInput
   {
     *gradInput = *input > 0 ? *gradOutput : *gradOutput * *weight_;
   }
+
+  __host__ __device__
+  ~PReLUUpdateGradInput() {}
 };
 
 __global__ void preluBackward(hipLaunchParm lp, 
@@ -156,6 +162,7 @@ struct PReLUAccGradParameters
 {
   float scale;
 
+  __host__ __device__
   PReLUAccGradParameters(float scale)
     : scale(scale)
   {}
@@ -164,12 +171,16 @@ struct PReLUAccGradParameters
   {
     *gradInput = (*input) * (*gradOutput) * scale * (*input <= 0);
   }
+
+  __host__ __device__
+  ~PReLUAccGradParameters() {}
 };
 
 struct PReLUAccGradParameters1to1
 {
   float scale;
 
+  __host__ __device__
   PReLUAccGradParameters1to1(float scale)
     : scale(scale)
   {}
@@ -178,6 +189,9 @@ struct PReLUAccGradParameters1to1
   {
     *gradWeight += (*input) * (*gradOutput) * scale * (*input <= 0);
   }
+
+  __host__ __device__
+  ~PReLUAccGradParameters1to1() {}
 };
 
 void THNN_CudaPReLU_accGradParameters(

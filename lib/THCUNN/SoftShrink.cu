@@ -5,6 +5,7 @@ struct SoftShrinkUpdateOutput
 {
   const float lambda_;
 
+  __host__ __device__
   SoftShrinkUpdateOutput(float lambda)
     : lambda_(lambda)
   {}
@@ -16,6 +17,9 @@ struct SoftShrinkUpdateOutput
     else if (x < -lambda_) *out = x + lambda_;
     else *out = 0;
   }
+
+  __host__ __device__
+  ~SoftShrinkUpdateOutput() {}
 };
 
 void THNN_CudaSoftShrink_updateOutput(THCState *state, THCudaTensor *input, THCudaTensor *output, double lambda)
@@ -30,6 +34,7 @@ struct SoftShrinkUpdateGradInput
 {
   const float lambda_;
 
+  __host__ __device__
   SoftShrinkUpdateGradInput(float lambda)
     : lambda_(lambda)
   {}
@@ -42,6 +47,9 @@ struct SoftShrinkUpdateGradInput
     else
       *gradInput = 0;
   }
+
+  __host__ __device__
+  ~SoftShrinkUpdateGradInput() {}
 };
 
 
