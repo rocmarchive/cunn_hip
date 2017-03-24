@@ -51,7 +51,7 @@ void THNN_CudaPReLU_updateOutput(
 
   if (nOutputPlane == 0)
   {
-    THC_pointwiseApply2(state, output, input, PReLUUpdateOutput(w));
+    stub_THC_pointwiseApply2(state, output, input, PReLUUpdateOutput(w));
   }
   else
   {
@@ -65,7 +65,7 @@ void THNN_CudaPReLU_updateOutput(
     else if (ndim == 4)
       mapSize = (input->size[2] * input->size[3]);
     int nElemsPerSample = nOutputPlane * mapSize;
-    wstLaunchKernel(HIP_KERNEL_NAME(preluForward), dim3(GET_BLOCKS(n)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state), 
+    stub_hipLaunchKernel(HIP_KERNEL_NAME(preluForward), dim3(GET_BLOCKS(n)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state), 
       THCudaTensor_data(state, output),
       THCudaTensor_data(state, input),
       w,
@@ -122,7 +122,7 @@ void THNN_CudaPReLU_updateGradInput(
   float *w = THCudaTensor_data(state, weight);
   if (nOutputPlane == 0)
   {
-    THC_pointwiseApply3(state, gradInput, gradOutput, input, PReLUUpdateGradInput(w));
+    stub_THC_pointwiseApply3(state, gradInput, gradOutput, input, PReLUUpdateGradInput(w));
   }
   else
   {
@@ -137,7 +137,7 @@ void THNN_CudaPReLU_updateGradInput(
     else if (ndim == 4)
       mapSize = (input->size[2] * input->size[3]);
     int nElemsPerSample = nOutputPlane * mapSize;
-    wstLaunchKernel(HIP_KERNEL_NAME(preluBackward), dim3(GET_BLOCKS(n)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state), 
+    stub_hipLaunchKernel(HIP_KERNEL_NAME(preluBackward), dim3(GET_BLOCKS(n)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state), 
       THCudaTensor_data(state, gradInput),
       THCudaTensor_data(state, input),
       w,
@@ -210,7 +210,7 @@ void THNN_CudaPReLU_accGradParameters(
 
   if (nOutputPlane == 0)
   {
-    THC_pointwiseApply3(state, gradInput, input, gradOutput, PReLUAccGradParametersShared());
+    stub_THC_pointwiseApply3(state, gradInput, input, gradOutput, PReLUAccGradParametersShared());
 
     // introduces a sync point
     float sum = THCudaTensor_sumall(state, gradInput);
@@ -226,11 +226,11 @@ void THNN_CudaPReLU_accGradParameters(
 
     if (ndim == 1)
     {
-      THC_pointwiseApply3(state, gradWeight, input, gradOutput, PReLUAccGradParameters1to1(scale));
+      stub_THC_pointwiseApply3(state, gradWeight, input, gradOutput, PReLUAccGradParameters1to1(scale));
     }
     else
     {
-      THC_pointwiseApply3(state, gradInput, input, gradOutput, PReLUAccGradParameters(scale));
+      stub_THC_pointwiseApply3(state, gradInput, input, gradOutput, PReLUAccGradParameters(scale));
       THCudaTensor *sumbuf = gradWeightBuf2;
       THCudaTensor_resizeAs(state, gradWeightBuf, gradWeight);
 

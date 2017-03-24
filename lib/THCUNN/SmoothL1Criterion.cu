@@ -20,6 +20,7 @@
 
 struct smoothl1_functor
 {
+  __host__ __device__
   smoothl1_functor() {}
 
   __host__ __device__ float operator()(const float &x, const float &y) const
@@ -27,6 +28,9 @@ struct smoothl1_functor
     float z = fabsf(x-y);
     return z < 1.f ? 0.5f*z*z : z - 0.5f;
   }
+
+  __host__ __device__
+  ~smoothl1_functor() {}
 };
 
 void THNN_CudaSmoothL1Criterion_updateOutput(THCState *state, THCudaTensor *input, THCudaTensor *target, THCudaTensor *output, bool sizeAverage)

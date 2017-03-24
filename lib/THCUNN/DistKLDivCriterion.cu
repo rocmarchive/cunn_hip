@@ -17,10 +17,16 @@
 
 struct kl_functor
 {
+  __host__ __device__
+  kl_functor() {}
+
   __host__ __device__ float operator()(const float& x, const float& y) const
   {
       return y > 0 ? y * (log(y) - x) : 0;
   }
+
+  __host__ __device__
+  ~kl_functor() {}
 };
 
 void THNN_CudaDistKLDivCriterion_updateOutput(THCState *state, THCudaTensor *input, THCudaTensor *target, THCudaTensor *output, bool sizeAverage)

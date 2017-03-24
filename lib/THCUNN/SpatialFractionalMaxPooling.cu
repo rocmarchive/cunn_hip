@@ -145,7 +145,7 @@ void THNN_CudaSpatialFractionalMaxPooling_updateOutput(
   dim3 block(outputPlaneSize > 128 ? 128 : outputPlaneSize);
 
 #define SFMP_UPDATE_OUTPUT(POOL_W)                                      \
-  wstLaunchKernel(SpatialFractionalMaxPooling_updateOutput<POOL_W>                      \
+  stub_hipLaunchKernel(SpatialFractionalMaxPooling_updateOutput<POOL_W>                      \
     ,grid, block, 0, THCState_getCurrentStream(state),            \
       devInput, devOutput, devIndices, devSamples, poolSizeW, poolSizeH);
 
@@ -245,7 +245,7 @@ void THNN_CudaSpatialFractionalMaxPooling_updateGradInput(
             devGradInput.getSize(0));
   dim3 block(outputPlaneSize > 128 ? 128 : outputPlaneSize);
 
-  wstLaunchKernel(HIP_KERNEL_NAME(SpatialFractionalMaxPooling_updateGradInput), dim3(grid), dim3(block), 0, THCState_getCurrentStream(state), 
+  stub_hipLaunchKernel(HIP_KERNEL_NAME(SpatialFractionalMaxPooling_updateGradInput), dim3(grid), dim3(block), 0, THCState_getCurrentStream(state), 
       devGradInput, devGradOutput, devIndices);
   THCudaCheck(hipGetLastError());
 }

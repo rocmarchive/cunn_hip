@@ -46,13 +46,13 @@ void THNN_CudaLeakyReLU_updateOutput(THCState *state, THCudaTensor *input, THCud
 
   if (inplace)
   {
-    THC_pointwiseApply1(state, input, LeakyReLUUpdateOutputIP(negval));
+    stub_THC_pointwiseApply1(state, input, LeakyReLUUpdateOutputIP(negval));
     THCudaTensor_set(state, output, input);
   }
   else
   {
     THCudaTensor_resizeAs(state, output, input);
-    THC_pointwiseApply2(state, output, input, LeakyReLUUpdateOutput(negval));
+    stub_THC_pointwiseApply2(state, output, input, LeakyReLUUpdateOutput(negval));
   }
 
   THCudaCheck(hipGetLastError());
@@ -106,13 +106,13 @@ void THNN_CudaLeakyReLU_updateGradInput(THCState *state, THCudaTensor *input, TH
 
   if (inplace)
   {
-    THC_pointwiseApply2(state, gradOutput, input, LeakyReLUUpdateGradInputIP(negval));
+    stub_THC_pointwiseApply2(state, gradOutput, input, LeakyReLUUpdateGradInputIP(negval));
     THCudaTensor_set(state, gradInput, gradOutput);
   }
   else
   {
     THCudaTensor_resizeAs(state, gradInput, input);
-    THC_pointwiseApply3(state, gradInput, input, gradOutput, LeakyReLUUpdateGradInput(negval));
+    stub_THC_pointwiseApply3(state, gradInput, input, gradOutput, LeakyReLUUpdateGradInput(negval));
   }
 
   THCudaCheck(hipGetLastError());

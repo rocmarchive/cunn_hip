@@ -192,7 +192,7 @@ void THNN_CudaLookupTable_accGradParameters(
   hipStream_t stream = THCState_getCurrentStream(state);
 
   if (numel <= 768 && !scaleGradByFreq) {
-    wstLaunchKernel(HIP_KERNEL_NAME(cunn_LookupTable_accGradParametersKernelByFeature), dim3(DIVUP(stride,4)), dim3(128), 0, stream, 
+    stub_hipLaunchKernel(HIP_KERNEL_NAME(cunn_LookupTable_accGradParametersKernelByFeature), dim3(DIVUP(stride,4)), dim3(128), 0, stream, 
       THIndexTensor_(data)(state, input),
       THCudaTensor_data(state, gradOutput),
       THCudaTensor_data(state, gradWeight),
@@ -255,7 +255,7 @@ void THNN_CudaLookupTable_accGradParameters(
 
   dim3 grid(DIVUP(numel,4), DIVUP(stride,128));
   dim3 block(32, 4);
-  wstLaunchKernel(HIP_KERNEL_NAME(cunn_LookupTable_accGradParametersKernel), dim3(grid), dim3(block), 0, stream, 
+  stub_hipLaunchKernel(HIP_KERNEL_NAME(cunn_LookupTable_accGradParametersKernel), dim3(grid), dim3(block), 0, stream, 
     sorted_data,
     indices_data,
     THCudaTensor_data(state, gradOutput),

@@ -146,7 +146,7 @@ void THNN_CudaClassNLLCriterion_updateOutput(THCState *state, THCudaTensor *inpu
   float *total_weight_data = THCudaTensor_data(state, total_weight);
 
   if (THCudaTensor_nDimension(state, input) == 1) {
-    wstLaunchKernel(HIP_KERNEL_NAME(cunn_ClassNLLCriterion_updateOutput_kernel1), dim3(1), dim3(1), 0, THCState_getCurrentStream(state), 
+    stub_hipLaunchKernel(HIP_KERNEL_NAME(cunn_ClassNLLCriterion_updateOutput_kernel1), dim3(1), dim3(1), 0, THCState_getCurrentStream(state), 
         output_data,
         total_weight_data,
         input_data,
@@ -157,7 +157,7 @@ void THNN_CudaClassNLLCriterion_updateOutput(THCState *state, THCudaTensor *inpu
     );
 
   } else if (THCudaTensor_nDimension(state, input) == 2) {
-    wstLaunchKernel(HIP_KERNEL_NAME(cunn_ClassNLLCriterion_updateOutput_kernel), dim3(1), dim3(NTHREADS), 0, THCState_getCurrentStream(state), 
+    stub_hipLaunchKernel(HIP_KERNEL_NAME(cunn_ClassNLLCriterion_updateOutput_kernel), dim3(1), dim3(NTHREADS), 0, THCState_getCurrentStream(state), 
         output_data,
         total_weight_data,
         input_data,
@@ -215,7 +215,7 @@ void THNN_CudaClassNLLCriterion_updateGradInput(THCState *state, THCudaTensor *i
   float *total_weight_data = THCudaTensor_data(state, total_weight);
 
   if (THCudaTensor_nDimension(state, input) == 1) {
-    wstLaunchKernel(HIP_KERNEL_NAME(cunn_ClassNLLCriterion_updateGradInput_kernel1), dim3(1), dim3(1), 0, THCState_getCurrentStream(state), 
+    stub_hipLaunchKernel(HIP_KERNEL_NAME(cunn_ClassNLLCriterion_updateGradInput_kernel1), dim3(1), dim3(1), 0, THCState_getCurrentStream(state), 
         gradInput_data,
         weights_data,
         target_data,
@@ -224,7 +224,7 @@ void THNN_CudaClassNLLCriterion_updateGradInput(THCState *state, THCudaTensor *i
         n_classes
     );
   } else {
-    wstLaunchKernel(HIP_KERNEL_NAME(cunn_ClassNLLCriterion_updateGradInput_kernel), dim3(1), dim3(NTHREADS), 0, THCState_getCurrentStream(state), 
+    stub_hipLaunchKernel(HIP_KERNEL_NAME(cunn_ClassNLLCriterion_updateGradInput_kernel), dim3(1), dim3(NTHREADS), 0, THCState_getCurrentStream(state), 
         gradInput_data,
         target_data,
         weights_data,

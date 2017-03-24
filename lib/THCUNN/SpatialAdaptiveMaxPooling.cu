@@ -222,7 +222,7 @@ void THNN_CudaSpatialAdaptiveMaxPooling_updateOutput(THCState *state, THCudaTens
     dim3 threads(32,8);
 
     // run maxpool kernel
-    wstLaunchKernel(HIP_KERNEL_NAME(adaptivemaxpool), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), input_data, output_data,
+    stub_hipLaunchKernel(HIP_KERNEL_NAME(adaptivemaxpool), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), input_data, output_data,
                                    indices_data+nInputPlane*nOutputCols*nOutputRows, indices_data,
                                    nInputPlane, nInputRows, nInputCols, nOutputRows, nOutputCols,
                                    istride_h, istride_w, istride_d);
@@ -254,7 +254,7 @@ void THNN_CudaSpatialAdaptiveMaxPooling_updateOutput(THCState *state, THCudaTens
     dim3 threads(32,8);
 
     // run maxpool kernel
-    wstLaunchKernel(HIP_KERNEL_NAME(adaptivemaxpool), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), input_data, output_data,
+    stub_hipLaunchKernel(HIP_KERNEL_NAME(adaptivemaxpool), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), input_data, output_data,
                                    indices_data+nbatch*nInputPlane*nOutputCols*nOutputRows, indices_data,
                                    nInputPlane, nInputRows, nInputCols, nOutputRows, nOutputCols,
                                    istride_h, istride_w, istride_d);
@@ -301,14 +301,14 @@ void THNN_CudaSpatialAdaptiveMaxPooling_updateGradInput(THCState *state, THCudaT
     if(atomic)
     {
       // run updateGradInput kernel, accumulate gradients atomically
-      wstLaunchKernel(HIP_KERNEL_NAME(atomicadaptivemaxgradinput), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), gradInput_data, gradOutput_data,
+      stub_hipLaunchKernel(HIP_KERNEL_NAME(atomicadaptivemaxgradinput), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), gradInput_data, gradOutput_data,
                                           indices_data+nInputPlane*nOutputCols*nOutputRows, indices_data,
                                           nInputPlane, nInputRows, nInputCols, nOutputRows, nOutputCols);
     }
     else
     {
       // run updateGradInput kernel
-      wstLaunchKernel(HIP_KERNEL_NAME(atomicadaptivemaxgradinput), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), gradInput_data, gradOutput_data,
+      stub_hipLaunchKernel(HIP_KERNEL_NAME(atomicadaptivemaxgradinput), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), gradInput_data, gradOutput_data,
                                           indices_data+nInputPlane*nOutputCols*nOutputRows, indices_data,
                                           nInputPlane, nInputRows, nInputCols, nOutputRows, nOutputCols);
     }
@@ -339,14 +339,14 @@ void THNN_CudaSpatialAdaptiveMaxPooling_updateGradInput(THCState *state, THCudaT
     if(atomic)
     {
       // run updateGradInput kernel, accumulate gradients atomically
-      wstLaunchKernel(HIP_KERNEL_NAME(atomicadaptivemaxgradinput), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), gradInput_data, gradOutput_data,
+      stub_hipLaunchKernel(HIP_KERNEL_NAME(atomicadaptivemaxgradinput), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), gradInput_data, gradOutput_data,
                                           indices_data+nbatch*nInputPlane*nOutputCols*nOutputRows, indices_data,
                                           nInputPlane, nInputRows, nInputCols, nOutputRows, nOutputCols);
     }
     else
     {
       // run updateGradInput kernel, accumulate gradients atomically
-      wstLaunchKernel(HIP_KERNEL_NAME(adaptivemaxgradinput), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), gradInput_data, gradOutput_data,
+      stub_hipLaunchKernel(HIP_KERNEL_NAME(adaptivemaxgradinput), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), gradInput_data, gradOutput_data,
                                           indices_data+nbatch*nInputPlane*nOutputCols*nOutputRows, indices_data,
                                           nInputPlane, nInputRows, nInputCols, nOutputRows, nOutputCols);
     }

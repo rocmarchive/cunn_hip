@@ -17,11 +17,17 @@
 
 struct abs_functor
 {
+  __host__ __device__
+  abs_functor() {}
+
   __host__ __device__ float operator()(const float& x, const float& y) const
   {
     float z = x-y;
     return z >= 0 ? z : -z;
   }
+
+  __host__ __device__
+  ~abs_functor() {}
 };
 
 void THNN_CudaAbsCriterion_updateOutput(THCState *state, THCudaTensor *input, THCudaTensor *target, THCudaTensor *output, bool sizeAverage)

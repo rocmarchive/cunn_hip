@@ -17,7 +17,7 @@ void THNN_CudaLogSigmoid_updateOutput(THCState *state, THCudaTensor *input, THCu
 {
   THCUNN_assertSameGPU(state, 2, input, output);
   THCudaTensor_resizeAs(state, output, input);
-  THC_pointwiseApply2(state, output, input, logSigmoid_updateOutput_functor());
+  stub_THC_pointwiseApply2(state, output, input, logSigmoid_updateOutput_functor());
 }
 
 struct logSigmoid_updateGradInput_functor
@@ -37,5 +37,5 @@ void THNN_CudaLogSigmoid_updateGradInput(THCState *state, THCudaTensor *input, T
 {
   THCUNN_assertSameGPU(state, 3, input, gradOutput, gradInput);
   THCudaTensor_resizeAs(state, gradInput, input);
-  THC_pointwiseApply3(state, gradInput, input, gradOutput, logSigmoid_updateGradInput_functor());
+  stub_THC_pointwiseApply3(state, gradInput, input, gradOutput, logSigmoid_updateGradInput_functor());
 }

@@ -20,6 +20,7 @@
 
 struct mse_functor
 {
+  __host__ __device__
   mse_functor() {}
 
   __host__ __device__ float operator()(const float &x, const float &y) const
@@ -27,6 +28,9 @@ struct mse_functor
     float z = x-y;
     return z*z;
   }
+
+  __host__ __device__
+  ~mse_functor() {}
 };
 
 void THNN_CudaMSECriterion_updateOutput(THCState *state, THCudaTensor *input, THCudaTensor *target, THCudaTensor *output, bool sizeAverage)

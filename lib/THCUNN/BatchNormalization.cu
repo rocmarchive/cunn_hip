@@ -254,12 +254,12 @@ void THNN_CudaBatchNormalization_updateOutput(
   if (!train) {
     dim3 blocks(input.getSize(1));
     dim3 threads(getNumThreads(input.getSize(2)));
-    wstLaunchKernel(HIP_KERNEL_NAME(BatchNormalizationUpdateOutputInference_kernel), dim3(blocks), dim3(threads), 0, s, 
+    stub_hipLaunchKernel(HIP_KERNEL_NAME(BatchNormalizationUpdateOutputInference_kernel), dim3(blocks), dim3(threads), 0, s, 
       input, output, runningMean, runningVar, weight, bias, eps);
   } else {
     dim3 blocks(input.getSize(1));
     dim3 threads(getNumThreads(input.getSize(2)));
-    wstLaunchKernel(HIP_KERNEL_NAME(BatchNormalizationUpdateOutput_kernel), dim3(blocks), dim3(threads), 0, s, 
+    stub_hipLaunchKernel(HIP_KERNEL_NAME(BatchNormalizationUpdateOutput_kernel), dim3(blocks), dim3(threads), 0, s, 
       input, output, weight, bias, eps, momentum, runningMean, runningVar,
       saveMean, saveStd);
   }
@@ -358,7 +358,7 @@ void THNN_CudaBatchNormalization_backward(
 
   dim3 blocks(gradOutput.getSize(1));
   dim3 threads(getNumThreads(gradOutput.getSize(2)));
-  wstLaunchKernel(HIP_KERNEL_NAME(BatchNormalizationBackward_kernel), dim3(blocks), dim3(threads), 0, s, 
+  stub_hipLaunchKernel(HIP_KERNEL_NAME(BatchNormalizationBackward_kernel), dim3(blocks), dim3(threads), 0, s, 
     input, gradOutput, gradInput, gradWeight, gradBias, weight, runningMean, runningVar,
     saveMean, saveStd, train, scale, eps);
   THCudaCheck(hipGetLastError());

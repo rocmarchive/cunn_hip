@@ -163,7 +163,7 @@ void THNN_CudaSoftMax_updateOutput(THCState *state, THCudaTensor *input, THCudaT
 
   dim3 blocks(batchSize, blocksY, blocksZ);
   dim3 threads(SOFTMAX_THREADS);
-  wstLaunchKernel(HIP_KERNEL_NAME(cunn_SoftMax_updateOutput_kernel), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), 
+  stub_hipLaunchKernel(HIP_KERNEL_NAME(cunn_SoftMax_updateOutput_kernel), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), 
     THCudaTensor_data(state, output),
     THCudaTensor_data(state, input),
     batchSize, dim, stride0, stride1
@@ -232,7 +232,7 @@ void THNN_CudaSoftMax_updateGradInput(THCState *state, THCudaTensor *input, THCu
 
   dim3 blocks(batchSize, blocksY, blocksZ);
   dim3 threads(SOFTMAX_THREADS);
-  wstLaunchKernel(HIP_KERNEL_NAME(cunn_SoftMax_updateGradInput_kernel), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), 
+  stub_hipLaunchKernel(HIP_KERNEL_NAME(cunn_SoftMax_updateGradInput_kernel), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), 
     THCudaTensor_data(state, gradInput),
     THCudaTensor_data(state, output),
     THCudaTensor_data(state, gradOutput),

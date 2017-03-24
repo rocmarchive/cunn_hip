@@ -138,7 +138,7 @@ void THNN_CudaSpatialClassNLLCriterion_updateOutput(
   THCudaTensor_fill(state, output, 0);
   THCudaTensor_fill(state, total_weight, 0);
 
-  wstLaunchKernel(HIP_KERNEL_NAME(cunn_SpatialClassNLLCriterion_updateOutput_kernel), dim3(total_blocks), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state), 
+  stub_hipLaunchKernel(HIP_KERNEL_NAME(cunn_SpatialClassNLLCriterion_updateOutput_kernel), dim3(total_blocks), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state), 
       output_data,
       total_weight_data,
       input_data,
@@ -197,7 +197,7 @@ void THNN_CudaSpatialClassNLLCriterion_updateGradInput(
   blocks_per_sample = (blocks_per_sample == 0) ? 1 : blocks_per_sample;
   int total_blocks = blocks_per_sample * batch_size;
 
-  wstLaunchKernel(HIP_KERNEL_NAME(cunn_SpatialClassNLLCriterion_updateGradInput_kernel), dim3(total_blocks), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state), 
+  stub_hipLaunchKernel(HIP_KERNEL_NAME(cunn_SpatialClassNLLCriterion_updateGradInput_kernel), dim3(total_blocks), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state), 
       gradInput_data,
       target_data,
       weights_data,

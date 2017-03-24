@@ -17,10 +17,16 @@
 
 struct softmargin_functor
 {
+  __host__ __device__
+  softmargin_functor() {}
+
   __host__ __device__ float operator()(const float& x, const float& y) const
   {
     return log(1 + exp(-x*y));
   }
+
+  __host__ __device__
+  ~softmargin_functor() {}
 };
 
 

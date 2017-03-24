@@ -72,7 +72,7 @@ void im3d2col(hipStream_t stream, const float* data_im, const int channels,
   int width_col = (width + 2 * pad_w - kernel_w) / stride_w + 1;
   int depth_col = (depth + 2 * pad_d - kernel_d) / stride_d + 1;
   int num_kernels = channels * height_col * width_col * depth_col;
-  wstLaunchKernel(HIP_KERNEL_NAME(im3d2col_kernel), dim3(GET_BLOCKS(num_kernels)), dim3(CUDA_NUM_THREADS), 0, stream, num_kernels, data_im,
+  stub_hipLaunchKernel(HIP_KERNEL_NAME(im3d2col_kernel), dim3(GET_BLOCKS(num_kernels)), dim3(CUDA_NUM_THREADS), 0, stream, num_kernels, data_im,
                                    height, width, depth,
                                    kernel_h, kernel_w, kernel_d,
                                    pad_h, pad_w, pad_d,
@@ -140,7 +140,7 @@ void col2im3d(hipStream_t stream, const float* data_col, const int channels,
 
   // To avoid involving atomic operations, we will launch one kernel per
   // bottom dimension, and then in the kernel add up the top dimensions.
-  wstLaunchKernel(HIP_KERNEL_NAME(col2im3d_kernel), dim3(GET_BLOCKS(num_kernels)), dim3(CUDA_NUM_THREADS), 0, stream, num_kernels, data_col,
+  stub_hipLaunchKernel(HIP_KERNEL_NAME(col2im3d_kernel), dim3(GET_BLOCKS(num_kernels)), dim3(CUDA_NUM_THREADS), 0, stream, num_kernels, data_col,
                                    height, width, depth, channels,
                                    patch_h, patch_w, patch_d,
                                    pad_h, pad_w, pad_d,

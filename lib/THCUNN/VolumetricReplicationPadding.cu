@@ -103,7 +103,7 @@ void THNN_CudaVolumetricReplicationPadding_updateOutput(THCState *state,
             devOutput.getSize(0));
   dim3 blockSize(outputPlaneSize > 256 ? 256 : outputPlaneSize);
 
-  wstLaunchKernel(HIP_KERNEL_NAME(VolumetricReplicationPadding_updateOutput), dim3(gridSize), dim3(blockSize), 0, THCState_getCurrentStream(state), 
+  stub_hipLaunchKernel(HIP_KERNEL_NAME(VolumetricReplicationPadding_updateOutput), dim3(gridSize), dim3(blockSize), 0, THCState_getCurrentStream(state), 
     devInput, devOutput, pfront, pback, ptop, pbottom, pleft, pright);
 }
 
@@ -189,7 +189,7 @@ void THNN_CudaVolumetricReplicationPadding_updateGradInput(
             devGradOutput.getSize(0));
   dim3 blockSize(outputPlaneSize > 256 ? 256 : outputPlaneSize);
 
-  wstLaunchKernel(HIP_KERNEL_NAME(VolumetricReplicationPadding_updateGradInput), dim3(gridSize), dim3(blockSize), 0, THCState_getCurrentStream(state), 
+  stub_hipLaunchKernel(HIP_KERNEL_NAME(VolumetricReplicationPadding_updateGradInput), dim3(gridSize), dim3(blockSize), 0, THCState_getCurrentStream(state), 
     devGradInput, devGradOutput, pfront, pback, ptop, pbottom, pleft, pright);
 }
 #endif
