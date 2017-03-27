@@ -2,8 +2,6 @@
 #include "THCUNN.h"
 #include "common.h"
 
-//#include "/root/grid_launch_variadic/headers/implementation/functions/grid_launch.hpp"
-
 #define TEMPORAL_MAX_POOLING_THREADS 1024
 
 __global__ void cunn_TemporalMaxPooling_updateOutputKernel(hipLaunchParm lp, float *input, float *output, float *indices, int input_w, int input_n, int output_w, int kW, int dW) {

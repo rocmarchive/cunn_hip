@@ -2,8 +2,6 @@
 #include "THCUNN.h"
 #include "common.h"
 
-//#include "/root/grid_launch_variadic/headers/implementation/functions/grid_launch.hpp"
-
 // Kernel for fast unfold+copy
 // Borrowed from Theano
 // Authors: Arjun Jain, Frédéric Bastien, Jan Schlüter, Nicolas Ballas

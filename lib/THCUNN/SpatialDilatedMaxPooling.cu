@@ -2,8 +2,6 @@
 #include "THCUNN.h"
 #include "common.h"
 
-//#include "/root/grid_launch_variadic/headers/implementation/functions/grid_launch.hpp"
-
 // kernels borrowed from Caffe
 template <typename Dtype>
 __global__ void MaxPoolForward(hipLaunchParm lp, const int nthreads, const Dtype* bottom_data,

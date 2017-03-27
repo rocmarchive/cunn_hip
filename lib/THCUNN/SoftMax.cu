@@ -2,8 +2,6 @@
 #include "THCUNN.h"
 #include "common.h"
 
-//#include "/root/grid_launch_variadic/headers/implementation/functions/grid_launch.hpp"
-
 #define SOFTMAX_THREADS 128
 
 __global__ void cunn_SoftMax_updateOutput_kernel(hipLaunchParm lp, 

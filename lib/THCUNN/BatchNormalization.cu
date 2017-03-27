@@ -5,8 +5,6 @@
 #include "THCDeviceTensor.cuh"
 #include "THCDeviceTensorUtils.cuh"
 
-//#include "/root/grid_launch_variadic/headers/implementation/functions/grid_launch.hpp"
-
 const int WARP_SIZE = 32;
 typedef THCDeviceTensor<float, 3> DeviceTensor3;
 typedef THCDeviceTensor<float, 1> DeviceTensor1;

@@ -26,7 +26,7 @@ void THNN_CudaSoftShrink_updateOutput(THCState *state, THCudaTensor *input, THCu
 {
   THCUNN_assertSameGPU(state, 2, input, output);
   THCudaTensor_resizeAs(state, output, input);
-  stub_THC_pointwiseApply2(state, output, input, SoftShrinkUpdateOutput(lambda));
+  THC_pointwiseApply2(state, output, input, SoftShrinkUpdateOutput(lambda));
   THCudaCheck(hipGetLastError());
 }
 
@@ -57,6 +57,6 @@ void THNN_CudaSoftShrink_updateGradInput(THCState *state, THCudaTensor *input, T
 {
   THCUNN_assertSameGPU(state, 3, input, gradOutput, gradInput);
   THCudaTensor_resizeAs(state, gradInput, input);
-  stub_THC_pointwiseApply3(state, gradInput, input, gradOutput, SoftShrinkUpdateGradInput(lambda));
+  THC_pointwiseApply3(state, gradInput, input, gradOutput, SoftShrinkUpdateGradInput(lambda));
   THCudaCheck(hipGetLastError());
 }

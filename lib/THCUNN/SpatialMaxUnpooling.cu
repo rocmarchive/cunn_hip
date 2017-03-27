@@ -2,8 +2,6 @@
 #include "THCUNN.h"
 #include "common.h"
 
-//#include "/root/grid_launch_variadic/headers/implementation/functions/grid_launch.hpp"
-
 template <typename Dtype>
 __global__ void MaxUnpoolForward(hipLaunchParm lp, const int nthreads, const Dtype* bottom_data, const Dtype* bottom_mask,
     const int num, const int channels, const int iheight, const int iwidth, const int oheight, const int owidth, Dtype* top_data) {

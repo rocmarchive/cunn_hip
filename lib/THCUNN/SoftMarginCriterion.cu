@@ -52,11 +52,12 @@ void THNN_CudaSoftMarginCriterion_updateOutput(THCState *state,
 #else
   auto input_data = THCudaTensor_data(state, input);
   auto target_data = THCudaTensor_data(state, target);
-  sum = bolt::amp::inner_product(input_data, 
-                                 input_data+size, 
-                                 target_data, 0.0f, 
-                                 bolt::amp::plus<float>(), 
-                                 softmargin_functor());
+  sum = 0.0f;
+//  sum = bolt::amp::inner_product(input_data, 
+//                                 input_data+size, 
+//                                 target_data, 0.0f, 
+//                                 bolt::amp::plus<float>(), 
+//                                 softmargin_functor());
 #endif
 
   if(sizeAverage)

@@ -6,8 +6,6 @@
 #include "THCDeviceUtils.cuh"
 #include "THCReduceApplyUtils.cuh"
 
-//#include "/root/grid_launch_variadic/headers/implementation/functions/grid_launch.hpp"
-
 __global__ void SpatialReflectionPadding_updateOutput( hipLaunchParm lp, 
   THCDeviceTensor<float, 4> input,
   THCDeviceTensor<float, 4> output,

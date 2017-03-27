@@ -2,8 +2,6 @@
 #include "THCUNN.h"
 #include "common.h"
 
-//#include "/root/grid_launch_variadic/headers/implementation/functions/grid_launch.hpp"
-
 template <typename Dtype>
 __global__ void
 #if __CUDA_ARCH__ >= 320

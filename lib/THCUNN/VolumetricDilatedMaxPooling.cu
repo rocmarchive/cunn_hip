@@ -7,8 +7,6 @@
 
 #include <cfloat>
 
-//#include "/root/grid_launch_variadic/headers/implementation/functions/grid_launch.hpp"
-
 __global__ void cuda_VolumetricDilatedMaxPooling_updateOutput(hipLaunchParm lp, 
   THCDeviceTensor<float, 4> input,
   THCDeviceTensor<float, 4> indices,

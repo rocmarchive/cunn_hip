@@ -13,8 +13,6 @@
     #include <bolt/amp/functional.h>
 #endif
 
-//#include "/root/grid_launch_variadic/headers/implementation/functions/grid_launch.hpp"
-
 __global__ void cunn_SpatialClassNLLCriterion_updateOutput_kernel(hipLaunchParm lp, 
           float *output,
           float *total_weight,

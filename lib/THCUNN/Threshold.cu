@@ -50,7 +50,7 @@ void THNN_CudaThreshold_updateOutput(THCState *state, THCudaTensor *input, THCud
 
   if (inplace)
   {
-    stub_THC_pointwiseApply1(state, input,
+    THC_pointwiseApply1(state, input,
       ThresholdUpdateOutputIP(threshold, val)
     );
     THCudaTensor_set(state, output, input);
@@ -58,7 +58,7 @@ void THNN_CudaThreshold_updateOutput(THCState *state, THCudaTensor *input, THCud
   else
   {
     THCudaTensor_resizeAs(state, output, input);
-    stub_THC_pointwiseApply2(state, output, input,
+    THC_pointwiseApply2(state, output, input,
       ThresholdUpdateOutput(threshold, val)
     );
   }
@@ -111,7 +111,7 @@ void THNN_CudaThreshold_updateGradInput(THCState *state, THCudaTensor *input, TH
 
   if (inplace)
   {
-    stub_THC_pointwiseApply2(state, gradOutput, input,
+    THC_pointwiseApply2(state, gradOutput, input,
       ThresholdUpdateGradInputIP(threshold)
     );
     THCudaTensor_set(state, gradInput, gradOutput);
@@ -119,7 +119,7 @@ void THNN_CudaThreshold_updateGradInput(THCState *state, THCudaTensor *input, TH
   else
   {
     THCudaTensor_resizeAs(state, gradInput, input);
-    stub_THC_pointwiseApply3(state, gradInput, input, gradOutput,
+    THC_pointwiseApply3(state, gradInput, input, gradOutput,
        ThresholdUpdateGradInput(threshold)
     );
   }

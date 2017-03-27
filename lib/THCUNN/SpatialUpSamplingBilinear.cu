@@ -7,8 +7,6 @@
 #include "THCDeviceTensorUtils.cuh"
 #include "THCDeviceUtils.cuh"
 
-//#include "/root/grid_launch_variadic/headers/implementation/functions/grid_launch.hpp"
-
 __global__ void caffe_gpu_interp2_kernel(hipLaunchParm lp, const int n,
     const float rheight, const float rwidth,
     const THCDeviceTensor<float, 4> data1, THCDeviceTensor<float, 4> data2) {

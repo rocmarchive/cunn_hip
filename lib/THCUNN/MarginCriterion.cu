@@ -51,12 +51,13 @@ void THNN_CudaMarginCriterion_updateOutput(THCState *state, THCudaTensor *input,
 #else
   auto input_data = THCudaTensor_data(state, input);
   auto target_data = THCudaTensor_data(state, target);
-  float sum = bolt::amp::inner_product(input_data, 
-                                       input_data+size, 
-                                       target_data, 
-                                       0.0f, 
-                                       bolt::amp::plus<float>(), 
-                                       margin_functor(margin));
+  float sum = 0.0f;
+//  float sum = bolt::amp::inner_product(input_data, 
+//                                       input_data+size, 
+//                                       target_data, 
+//                                       0.0f, 
+//                                       bolt::amp::plus<float>(), 
+//                                       margin_functor(margin));
 #endif
 
   if (sizeAverage)

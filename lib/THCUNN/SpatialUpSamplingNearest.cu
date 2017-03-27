@@ -12,8 +12,6 @@
     #include <thrust/functional.h>
 #endif
 
-//#include "/root/grid_launch_variadic/headers/implementation/functions/grid_launch.hpp"
-
 /*
  * Description:
  */

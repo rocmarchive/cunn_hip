@@ -5,8 +5,6 @@
 
 #include "common.h"
 
-//#include "/root/grid_launch_variadic/headers/implementation/functions/grid_launch.hpp"
-
 // Kernel for fast unfold+copy on volumes
 template <typename Dtype>
 __global__ void vol2col_kernel(hipLaunchParm lp, const int n, const Dtype* data_vol,

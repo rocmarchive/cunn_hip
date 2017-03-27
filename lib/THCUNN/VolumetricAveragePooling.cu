@@ -5,8 +5,6 @@
 #include "THCDeviceTensorUtils.cuh"
 #include "THCDeviceUtils.cuh"
 
-//#include "/root/grid_launch_variadic/headers/implementation/functions/grid_launch.hpp"
-
 __global__ void cuda_VolumetricAveragePooling_updateOutput(hipLaunchParm lp,
   THCDeviceTensor<float, 4> input, THCDeviceTensor<float, 4> output,
   int kT, int kH, int kW, int dT, int dH, int dW, float normFactor, int offsetZ)

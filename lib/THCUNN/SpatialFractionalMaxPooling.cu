@@ -7,8 +7,6 @@
 
 #include <cfloat>
 
-//#include "/root/grid_launch_variadic/headers/implementation/functions/grid_launch.hpp"
-
 __device__ inline float getInterval(float sample,
                                     int index,
                                     int inputSize,

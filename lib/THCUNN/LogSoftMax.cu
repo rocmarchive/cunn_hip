@@ -2,8 +2,6 @@
 #include "THCUNN.h"
 #include "common.h"
 
-//#include "/root/grid_launch_variadic/headers/implementation/functions/grid_launch.hpp"
-
 __global__ void cunn_SpatialLogSoftMax_updateOutput_kernel(hipLaunchParm lp, float *output, float *input, int classSize, int height, int width)
 {
   int batchIndex = hipBlockIdx_x;
@@ -130,7 +128,6 @@ struct LSMFinal
 template <typename Reduction, typename Finalize>
 __device__ __forceinline__ float
 blockReduce(float* smem, float val,
-//blockReduce(__attribute__((address_space(3))) float* smem, float val,
             const Reduction& r,
             float defaultVal,
             const Finalize& f)
@@ -186,7 +183,6 @@ blockReduce(float* smem, float val,
 template <typename Reduction>
 __device__ __forceinline__ float
 blockReduce(float* smem, float val,
-//blockReduce(__attribute__((address_space(3))) float* smem, float val,
             const Reduction& r,
             float defaultVal)
 {
@@ -236,7 +232,8 @@ template <int ILP>
 __global__ void
 cunn_LogSoftMax_updateOutput_kernel(hipLaunchParm lp, float *output, float *input, int classes)
 {
-  HIP_DYNAMIC_SHARED( float, buffer)
+  //HIP_DYNAMIC_SHARED( float, buffer)
+  __shared__ float buffer[1024];
   // forward pointers to batch[hipBlockIdx_x]
   // each block handles a sample in the mini-batch
   input += hipBlockIdx_x * classes;
@@ -288,7 +285,8 @@ cunn_LogSoftMax_updateGradInput_kernel(hipLaunchParm lp, float *gradInput,
                                        float *gradOutput,
                                        int classes)
 {
-  HIP_DYNAMIC_SHARED( float, buffer)
+  //HIP_DYNAMIC_SHARED( float, buffer)
+  __shared__ float buffer[1024];
   gradInput += hipBlockIdx_x * classes;
   output += hipBlockIdx_x * classes;
   gradOutput += hipBlockIdx_x * classes;

@@ -12,8 +12,6 @@
     #include <bolt/amp/functional.h>
 #endif
 
-//#include "/root/grid_launch_variadic/headers/implementation/functions/grid_launch.hpp"
-
 #define MULTILABELMARGIN_THREADS 1024
 
 __global__ void cunn_MultiLabelMarginCriterion_updateOutput_kernel(hipLaunchParm lp, float *output,

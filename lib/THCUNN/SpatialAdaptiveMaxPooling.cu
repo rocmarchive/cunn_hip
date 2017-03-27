@@ -2,8 +2,6 @@
 #include "THCUNN.h"
 #include "common.h"
 
-//#include "/root/grid_launch_variadic/headers/implementation/functions/grid_launch.hpp"
-
 #define CUDA_MAX_THREADS 1024   // this is safe, in reality 256 is our limit
 
 /*
