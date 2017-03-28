@@ -58,7 +58,7 @@ void vol2col(hipStream_t stream, const Dtype* data_vol, const int channels,
   int width_col = (width + 2 * pad_w - (dilation_w * (ksize_w - 1) + 1)) / stride_w + 1;
   int num_kernels = channels * depth_col * height_col * width_col;
   // Launch
-  hipLaunchKernel(HIP_KERNEL_NAME(vol2col_kernel), dim3(GET_BLOCKS(num_kernels)), dim3(CUDA_NUM_THREADS), 0, stream, 
+  stub_hipLaunchKernel(HIP_KERNEL_NAME(vol2col_kernel), dim3(GET_BLOCKS(num_kernels)), dim3(CUDA_NUM_THREADS), 0, stream, 
       num_kernels, data_vol, depth, height, width, ksize_t, ksize_h, ksize_w,
       pad_t, pad_h, pad_w, stride_t, stride_h, stride_w,
       dilation_t, dilation_h, dilation_w,
@@ -132,7 +132,7 @@ void col2vol(hipStream_t stream, const Dtype* data_col, const int channels,
   int num_kernels = channels * depth * height * width;
   // To avoid involving atomic operations, we will launch one kernel per
   // bottom dimension, and then in the kernel add up the top dimensions.
-  hipLaunchKernel(HIP_KERNEL_NAME(vol2im_kernel), dim3(GET_BLOCKS(num_kernels)), dim3(CUDA_NUM_THREADS), 0, stream, 
+  stub_hipLaunchKernel(HIP_KERNEL_NAME(vol2im_kernel), dim3(GET_BLOCKS(num_kernels)), dim3(CUDA_NUM_THREADS), 0, stream, 
       num_kernels, data_col, depth, height, width, channels,
       patch_t, patch_h, patch_w, pad_t, pad_h, pad_w, stride_t, stride_h, stride_w,
       dilation_t, dilation_h, dilation_w,

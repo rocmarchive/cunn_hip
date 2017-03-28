@@ -46,12 +46,11 @@ void THNN_CudaAbsCriterion_updateOutput(THCState *state, THCudaTensor *input, TH
 #else
   auto input_data = THCudaTensor_data(state, input);
   auto target_data = THCudaTensor_data(state, target);
-  float sum = 0.0f;
-//  float sum = bolt::amp::inner_product(input_data, 
-//                                       input_data+size, 
-//                                       target_data, 0.0f, 
-//                                       bolt::amp::plus<float>(), 
-//                                       abs_functor());
+  float sum = bolt::amp::inner_product(input_data, 
+                                       input_data+size, 
+                                       target_data, 0.0f, 
+                                       bolt::amp::plus<float>(), 
+                                       abs_functor());
 #endif
 
   if (sizeAverage)
