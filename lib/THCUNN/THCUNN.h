@@ -9,7 +9,7 @@
 #define stub_THC_pointwiseApply2(...) /* whitespace */ 
 #define stub_THC_pointwiseApply3(...) /* whitespace */ 
 
-#define THError(...) /* whitespace */
+//#define THError(...) /* whitespace */
 
 TH_API void THNN_CudaAbs_updateOutput(
           THCState *state,

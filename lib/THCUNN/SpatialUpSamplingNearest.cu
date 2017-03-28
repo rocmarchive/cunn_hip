@@ -108,7 +108,7 @@ void THNN_CudaSpatialUpSamplingNearest_updateOutput(THCState *state, THCudaTenso
   dim3 threads(nthreads);
 
   // kernel:
-  stub_hipLaunchKernel(HIP_KERNEL_NAME(upscale), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), input_data, output_data, no_elements, scale_factor, d1, d2, d3);
+  hipLaunchKernel(HIP_KERNEL_NAME(upscale), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), input_data, output_data, no_elements, scale_factor, d1, d2, d3);
   THCudaCheck(hipGetLastError());
 
   // final cut:
@@ -176,7 +176,7 @@ void THNN_CudaSpatialUpSamplingNearest_updateGradInput(THCState *state, THCudaTe
   dim3 threads(nthreads);
 
   // kernel:
-  stub_hipLaunchKernel(HIP_KERNEL_NAME(downscale), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), gradInput_data, gradOutput_data, no_elements,
+  hipLaunchKernel(HIP_KERNEL_NAME(downscale), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), gradInput_data, gradOutput_data, no_elements,
     scale_factor, d1, d2, d3);
   THCudaCheck(hipGetLastError());
 }

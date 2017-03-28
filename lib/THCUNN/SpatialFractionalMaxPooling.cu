@@ -64,9 +64,10 @@ __global__ void SpatialFractionalMaxPooling_updateOutput(hipLaunchParm lp,
         }
       }
     }
-
+#if defined(__HIP_PLATFORM_NVCC__)
     assert(maxVal != -FLT_MAX);
     assert(maxIndex != -1);
+#endif
 
     // +1 for Lua index
     indices[batch][plane][outputH][outputW] = maxIndex + TH_INDEX_BASE;
@@ -143,7 +144,7 @@ void THNN_CudaSpatialFractionalMaxPooling_updateOutput(
   dim3 block(outputPlaneSize > 128 ? 128 : outputPlaneSize);
 
 #define SFMP_UPDATE_OUTPUT(POOL_W)                                      \
-  stub_hipLaunchKernel(SpatialFractionalMaxPooling_updateOutput<POOL_W>                      \
+  hipLaunchKernel(SpatialFractionalMaxPooling_updateOutput<POOL_W>                      \
     ,grid, block, 0, THCState_getCurrentStream(state),            \
       devInput, devOutput, devIndices, devSamples, poolSizeW, poolSizeH);
 
@@ -179,10 +180,14 @@ __global__ void SpatialFractionalMaxPooling_updateGradInput(hipLaunchParm lp,
     int outputH = ourOutputPoint / gradOutput.getSize(3);
 
     int index = indices[batch][plane][outputH][outputW] - TH_INDEX_BASE;
+#if defined(__HIP_PLATFORM_NVCC__)
     assert(index >= 0);
+#endif
     int inputW = index % gradInput.getSize(3);
     int inputH = index / gradInput.getSize(3);
+#if defined(__HIP_PLATFORM_NVCC__)
     assert(inputH < gradInput.getSize(2));
+#endif
 
     atomicAdd(gradInput[batch][plane][inputH][inputW].data(),
               gradOutput[batch][plane][outputH][outputW]);
@@ -243,7 +248,7 @@ void THNN_CudaSpatialFractionalMaxPooling_updateGradInput(
             devGradInput.getSize(0));
   dim3 block(outputPlaneSize > 128 ? 128 : outputPlaneSize);
 
-  stub_hipLaunchKernel(HIP_KERNEL_NAME(SpatialFractionalMaxPooling_updateGradInput), dim3(grid), dim3(block), 0, THCState_getCurrentStream(state), 
+  hipLaunchKernel(HIP_KERNEL_NAME(SpatialFractionalMaxPooling_updateGradInput), dim3(grid), dim3(block), 0, THCState_getCurrentStream(state), 
       devGradInput, devGradOutput, devIndices);
   THCudaCheck(hipGetLastError());
 }

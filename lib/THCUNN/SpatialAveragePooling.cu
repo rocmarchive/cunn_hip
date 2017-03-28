@@ -90,16 +90,17 @@ void THNN_CudaSpatialAveragePooling_updateOutput(THCState *state, THCudaTensor *
 
   int count = THCudaTensor_nElement(state, output);
 
-  if(count_include_pad)
-    stub_hipLaunchKernel(HIP_KERNEL_NAME(AvePoolForward<float, true>), dim3(GET_BLOCKS(count)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state) , 
+  if(count_include_pad) {
+    hipLaunchKernel(HIP_KERNEL_NAME(AvePoolForward<float, true>), dim3(GET_BLOCKS(count)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state) , 
         count, input_data,
         batchSize, nInputPlane, nInputRows, nInputCols, nOutputRows, nOutputCols,
         kH, kW, dH, dW, padH, padW, output_data);
-  else
-    stub_hipLaunchKernel(HIP_KERNEL_NAME(AvePoolForward<float, false>), dim3(GET_BLOCKS(count)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state) , 
+  } else {
+    hipLaunchKernel(HIP_KERNEL_NAME(AvePoolForward<float, false>), dim3(GET_BLOCKS(count)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state) , 
         count, input_data,
         batchSize, nInputPlane, nInputRows, nInputCols, nOutputRows, nOutputCols,
         kH, kW, dH, dW, padH, padW, output_data);
+  }
   THCudaCheck(hipGetLastError());
 
   if(input->nDimension == 3)
@@ -198,18 +199,19 @@ void THNN_CudaSpatialAveragePooling_updateGradInput(THCState *state, THCudaTenso
 
   int count = THCudaTensor_nElement(state, input);
 
-  if(count_include_pad)
-    stub_hipLaunchKernel(HIP_KERNEL_NAME(AvePoolBackward<float, true>), dim3(GET_BLOCKS(count)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state) , count,
+  if(count_include_pad) {
+    hipLaunchKernel(HIP_KERNEL_NAME(AvePoolBackward<float, true>), dim3(GET_BLOCKS(count)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state) , count,
         THCudaTensor_data(state, gradOutput),
         batchSize, nInputPlane, nInputRows, nInputCols, nOutputRows, nOutputCols,
         kH, kW, dH, dW, padH, padW,
         THCudaTensor_data(state, gradInput));
-  else
-    stub_hipLaunchKernel(HIP_KERNEL_NAME(AvePoolBackward<float, false>), dim3(GET_BLOCKS(count)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state) , count,
+  } else {
+    hipLaunchKernel(HIP_KERNEL_NAME(AvePoolBackward<float, false>), dim3(GET_BLOCKS(count)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state) , count,
         THCudaTensor_data(state, gradOutput),
         batchSize, nInputPlane, nInputRows, nInputCols, nOutputRows, nOutputCols,
         kH, kW, dH, dW, padH, padW,
         THCudaTensor_data(state, gradInput));
+  }
   THCudaCheck(hipGetLastError());
 
   // clean

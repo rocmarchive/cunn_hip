@@ -276,7 +276,7 @@ void THNN_CudaSpatialSubSampling_updateOutput(THCState *state, THCudaTensor *inp
     dim3 threads(32,8);
 
     // run subsample kernel
-    stub_hipLaunchKernel(HIP_KERNEL_NAME(subsample), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), 
+    hipLaunchKernel(HIP_KERNEL_NAME(subsample), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), 
       input_data, output_data, weight_data, bias_data,
       nInputPlane, nInputRows, nInputCols, kH, kW, dH, dW);
     THCudaCheck(hipGetLastError());
@@ -303,7 +303,7 @@ void THNN_CudaSpatialSubSampling_updateOutput(THCState *state, THCudaTensor *inp
     dim3 threads(32,8);
 
     // run subsample kernel
-    stub_hipLaunchKernel(HIP_KERNEL_NAME(subsample), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), 
+    hipLaunchKernel(HIP_KERNEL_NAME(subsample), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), 
       input_data, output_data, weight_data, bias_data,
       nInputPlane, nInputRows, nInputCols, kH, kW, dH, dW);
     THCudaCheck(hipGetLastError());
@@ -340,11 +340,11 @@ void THNN_CudaSpatialSubSampling_updateGradInput(THCState *state, THCudaTensor *
 
     // run updateGradInput kernel
     if (kH <= dH && kW <= dW) {
-      stub_hipLaunchKernel(HIP_KERNEL_NAME(subgradinput), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), 
+      hipLaunchKernel(HIP_KERNEL_NAME(subgradinput), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), 
         gradInput_data, gradOutput_data, weight_data,
         nInputPlane, nInputRows, nInputCols, kH, kW, dH, dW);
     } else {
-      stub_hipLaunchKernel(HIP_KERNEL_NAME(subgradinputAtomic), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), 
+      hipLaunchKernel(HIP_KERNEL_NAME(subgradinputAtomic), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), 
         gradInput_data, gradOutput_data, weight_data,
         nInputPlane, nInputRows, nInputCols, kH, kW, dH, dW);
     }
@@ -370,11 +370,11 @@ void THNN_CudaSpatialSubSampling_updateGradInput(THCState *state, THCudaTensor *
 
     // run updateGradInput kernel
     if (kH <= dH && kW <= dW) {
-      stub_hipLaunchKernel(HIP_KERNEL_NAME(subgradinput), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), 
+      hipLaunchKernel(HIP_KERNEL_NAME(subgradinput), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), 
         gradInput_data, gradOutput_data, weight_data,
         nInputPlane, nInputRows, nInputCols, kH, kW, dH, dW);
     } else {
-      stub_hipLaunchKernel(HIP_KERNEL_NAME(subgradinputAtomic), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), 
+      hipLaunchKernel(HIP_KERNEL_NAME(subgradinputAtomic), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), 
         gradInput_data, gradOutput_data, weight_data,
         nInputPlane, nInputRows, nInputCols, kH, kW, dH, dW);
     }
@@ -405,7 +405,7 @@ void THNN_CudaSpatialSubSampling_accGradParameters(THCState *state, THCudaTensor
     dim3 threads(32,8);
 
     // run gradweight kernel
-    stub_hipLaunchKernel(HIP_KERNEL_NAME(subgradweight), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), 
+    hipLaunchKernel(HIP_KERNEL_NAME(subgradweight), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), 
       input_data, gradOutput_data, gradWeight_data, gradBias_data,
       nInputPlane, nInputRows, nInputCols, kH, kW, dH, dW, scale);
     THCudaCheck(hipGetLastError());
@@ -429,7 +429,7 @@ void THNN_CudaSpatialSubSampling_accGradParameters(THCState *state, THCudaTensor
     // run gradweight kernel
     long sl;
     for (sl=0; sl<nbatch; sl++) {
-      stub_hipLaunchKernel(HIP_KERNEL_NAME(subgradweight), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), 
+      hipLaunchKernel(HIP_KERNEL_NAME(subgradweight), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), 
         input_data + sl*input->stride[0],
         gradOutput_data + sl*gradOutput->stride[0],
         gradWeight_data, gradBias_data,

@@ -109,26 +109,26 @@ __device__ T reduce(Op op, DeviceTensor3 tensor, int plane) {
   sum = warpSum(sum);
 
   // 'transpose', and reduce within warp again
-  __shared__ T shared[32];
+  __shared__ T sharedv[32];
   __syncthreads();
   if (hipThreadIdx_x % WARP_SIZE == 0) {
-    shared[hipThreadIdx_x / WARP_SIZE] = sum;
+    sharedv[hipThreadIdx_x / WARP_SIZE] = sum;
   }
   if (hipThreadIdx_x >= hipBlockDim_x / WARP_SIZE && hipThreadIdx_x < WARP_SIZE) {
     // zero out the other entries in shared
-    shared[hipThreadIdx_x] = (T)0;
+    sharedv[hipThreadIdx_x] = (T)0;
   }
   __syncthreads();
   if (hipThreadIdx_x / WARP_SIZE == 0) {
-    sum = warpSum(shared[hipThreadIdx_x]);
+    sum = warpSum(sharedv[hipThreadIdx_x]);
     if (hipThreadIdx_x == 0) {
-      shared[0] = sum;
+      sharedv[0] = sum;
     }
   }
   __syncthreads();
 
   // Everyone picks it up, should be broadcast into the whole gradInput
-  return shared[0];
+  return sharedv[0];
 }
 
 template <int Dim>
@@ -252,14 +252,14 @@ void THNN_CudaBatchNormalization_updateOutput(
   if (!train) {
     dim3 blocks(input.getSize(1));
     dim3 threads(getNumThreads(input.getSize(2)));
-    stub_hipLaunchKernel(HIP_KERNEL_NAME(BatchNormalizationUpdateOutputInference_kernel), dim3(blocks), dim3(threads), 0, s, 
-      input, output, runningMean, runningVar, weight, bias, eps);
+    //hipLaunchKernel(HIP_KERNEL_NAME(BatchNormalizationUpdateOutputInference_kernel), dim3(blocks), dim3(threads), 0, s, 
+    //  input, output, runningMean, runningVar, weight, bias, eps);
   } else {
     dim3 blocks(input.getSize(1));
     dim3 threads(getNumThreads(input.getSize(2)));
-    stub_hipLaunchKernel(HIP_KERNEL_NAME(BatchNormalizationUpdateOutput_kernel), dim3(blocks), dim3(threads), 0, s, 
-      input, output, weight, bias, eps, momentum, runningMean, runningVar,
-      saveMean, saveStd);
+    //hipLaunchKernel(HIP_KERNEL_NAME(BatchNormalizationUpdateOutput_kernel), dim3(blocks), dim3(threads), 0, s, 
+    //  input, output, weight, bias, eps, momentum, runningMean, runningVar,
+    //  saveMean, saveStd);
   }
   THCudaCheck(hipGetLastError());
 }
@@ -356,8 +356,8 @@ void THNN_CudaBatchNormalization_backward(
 
   dim3 blocks(gradOutput.getSize(1));
   dim3 threads(getNumThreads(gradOutput.getSize(2)));
-  stub_hipLaunchKernel(HIP_KERNEL_NAME(BatchNormalizationBackward_kernel), dim3(blocks), dim3(threads), 0, s, 
-    input, gradOutput, gradInput, gradWeight, gradBias, weight, runningMean, runningVar,
-    saveMean, saveStd, train, scale, eps);
+  //hipLaunchKernel(HIP_KERNEL_NAME(BatchNormalizationBackward_kernel), dim3(blocks), dim3(threads), 0, s, 
+  //  input, gradOutput, gradInput, gradWeight, gradBias, weight, runningMean, runningVar,
+  //  saveMean, saveStd, train, scale, eps);
   THCudaCheck(hipGetLastError());
 }

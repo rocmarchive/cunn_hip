@@ -40,7 +40,9 @@ __global__ void cunn_SpatialClassNLLCriterion_updateOutput_kernel(hipLaunchParm 
        i < map_nelem;
        i += step) {
     t = target[toffset + i] - TH_INDEX_BASE;
+#if defined(__HIP_PLATFORM_NVCC__)
     assert(t >= 0 && t < n_classes);
+#endif
     cur_weight = weights ? weights[t] : 1.0f;
     input_sum -= input[ioffset + i + map_nelem * t] * cur_weight;
     acc_weight += cur_weight;
@@ -90,7 +92,9 @@ __global__ void cunn_SpatialClassNLLCriterion_updateGradInput_kernel(hipLaunchPa
        i < map_nelem;
        i += step) {
     t = (int)target[toffset + i] - TH_INDEX_BASE;
+#if defined(__HIP_PLATFORM_NVCC__)
     assert(t >= 0 && t < n_classes);
+#endif
     gradInput[ioffset + i + map_nelem * t] = -(weights ? weights[t] : 1.0f) * norm;
   }
 }
@@ -136,7 +140,7 @@ void THNN_CudaSpatialClassNLLCriterion_updateOutput(
   THCudaTensor_fill(state, output, 0);
   THCudaTensor_fill(state, total_weight, 0);
 
-  stub_hipLaunchKernel(HIP_KERNEL_NAME(cunn_SpatialClassNLLCriterion_updateOutput_kernel), dim3(total_blocks), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state), 
+  hipLaunchKernel(HIP_KERNEL_NAME(cunn_SpatialClassNLLCriterion_updateOutput_kernel), dim3(total_blocks), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state), 
       output_data,
       total_weight_data,
       input_data,
@@ -195,7 +199,7 @@ void THNN_CudaSpatialClassNLLCriterion_updateGradInput(
   blocks_per_sample = (blocks_per_sample == 0) ? 1 : blocks_per_sample;
   int total_blocks = blocks_per_sample * batch_size;
 
-  stub_hipLaunchKernel(HIP_KERNEL_NAME(cunn_SpatialClassNLLCriterion_updateGradInput_kernel), dim3(total_blocks), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state), 
+  hipLaunchKernel(HIP_KERNEL_NAME(cunn_SpatialClassNLLCriterion_updateGradInput_kernel), dim3(total_blocks), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state), 
       gradInput_data,
       target_data,
       weights_data,

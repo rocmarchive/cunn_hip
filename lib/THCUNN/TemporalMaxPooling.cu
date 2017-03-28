@@ -142,7 +142,7 @@ void THNN_CudaTemporalMaxPooling_updateOutput(
   }
 
   dim3 threads(nthreads);
-  stub_hipLaunchKernel(HIP_KERNEL_NAME(cunn_TemporalMaxPooling_updateOutputKernel), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state) , 
+  hipLaunchKernel(HIP_KERNEL_NAME(cunn_TemporalMaxPooling_updateOutputKernel), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state) , 
       input_data, output_data, indices_data, input_w, input_n, output_w, kW, dW);
   THCudaCheck(hipGetLastError());
   THCudaTensor_free(state, input);
@@ -210,10 +210,10 @@ void THNN_CudaTemporalMaxPooling_updateGradInput(
 
   dim3 threads(nthreads);
   if (kW <= dW) {
-    stub_hipLaunchKernel(HIP_KERNEL_NAME(cunn_TemporalMaxPooling_updateGradInputKernel), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state) , 
+    hipLaunchKernel(HIP_KERNEL_NAME(cunn_TemporalMaxPooling_updateGradInputKernel), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state) , 
         gradInput_data, gradOutput_data, indices_data, input_w, input_n, output_w, kW, dW);
   } else {
-    stub_hipLaunchKernel(HIP_KERNEL_NAME(cunn_TemporalMaxPooling_updateGradInputKernelAtomic), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state) , 
+    hipLaunchKernel(HIP_KERNEL_NAME(cunn_TemporalMaxPooling_updateGradInputKernelAtomic), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state) , 
         gradInput_data, gradOutput_data, indices_data, input_w, input_n, output_w, kW, dW);
   }
   THCudaCheck(hipGetLastError());

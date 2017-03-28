@@ -14,13 +14,17 @@ __global__ void cunn_ClassNLLCriterion_updateOutput_kernel1(hipLaunchParm lp, fl
                                                            float *weights,
                                                            int size_average,
                                                            int n_classes) {
+#if defined(__HIP_PLATFORM_NVCC__)
   assert(hipThreadIdx_x == 0 && hipThreadIdx_y == 0 && hipThreadIdx_z == 0);
+#endif
 
   // TODO: T4951791 Reuse code between updateOutput_kernel1 and
   // updateOutput_kernel.
 
   int t = (int)*target - TH_INDEX_BASE;
+#if defined(__HIP_PLATFORM_NVCC__)
   assert(t >= 0 && t < n_classes);
+#endif
   float cur_weight = weights ? weights[t] : 1.0f;
   *output = -cur_weight * input[t];
   *total_weight = cur_weight;
@@ -46,7 +50,9 @@ __global__ void cunn_ClassNLLCriterion_updateOutput_kernel(hipLaunchParm lp, flo
   acc_weight[hipThreadIdx_x] = 0.0f;
   for (i = hipThreadIdx_x; i < nframe; i += NTHREADS) {
       t = target[i] - TH_INDEX_BASE;
+#if defined(__HIP_PLATFORM_NVCC__)
       assert(t >= 0 && t < n_classes);
+#endif
       cur_weight = weights ? weights[t] : 1.0f;
       shInputs[hipThreadIdx_x] -= input[i * ndim + t] * cur_weight;
       acc_weight[hipThreadIdx_x] += cur_weight;
@@ -81,7 +87,9 @@ __global__ void cunn_ClassNLLCriterion_updateGradInput_kernel1(hipLaunchParm lp,
   }
   float norm = size_average ? (1.0f / *total_weight) : 1.0f;
   int t = (int)*target - TH_INDEX_BASE;
+#if defined(__HIP_PLATFORM_NVCC__)
   assert(t >= 0 && t < n_classes);
+#endif
   gradInput[t] = -(weights ? weights[t] : 1.0f) * norm;
 }
 
@@ -103,7 +111,9 @@ __global__ void cunn_ClassNLLCriterion_updateGradInput_kernel(hipLaunchParm lp,
 
   for (i = hipThreadIdx_x; i < nframe; i += NTHREADS) {
     t = (int)target[i] - TH_INDEX_BASE;
+#if defined(__HIP_PLATFORM_NVCC__)
     assert(t >= 0 && t < n_classes);
+#endif
     gradInput[i * ndim + t] = -(weights ? weights[t] : 1.0f) * norm;
   }
 }
@@ -155,7 +165,7 @@ void THNN_CudaClassNLLCriterion_updateOutput(THCState *state, THCudaTensor *inpu
     );
 
   } else if (THCudaTensor_nDimension(state, input) == 2) {
-    stub_hipLaunchKernel(HIP_KERNEL_NAME(cunn_ClassNLLCriterion_updateOutput_kernel), dim3(1), dim3(NTHREADS), 0, THCState_getCurrentStream(state), 
+    hipLaunchKernel(HIP_KERNEL_NAME(cunn_ClassNLLCriterion_updateOutput_kernel), dim3(1), dim3(NTHREADS), 0, THCState_getCurrentStream(state), 
         output_data,
         total_weight_data,
         input_data,
@@ -213,7 +223,7 @@ void THNN_CudaClassNLLCriterion_updateGradInput(THCState *state, THCudaTensor *i
   float *total_weight_data = THCudaTensor_data(state, total_weight);
 
   if (THCudaTensor_nDimension(state, input) == 1) {
-    stub_hipLaunchKernel(HIP_KERNEL_NAME(cunn_ClassNLLCriterion_updateGradInput_kernel1), dim3(1), dim3(1), 0, THCState_getCurrentStream(state), 
+    hipLaunchKernel(HIP_KERNEL_NAME(cunn_ClassNLLCriterion_updateGradInput_kernel1), dim3(1), dim3(1), 0, THCState_getCurrentStream(state), 
         gradInput_data,
         weights_data,
         target_data,
@@ -222,7 +232,7 @@ void THNN_CudaClassNLLCriterion_updateGradInput(THCState *state, THCudaTensor *i
         n_classes
     );
   } else {
-    stub_hipLaunchKernel(HIP_KERNEL_NAME(cunn_ClassNLLCriterion_updateGradInput_kernel), dim3(1), dim3(NTHREADS), 0, THCState_getCurrentStream(state), 
+    hipLaunchKernel(HIP_KERNEL_NAME(cunn_ClassNLLCriterion_updateGradInput_kernel), dim3(1), dim3(NTHREADS), 0, THCState_getCurrentStream(state), 
         gradInput_data,
         target_data,
         weights_data,

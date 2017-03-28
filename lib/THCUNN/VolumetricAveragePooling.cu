@@ -94,7 +94,7 @@ __global__ void cuda_VolumetricAveragePooling_updateOutput(hipLaunchParm lp,
 }
 
 #define LAUNCH_UPDATE_OUTPUT_KERNEL_WIDTH(KW) case KW:                  \
-  stub_hipLaunchKernel(HIP_KERNEL_NAME(cuda_VolumetricAveragePooling_updateOutput<KW>), dim3(grid), dim3(block), 0, 0,       \
+  hipLaunchKernel(HIP_KERNEL_NAME(cuda_VolumetricAveragePooling_updateOutput<KW>), dim3(grid), dim3(block), 0, 0,       \
     cudaInput, cudaOutput, kT, kH, dT, dH, dW, normFactor, offsetZ); \
   break
 
@@ -198,7 +198,7 @@ void THNN_CudaVolumetricAveragePooling_updateOutput(
         LAUNCH_UPDATE_OUTPUT_KERNEL_WIDTH(6);
         LAUNCH_UPDATE_OUTPUT_KERNEL_WIDTH(7);
       default:
-        stub_hipLaunchKernel(HIP_KERNEL_NAME(cuda_VolumetricAveragePooling_updateOutput), dim3(grid), dim3(block), 0, 0, 
+        hipLaunchKernel(HIP_KERNEL_NAME(cuda_VolumetricAveragePooling_updateOutput), dim3(grid), dim3(block), 0, 0, 
                                                                     cudaInput,
                                                                     cudaOutput,
                                                                     kT, kH, kW,
@@ -391,7 +391,7 @@ void THNN_CudaVolumetricAveragePooling_updateGradInput(
       dim3 grid(THCCeilDiv(inputWidth, static_cast<int>(block.x)),
                 THCCeilDiv(inputHeight, static_cast<int>(block.y)),
                 totalZ > 65535 ? 65535 : totalZ);
-      stub_hipLaunchKernel(HIP_KERNEL_NAME(cuda_VolumetricAveragePooling_updateGradInput_Stride1), dim3(grid), dim3(block), 0, 0, 
+      hipLaunchKernel(HIP_KERNEL_NAME(cuda_VolumetricAveragePooling_updateGradInput_Stride1), dim3(grid), dim3(block), 0, 0, 
          cudaGradOutput, cudaGradInput, kT, kH, kW, 1.0f/(kT * kH * kW), offsetZ);
       THCudaCheck(hipGetLastError());
       totalZ -= 65535;
@@ -409,12 +409,12 @@ void THNN_CudaVolumetricAveragePooling_updateGradInput(
                 totalZ > 65535 ? 65535 : totalZ);
       if (kernelsOverlap)
         {
-          stub_hipLaunchKernel(HIP_KERNEL_NAME(cuda_VolumetricAveragePooling_updateGradInput_atomicAdd), dim3(grid), dim3(block), 0, 0, 
+          hipLaunchKernel(HIP_KERNEL_NAME(cuda_VolumetricAveragePooling_updateGradInput_atomicAdd), dim3(grid), dim3(block), 0, 0, 
             cudaGradOutput, cudaGradInput, kT, kH, kW, dT, dH, dW, offsetZ);
         }
       else
         {
-          stub_hipLaunchKernel(HIP_KERNEL_NAME(cuda_VolumetricAveragePooling_updateGradInput), dim3(grid), dim3(block), 0, 0, 
+          hipLaunchKernel(HIP_KERNEL_NAME(cuda_VolumetricAveragePooling_updateGradInput), dim3(grid), dim3(block), 0, 0, 
              cudaGradOutput, cudaGradInput, kT, kH, kW, dT, dH, dW, offsetZ);
         }
       THCudaCheck(hipGetLastError());
