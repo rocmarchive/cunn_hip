@@ -1,6 +1,7 @@
 #include "hip/hip_runtime.h"
 #include "THCUNN.h"
 #include "common.h"
+#ifdef CURAND_PATH
 #include <curand.h>
 #include <curand_kernel.h>
 
@@ -77,7 +78,7 @@ void THNN_CudaRReLU_updateOutput(THCState *state, THCudaTensor *input, THCudaTen
     long n = THCudaTensor_nElement(state, input);
     if (inplace)
     {
-      hipLaunchKernel(HIP_KERNEL_NAME(rreluUpdateOutputTrain), dim3(NUM_BLOCKS(n)), dim3(BLOCK_SIZE), 0, THCState_getCurrentStream(state), 
+      hipLaunchKernel((rreluUpdateOutputTrain), dim3(NUM_BLOCKS(n)), dim3(BLOCK_SIZE), 0, THCState_getCurrentStream(state), 
         n, gen_states, input_data, noise_data, input_data, lower, upper);
       THCudaTensor_set(state, output, input);
     }
@@ -85,7 +86,7 @@ void THNN_CudaRReLU_updateOutput(THCState *state, THCudaTensor *input, THCudaTen
     {
       THCudaTensor_resizeAs(state, output, input);
       float *output_data = THCudaTensor_data(state, output);
-      hipLaunchKernel(HIP_KERNEL_NAME(rreluUpdateOutputTrain), dim3(NUM_BLOCKS(n)), dim3(BLOCK_SIZE), 0, THCState_getCurrentStream(state), 
+      hipLaunchKernel((rreluUpdateOutputTrain), dim3(NUM_BLOCKS(n)), dim3(BLOCK_SIZE), 0, THCState_getCurrentStream(state), 
         n, gen_states, input_data, noise_data, output_data, lower, upper);
     }
     THCudaCheck(hipGetLastError());
@@ -177,3 +178,4 @@ void THNN_CudaRReLU_updateGradInput(THCState *state, THCudaTensor *input, THCuda
 
   THCudaTensor_free(state, gradOutput);
 }
+#endif

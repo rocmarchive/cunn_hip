@@ -1,6 +1,7 @@
 #include "hip/hip_runtime.h"
 #include "THCUNN.h"
 #include "common.h"
+#ifdef KERNEL_COMPLEX_PARAM
 #include "THCDeviceTensor.cuh"
 #include "THCDeviceTensorUtils.cuh"
 #include "THCDeviceUtils.cuh"
@@ -115,7 +116,7 @@ void THNN_CudaVolumetricMaxUnpooling_updateOutput(hipLaunchParm lp,
               THCCeilDiv(inputHeight, static_cast<int>(block.y)),
               totalZ > 65535 ? 65535 : totalZ);
 
-    hipLaunchKernel(HIP_KERNEL_NAME(cuda_VolumetricMaxUnpooling_updateOutput), dim3(grid), dim3(block), 0, THCState_getCurrentStream(state), 
+    hipLaunchKernel((cuda_VolumetricMaxUnpooling_updateOutput), dim3(grid), dim3(block), 0, THCState_getCurrentStream(state), 
                              cudaInput, cudaIndices, cudaOutput,
                              dT, dH, dW,
                              padT, padH, padW, offsetZ);
@@ -227,7 +228,7 @@ void THNN_CudaVolumetricMaxUnpooling_updateGradInput(
               THCCeilDiv(inputHeight, static_cast<int>(block.y)),
               totalZ > 65535 ? 65535 : totalZ);
 
-    hipLaunchKernel(HIP_KERNEL_NAME(cuda_VolumetricMaxUnpooling_updateGradInput), dim3(grid), dim3(block), 0, THCState_getCurrentStream(state), 
+    hipLaunchKernel((cuda_VolumetricMaxUnpooling_updateGradInput), dim3(grid), dim3(block), 0, THCState_getCurrentStream(state), 
                                              cudaGradOutput,
                                              cudaIndices,
                                              cudaGradInput,
@@ -243,3 +244,4 @@ void THNN_CudaVolumetricMaxUnpooling_updateGradInput(
   THCudaTensor_free(state, gradOutput);
   THCudaTensor_free(state, indices);
 }
+#endif

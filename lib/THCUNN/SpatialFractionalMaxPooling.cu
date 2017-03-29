@@ -5,6 +5,7 @@
 #include "THCDeviceTensorUtils.cuh"
 #include "THCDeviceUtils.cuh"
 
+#ifdef KERNEL_COMPLEX_PARAM
 #include <cfloat>
 
 __device__ inline float getInterval(float sample,
@@ -243,7 +244,8 @@ void THNN_CudaSpatialFractionalMaxPooling_updateGradInput(
             devGradInput.getSize(0));
   dim3 block(outputPlaneSize > 128 ? 128 : outputPlaneSize);
 
-  hipLaunchKernel(HIP_KERNEL_NAME(SpatialFractionalMaxPooling_updateGradInput), dim3(grid), dim3(block), 0, THCState_getCurrentStream(state), 
+  hipLaunchKernel((SpatialFractionalMaxPooling_updateGradInput), dim3(grid), dim3(block), 0, THCState_getCurrentStream(state), 
       devGradInput, devGradOutput, devIndices);
   THCudaCheck(hipGetLastError());
 }
+#endif

@@ -1,6 +1,7 @@
 #include "hip/hip_runtime.h"
 #include "THCUNN.h"
 
+#ifdef KERNEL_COMPLEX_PARAM
 #include "THCDeviceTensor.cuh"
 #include "THCDeviceTensorUtils.cuh"
 #include "THCDeviceUtils.cuh"
@@ -93,7 +94,7 @@ void THNN_CudaSpatialReflectionPadding_updateOutput(THCState *state,
             devOutput.getSize(0));
   dim3 blockSize(outputPlaneSize > 256 ? 256 : outputPlaneSize);
 
-  hipLaunchKernel(HIP_KERNEL_NAME(SpatialReflectionPadding_updateOutput), dim3(gridSize), dim3(blockSize), 0, THCState_getCurrentStream(state), 
+  hipLaunchKernel((SpatialReflectionPadding_updateOutput), dim3(gridSize), dim3(blockSize), 0, THCState_getCurrentStream(state), 
     devInput, devOutput, padT, padB, padL, padR);
   THCudaCheck(hipGetLastError());
 }
@@ -176,7 +177,8 @@ void THNN_CudaSpatialReflectionPadding_updateGradInput(THCState *state,
             devGradOutput.getSize(0));
   dim3 blockSize(outputPlaneSize > 256 ? 256 : outputPlaneSize);
 
-  hipLaunchKernel(HIP_KERNEL_NAME(SpatialReflectionPadding_updateGradInput), dim3(gridSize), dim3(blockSize), 0, THCState_getCurrentStream(state), 
+  hipLaunchKernel((SpatialReflectionPadding_updateGradInput), dim3(gridSize), dim3(blockSize), 0, THCState_getCurrentStream(state), 
     devGradInput, devGradOutput, padT, padB, padL, padR);
   THCudaCheck(hipGetLastError());
 }
+#endif

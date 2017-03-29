@@ -11,7 +11,9 @@ struct l1cost_functor
 {
   __host__ __device__ float operator()(float x, float y) const
   {
+    #ifdef TODO
     return abs(x) + abs(y);
+    #endif
   }
 };
 

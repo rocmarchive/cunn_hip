@@ -1,6 +1,7 @@
 #include "hip/hip_runtime.h"
 #include "THCUNN.h"
 
+#ifdef KERNEL_COMPLEX_PARAM
 #include "THCDeviceTensor.cuh"
 #include "THCDeviceTensorUtils.cuh"
 #include "THCDeviceUtils.cuh"
@@ -84,7 +85,7 @@ void THNN_CudaSpatialReplicationPadding_updateOutput(THCState *state,
             devOutput.getSize(0));
   dim3 blockSize(outputPlaneSize > 256 ? 256 : outputPlaneSize);
 
-  hipLaunchKernel(HIP_KERNEL_NAME(SpatialReplicationPadding_updateOutput), dim3(gridSize), dim3(blockSize), 0, THCState_getCurrentStream(state), 
+  hipLaunchKernel((SpatialReplicationPadding_updateOutput), dim3(gridSize), dim3(blockSize), 0, THCState_getCurrentStream(state), 
     devInput, devOutput, padT, padB, padL, padR);
 
 }
@@ -158,7 +159,8 @@ void THNN_CudaSpatialReplicationPadding_updateGradInput(THCState *state,
             devGradOutput.getSize(0));
   dim3 blockSize(outputPlaneSize > 256 ? 256 : outputPlaneSize);
 
-  hipLaunchKernel(HIP_KERNEL_NAME(SpatialReplicationPadding_updateGradInput), dim3(gridSize), dim3(blockSize), 0, THCState_getCurrentStream(state), 
+  hipLaunchKernel((SpatialReplicationPadding_updateGradInput), dim3(gridSize), dim3(blockSize), 0, THCState_getCurrentStream(state), 
     devGradInput, devGradOutput, padT, padB, padL, padR);
 
 }
+#endif

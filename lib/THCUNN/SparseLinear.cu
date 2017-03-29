@@ -1,4 +1,5 @@
 #include "THCUNN.h"
+#ifdef CUSPARSE_PATH
 #include <cusparse.h>
 #ifdef THRUST_PATH
 #include <thrust/device_vector.h>
@@ -262,3 +263,4 @@ TH_API void THNN_CudaSparseLinear_updateParameters(
 
 void THNN_CudaSparseLinear_cudaClearState(THCState *state) {
 }
+#endif
