@@ -5,7 +5,7 @@ struct SoftShrinkUpdateOutput
 {
   const float lambda_;
 
-  SoftShrinkUpdateOutput(float lambda)
+  __host__ __device__ SoftShrinkUpdateOutput(float lambda)
     : lambda_(lambda)
   {}
 
@@ -30,7 +30,7 @@ struct SoftShrinkUpdateGradInput
 {
   const float lambda_;
 
-  SoftShrinkUpdateGradInput(float lambda)
+  __host__ __device__ SoftShrinkUpdateGradInput(float lambda)
     : lambda_(lambda)
   {}
 

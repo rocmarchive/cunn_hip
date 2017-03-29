@@ -5,7 +5,7 @@ struct ELUupdateOutput_functor
 {
   const float alpha_;
 
-  ELUupdateOutput_functor(float alpha)
+  __host__ __device__ ELUupdateOutput_functor(float alpha)
     : alpha_(alpha)
   {}
 
@@ -20,7 +20,7 @@ struct ELUupdateOutputIP_functor
 {
   const float alpha_;
 
-  ELUupdateOutputIP_functor(float alpha)
+  __host__ __device__ ELUupdateOutputIP_functor(float alpha)
     : alpha_(alpha)
   {}
 
@@ -51,7 +51,7 @@ struct ELUupdateGradInput_functor
 {
   const float alpha_;
 
-  ELUupdateGradInput_functor(float alpha)
+  __host__ __device__ ELUupdateGradInput_functor(float alpha)
     : alpha_(alpha)
   {}
 
@@ -65,7 +65,7 @@ struct ELUupdateGradInputIP_functor
 {
   const float alpha_;
 
-  ELUupdateGradInputIP_functor(float alpha)
+  __host__ __device__ ELUupdateGradInputIP_functor(float alpha)
     : alpha_(alpha)
   {}
 

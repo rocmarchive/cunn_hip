@@ -6,7 +6,7 @@ struct ThresholdUpdateOutput
   const float threshold_;
   const float val_;
 
-  ThresholdUpdateOutput(float threshold, float val)
+  __host__ __device__ ThresholdUpdateOutput(float threshold, float val)
     : threshold_(threshold)
     , val_(val)
   {}
@@ -24,7 +24,7 @@ struct ThresholdUpdateOutputIP
   const float threshold_;
   const float val_;
 
-  ThresholdUpdateOutputIP(float threshold, float val)
+  __host__ __device__ ThresholdUpdateOutputIP(float threshold, float val)
     : threshold_(threshold)
     , val_(val)
   {}
@@ -62,7 +62,7 @@ struct ThresholdUpdateGradInput
 {
   const float threshold_;
 
-  ThresholdUpdateGradInput(float threshold)
+  __host__ __device__ ThresholdUpdateGradInput(float threshold)
     : threshold_(threshold)
   {}
 
@@ -77,7 +77,7 @@ struct ThresholdUpdateGradInputIP
 {
   const float threshold_;
 
-  ThresholdUpdateGradInputIP(float threshold)
+  __host__ __device__ ThresholdUpdateGradInputIP(float threshold)
     : threshold_(threshold)
   {}
 

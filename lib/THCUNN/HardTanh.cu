@@ -6,7 +6,7 @@ struct hardtanhupdateOutput_functor
   const float max_val_;
   const float min_val_;
 
-  hardtanhupdateOutput_functor(float min_val, float max_val)
+  __host__ __device__ hardtanhupdateOutput_functor(float min_val, float max_val)
     : min_val_(min_val)
     , max_val_(max_val)
   {}
@@ -57,7 +57,7 @@ struct hardtanhupdateGradInput_functor
   const float max_val_;
   const float min_val_;
 
-  hardtanhupdateGradInput_functor(float min_val, float max_val)
+  __host__ __device__ hardtanhupdateGradInput_functor(float min_val, float max_val)
     : min_val_(min_val)
     , max_val_(max_val)
   {}

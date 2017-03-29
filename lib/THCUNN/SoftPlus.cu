@@ -6,7 +6,7 @@ struct softPlusupdateOutput_functor
   const float threshold;
   const float beta;
 
-  softPlusupdateOutput_functor(float threshold_, float beta_)
+  __host__ __device__ softPlusupdateOutput_functor(float threshold_, float beta_)
     : threshold(threshold_)
     , beta(beta_)
   {}
@@ -30,7 +30,7 @@ struct softPlusupdateGradInput_functor
   const float threshold;
   const float beta;
 
-  softPlusupdateGradInput_functor(float threshold_, float beta_)
+  __host__ __device__ softPlusupdateGradInput_functor(float threshold_, float beta_)
     : threshold(threshold_)
     , beta(beta_)
   {}

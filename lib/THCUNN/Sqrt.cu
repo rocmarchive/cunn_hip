@@ -5,7 +5,7 @@ struct sqrtupdateOutput_functor
 {
   const float bias;
 
-  sqrtupdateOutput_functor(float bias_)
+  __host__ __device__ sqrtupdateOutput_functor(float bias_)
     : bias(bias_)
   {}
 
@@ -24,7 +24,7 @@ void THNN_CudaSqrt_updateOutput(THCState *state, THCudaTensor *input, THCudaTens
 
 struct sqrtupdateGradInput_functor
 {
-  sqrtupdateGradInput_functor() {}
+  __host__ __device__ sqrtupdateGradInput_functor() {}
 
   __device__ void operator()(float *gradInput, const float *output, const float *gradOutput) const
   {

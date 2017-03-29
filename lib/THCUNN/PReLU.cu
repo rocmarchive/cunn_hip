@@ -11,7 +11,7 @@ struct PReLUUpdateOutput
 {
   float* weight_;
 
-  PReLUUpdateOutput(float* weight)
+  __host__ __device__ PReLUUpdateOutput(float* weight)
     : weight_(weight)
   {}
 
@@ -74,7 +74,7 @@ struct PReLUUpdateGradInput
 {
   float *weight_;
 
-  PReLUUpdateGradInput(float *weight)
+  __host__ __device__ PReLUUpdateGradInput(float *weight)
     : weight_(weight)
   {}
 
@@ -152,7 +152,7 @@ struct PReLUAccGradParameters
 {
   float scale;
 
-  PReLUAccGradParameters(float scale)
+  __host__ __device__ PReLUAccGradParameters(float scale)
     : scale(scale)
   {}
 
@@ -166,7 +166,7 @@ struct PReLUAccGradParameters1to1
 {
   float scale;
 
-  PReLUAccGradParameters1to1(float scale)
+  __host__ __device__ PReLUAccGradParameters1to1(float scale)
     : scale(scale)
   {}
 

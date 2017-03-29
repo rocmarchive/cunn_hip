@@ -5,7 +5,7 @@ struct LeakyReLUUpdateOutput
 {
   const float negval_;
 
-  LeakyReLUUpdateOutput(float negval)
+  __host__ __device__ LeakyReLUUpdateOutput(float negval)
     : negval_(negval)
   {}
 
@@ -21,7 +21,7 @@ struct LeakyReLUUpdateOutputIP
 {
   const float negval_;
 
-  LeakyReLUUpdateOutputIP(float negval)
+  __host__ __device__ LeakyReLUUpdateOutputIP(float negval)
     : negval_(negval)
   {}
 
@@ -54,7 +54,7 @@ struct LeakyReLUUpdateGradInput
 {
   const float negval_;
 
-  LeakyReLUUpdateGradInput(float negval)
+  __host__ __device__  LeakyReLUUpdateGradInput(float negval)
     : negval_(negval)
   {}
 
@@ -71,7 +71,7 @@ struct LeakyReLUUpdateGradInputIP
 {
   const float negval_;
 
-  LeakyReLUUpdateGradInputIP(float negval)
+  __host__ __device__ LeakyReLUUpdateGradInputIP(float negval)
     : negval_(negval)
   {}
 
