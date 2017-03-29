@@ -1,6 +1,7 @@
 #include "THCUNN.h"
 #include "common.h"
 
+#ifdef THRUST_PATH
 #include <thrust/fill.h>
 #include <thrust/functional.h>
 #include <thrust/device_ptr.h>
@@ -8,6 +9,7 @@
 #include <thrust/inner_product.h>
 #if CUDA_VERSION >= 7000
 #include <thrust/system/cuda/execution_policy.h>
+#endif
 #endif
 
 struct smoothl1_functor
@@ -34,6 +36,7 @@ void THNN_CudaSmoothL1Criterion_updateOutput(THCState *state, THCudaTensor *inpu
   input = THCudaTensor_newContiguous(state, input);
   target = THCudaTensor_newContiguous(state, target);
 
+#ifdef THRUST_PATH
   thrust::device_ptr<float> input_data(THCudaTensor_data(state, input));
   thrust::device_ptr<float> target_data(THCudaTensor_data(state, target));
   float sum = thrust::inner_product(
@@ -43,6 +46,9 @@ void THNN_CudaSmoothL1Criterion_updateOutput(THCState *state, THCudaTensor *inpu
     input_data, input_data+size, target_data, (float) 0,
     thrust::plus<float>(), smoothl1_functor()
   );
+#else
+   float sum =0;
+#endif
 
   if (sizeAverage)
     sum /= size;
@@ -89,6 +95,7 @@ void THNN_CudaSmoothL1Criterion_updateGradInput(THCState *state, THCudaTensor *i
 
   THCudaTensor_resizeAs(state, gradInput, input);
 
+#ifdef THRUST_PATH
   thrust::device_ptr<float> input_data(THCudaTensor_data(state, input));
   thrust::device_ptr<float> target_data(THCudaTensor_data(state, target));
   thrust::device_ptr<float> gradInput_data(THCudaTensor_data(state, gradInput));
@@ -100,7 +107,7 @@ void THNN_CudaSmoothL1Criterion_updateGradInput(THCState *state, THCudaTensor *i
     input_data, input_data+size, target_data, gradInput_data,
     smoothl1_updateGradInput_functor(norm)
   );
-
+#endif
   THCudaTensor_free(state, input);
   THCudaTensor_free(state, target);
 }

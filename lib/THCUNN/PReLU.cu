@@ -3,7 +3,9 @@
 #include "THCReduce.cuh"
 #include "common.h"
 
+#ifdef THRUST_PATh
 #include <thrust/functional.h>
+#endif
 
 struct PReLUUpdateOutput
 {

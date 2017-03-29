@@ -1,6 +1,10 @@
 #include <THC/THC.h>
 #include <THC/THCApply.cuh>
 
+#ifdef __NVCC__
+   #define THRUST_PATH 1
+#endif
+
 #define THIndexTensor THCudaLongTensor
 #define THIndexTensor_(NAME) THCudaLongTensor_ ## NAME
 

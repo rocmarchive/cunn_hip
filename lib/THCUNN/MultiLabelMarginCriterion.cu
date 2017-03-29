@@ -3,7 +3,9 @@
 #include "common.h"
 #include "THCReduceApplyUtils.cuh"
 
+#ifdef THRUST_PATH
 #include <thrust/functional.h>
+#endif
 
 #define MULTILABELMARGIN_THREADS 1024
 
@@ -63,7 +65,11 @@ __global__ void cunn_MultiLabelMarginCriterion_updateOutput_kernel(hipLaunchParm
   }
 
   // reduce
+#ifdef THRUST_PATH
   float totalSum = reduceBlock(sums, hipBlockDim_x, sum, thrust::plus<float>(), 0.0f);
+#else
+  float totalSum =0;
+#endif
   if (hipThreadIdx_x == 0) {
     if (sizeaverage) {
       *output_k = (totalSum / dim) / nframe;
@@ -124,7 +130,11 @@ __global__ void cunn_MultiLabelMarginCriterion_updateGradInput_kernel(hipLaunchP
     __syncthreads();
 
     // reduce sum
+#ifdef THRUST_PATH
     float totalSum = reduceBlock(sums, hipBlockDim_x, sum, thrust::plus<float>(), 0.0f);
+#else
+    float totalSum =0;
+#endif
     if (hipThreadIdx_x == 0) {
       gradInput_k[target_idx] += totalSum;
     }

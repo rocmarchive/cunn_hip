@@ -5,7 +5,9 @@
 #include <stdio.h>
 #include <assert.h>
 
+#ifdef THRUST_PATH
 #include <thrust/functional.h>
+#endif
 
 __global__ void cunn_SpatialClassNLLCriterion_updateOutput_kernel(hipLaunchParm lp, 
           float *output,
@@ -42,8 +44,11 @@ __global__ void cunn_SpatialClassNLLCriterion_updateOutput_kernel(hipLaunchParm 
 
   __syncthreads();
 
+#ifdef THRUST_PATH
   input_sum = reduceBlock(partial_sums, hipBlockDim_x, input_sum, thrust::plus<float>(), 0.0f);
   acc_weight = reduceBlock(partial_sums, hipBlockDim_x, acc_weight, thrust::plus<float>(), 0.0f);
+#endif
+  
 
   if (hipThreadIdx_x == 0) {
     atomicAdd(total_weight, acc_weight);

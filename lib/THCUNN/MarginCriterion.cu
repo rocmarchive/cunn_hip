@@ -1,11 +1,13 @@
 #include "THCUNN.h"
 #include "common.h"
 
+#ifdef THRUST_PATH
 #include <thrust/fill.h>
 #include <thrust/functional.h>
 #include <thrust/device_ptr.h>
 #include <thrust/reduce.h>
 #include <thrust/inner_product.h>
+#endif
 
 struct margin_functor
 {
@@ -31,9 +33,13 @@ void THNN_CudaMarginCriterion_updateOutput(THCState *state, THCudaTensor *input,
   input = THCudaTensor_newContiguous(state, input);
   target = THCudaTensor_newContiguous(state, target);
 
+#ifdef THRUST_PATH
   thrust::device_ptr<float> input_data(THCudaTensor_data(state, input));
   thrust::device_ptr<float> target_data(THCudaTensor_data(state, target));
   float sum = thrust::inner_product(input_data, input_data+size, target_data, (float) 0, thrust::plus<float>(), margin_functor(margin));
+#else
+  float sum =0;
+#endif
 
   if (sizeAverage)
     sum /= size;
@@ -71,11 +77,14 @@ void THNN_CudaMarginCriterion_updateGradInput(THCState *state, THCudaTensor *inp
 
   THCudaTensor_resizeAs(state, gradInput, input);
 
+#ifdef THRUST_PATH
   thrust::device_ptr<float> input_data(THCudaTensor_data(state, input));
   thrust::device_ptr<float> target_data(THCudaTensor_data(state, target));
   thrust::device_ptr<float> gradInput_data(THCudaTensor_data(state, gradInput));
 
   thrust::transform(input_data, input_data+size, target_data, gradInput_data, margin_updateGradInput_functor(margin, norm));
+#endif
+
 
   THCudaTensor_free(state, input);
   THCudaTensor_free(state, target);

@@ -2,6 +2,7 @@
 #include "THCUNN.h"
 #include "common.h"
 
+#ifdef THRUST_PATH
 #include <thrust/device_ptr.h>
 #include <thrust/execution_policy.h>
 #include <thrust/iterator/constant_iterator.h>
@@ -10,6 +11,7 @@
 #include <thrust/system/cuda/execution_policy.h>
 #endif
 #include <thrust/unique.h>
+#endif
 
 #ifndef DIVUP
 #define DIVUP(x, y) (((x) + (y) - 1) / (y))
@@ -219,6 +221,7 @@ void THNN_CudaLookupTable_accGradParameters(
     THIndexTensor_(resizeAs)(state, count, input);
     count_data = THIndexTensor_(data)(state, count);
 
+#ifdef THRUST_PATH
     thrust::device_ptr<long> sorted_ptr(sorted_data);
     thrust::device_ptr<long> count_ptr(count_data);
 
@@ -249,6 +252,7 @@ void THNN_CudaLookupTable_accGradParameters(
       thrust::equal_to<long>(),
       thrust::maximum<long>()
     );
+#endif
   }
 
   dim3 grid(DIVUP(numel,4), DIVUP(stride,128));
@@ -318,6 +322,7 @@ void THNN_CudaLookupTable_renorm(
   long numel = THIndexTensor_(nElement)(state, idx);
   long stride = weight->stride[0];
 
+#ifdef THRUST_PATH
   // get the unique indices
   thrust::device_ptr<float> weight_ptr(THCudaTensor_data(state, weight));
   thrust::device_ptr<long> idx_ptr(THIndexTensor_(data)(state, idx));
@@ -340,4 +345,5 @@ void THNN_CudaLookupTable_renorm(
       thrust::transform(row_ptr, row_ptr + stride, row_ptr, unary_mul);
     }
   }
+#endif
 }

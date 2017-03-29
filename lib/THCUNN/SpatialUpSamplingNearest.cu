@@ -2,11 +2,12 @@
 #include "THCUNN.h"
 #include "common.h"
 
+#ifdef THRUST_PATH
 #include <thrust/transform.h>
 #include <thrust/reduce.h>
 #include <thrust/transform_reduce.h>
 #include <thrust/functional.h>
-
+#endif
 
 /*
  * Description:

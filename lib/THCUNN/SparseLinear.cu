@@ -1,6 +1,8 @@
 #include "THCUNN.h"
 #include <cusparse.h>
+#ifdef THRUST_PATH
 #include <thrust/device_vector.h>
+#endif
 
 static cusparseHandle_t cusparse_handle = 0;
 
