@@ -182,9 +182,8 @@ void THNN_CudaSpatialDilatedMaxPooling_updateGradInput(THCState *state, THCudaTe
   }
 
   if (nOutputCols < 1 || nOutputRows < 1)
-    // WSTHORNTON
-    //THError("Given input size: (%dx%dx%d). Calculated output size: (%dx%dx%d). Output size is too small",
-    //        nInputPlane,nInputRows,nInputCols,nInputPlane,nOutputRows,nOutputCols);
+    THError("Given input size: (%dx%dx%d). Calculated output size: (%dx%dx%d). Output size is too small",
+            nInputPlane,nInputRows,nInputCols,nInputPlane,nOutputRows,nOutputCols);
 
   gradOutput = THCudaTensor_newContiguous(state, gradOutput);
   THCudaTensor_resizeAs(state, gradInput, input);

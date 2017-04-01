@@ -3,8 +3,6 @@
 #include "THCReduce.cuh"
 #include "common.h"
 
-#define THRUST_PATH 0
-
 #if THRUST_PATH
     #include <thrust/functional.h>
 #endif

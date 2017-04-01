@@ -3,9 +3,6 @@
 #include "common.h"
 #include "THCReduceApplyUtils.cuh"
 
-// WSTHORNTON
-#define THRUST_PATH 0
-
 #if THRUST_PATH
     #include <thrust/functional.h>
 #else

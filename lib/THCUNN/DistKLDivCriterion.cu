@@ -1,9 +1,6 @@
 #include "THCUNN.h"
 #include "common.h"
 
-// WSTHORNTON
-#define THRUST_PATH 0
-
 #if THRUST_PATH
     #include <thrust/fill.h>
     #include <thrust/functional.h>

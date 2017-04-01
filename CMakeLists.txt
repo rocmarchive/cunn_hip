@@ -42,15 +42,13 @@ ELSE() # HCC
   SET(CMAKE_C_FLAGS "-std=c99 -Werror=implicit-function-declaration ${CMAKE_C_FLAGS}")
   SET(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} ${HIP_CXX_FLAGS}")
   SET(CMAKE_CXX_FLAGS  "-std=c++11 ${CMAKE_CXX_FLAGS} ${HIP_CXX_FLAGS}")
- # Add GGL
-  # SET(CMAKE_C_FLAGS "-DGENERIC_GRID_LAUNCH=1 ${CMAKE_C_FLAGS}")
-  # SET(CMAKE_CXX_FLAGS "-DGENERIC_GRID_LAUNCH=1 ${CMAKE_CXX_FLAGS}")
 ENDIF()
 
 # # TODO: temporary blunt implements.
 IF (${PLATFORM} MATCHES "hcc")
   include_directories(${HCC_PATH}/include)
   include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external/bolt/include)
+  include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external/boost)
   include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external/boost)
 ENDIF()
 include_directories(${HIP_PATH}/include)

@@ -41,8 +41,6 @@ struct bce_functor_weights
 
 void THNN_CudaBCECriterion_updateOutput(THCState *state, THCudaTensor *input, THCudaTensor *target, THCudaTensor *output, bool sizeAverage, THCudaTensor *weights)
 {
-  // WSTHORNTON
-  #if 0
   THCUNN_assertSameGPU(state, 3, input, target, weights);
 
   long size = THCudaTensor_nElement(state, input);
@@ -50,29 +48,32 @@ void THNN_CudaBCECriterion_updateOutput(THCState *state, THCudaTensor *input, TH
   input = THCudaTensor_newContiguous(state, input);
   target = THCudaTensor_newContiguous(state, target);
 
-  thrust::device_ptr<float> input_data(THCudaTensor_data(state, input));
-  thrust::device_ptr<float> target_data(THCudaTensor_data(state, target));
+  // WSTHORNTON 
+  // thrust::device_ptr<float> input_data(THCudaTensor_data(state, input));
+  // thrust::device_ptr<float> target_data(THCudaTensor_data(state, target));
 
   float sum;
   if (weights) {
     weights = THCudaTensor_newContiguous(state, weights);
-    thrust::device_ptr<float> weights_data(THCudaTensor_data(state, weights));
-    sum = thrust::transform_reduce(
-      thrust::make_zip_iterator(thrust::make_tuple(input_data, target_data, weights_data)),
-      thrust::make_zip_iterator(thrust::make_tuple(input_data+size, target_data+size, weights_data+size)),
-      bce_functor_weights(),
-      (float) 0.f,
-      thrust::plus<float>()
-    );
+    // WSTHORNTON 
+    // thrust::device_ptr<float> weights_data(THCudaTensor_data(state, weights));
+    // sum = thrust::transform_reduce(
+    //   thrust::make_zip_iterator(thrust::make_tuple(input_data, target_data, weights_data)),
+    //   thrust::make_zip_iterator(thrust::make_tuple(input_data+size, target_data+size, weights_data+size)),
+    //   bce_functor_weights(),
+    //   (float) 0.f,
+    //   thrust::plus<float>()
+    // );
     THCudaTensor_free(state, weights);
   } else {
-    sum = thrust::transform_reduce(
-      thrust::make_zip_iterator(thrust::make_tuple(input_data, target_data)),
-      thrust::make_zip_iterator(thrust::make_tuple(input_data+size, target_data+size)),
-      bce_functor(),
-      (float) 0.f,
-      thrust::plus<float>()
-    );
+    // WSTHORNTON 
+    // sum = thrust::transform_reduce(
+    //   thrust::make_zip_iterator(thrust::make_tuple(input_data, target_data)),
+    //   thrust::make_zip_iterator(thrust::make_tuple(input_data+size, target_data+size)),
+    //   bce_functor(),
+    //   (float) 0.f,
+    //   thrust::plus<float>()
+    // );
   }
 
   if (sizeAverage)
@@ -82,7 +83,6 @@ void THNN_CudaBCECriterion_updateOutput(THCState *state, THCudaTensor *input, TH
   THCudaTensor_free(state, target);
 
   THCudaTensor_set1d(state, output, 0, sum);
-  #endif
 }
 
 struct bce_updateGradInput_functor
@@ -128,8 +128,6 @@ struct bce_updateGradInput_functor_weights
 
 void THNN_CudaBCECriterion_updateGradInput(THCState *state, THCudaTensor *input, THCudaTensor *target, THCudaTensor *gradInput, bool sizeAverage, THCudaTensor *weights)
 {
-// WSTHORNTON
-#if 0
   THCUNN_assertSameGPU(state, 4, input, target, gradInput, weights);
 
   long size = THCudaTensor_nElement(state, input);
@@ -140,30 +138,30 @@ void THNN_CudaBCECriterion_updateGradInput(THCState *state, THCudaTensor *input,
 
   THCudaTensor_resizeAs(state, gradInput, input);
 
-  thrust::device_ptr<float> input_data(THCudaTensor_data(state, input));
-  thrust::device_ptr<float> target_data(THCudaTensor_data(state, target));
-  thrust::device_ptr<float> gradInput_data(THCudaTensor_data(state, gradInput));
+  // WSTHORNTON
+  // thrust::device_ptr<float> input_data(THCudaTensor_data(state, input));
+  // thrust::device_ptr<float> target_data(THCudaTensor_data(state, target));
+  // thrust::device_ptr<float> gradInput_data(THCudaTensor_data(state, gradInput));
 
   if (weights) {
     weights = THCudaTensor_newContiguous(state, weights);
-    thrust::device_ptr<float> weights_data(THCudaTensor_data(state, weights));
-    thrust::transform(
-      thrust::make_zip_iterator(thrust::make_tuple(input_data, target_data, weights_data)),
-      thrust::make_zip_iterator(thrust::make_tuple(input_data+size, target_data+size, weights_data+size)),
-      gradInput_data,
-      bce_updateGradInput_functor_weights(norm)
-    );
+    // thrust::device_ptr<float> weights_data(THCudaTensor_data(state, weights));
+    // thrust::transform(
+    //   thrust::make_zip_iterator(thrust::make_tuple(input_data, target_data, weights_data)),
+    //   thrust::make_zip_iterator(thrust::make_tuple(input_data+size, target_data+size, weights_data+size)),
+    //   gradInput_data,
+    //   bce_updateGradInput_functor_weights(norm)
+    // );
     THCudaTensor_free(state, weights);
   } else {
-    thrust::transform(
-      thrust::make_zip_iterator(thrust::make_tuple(input_data, target_data)),
-      thrust::make_zip_iterator(thrust::make_tuple(input_data+size, target_data+size)),
-      gradInput_data,
-      bce_updateGradInput_functor(norm)
-    );
+    // thrust::transform(
+    //   thrust::make_zip_iterator(thrust::make_tuple(input_data, target_data)),
+    //   thrust::make_zip_iterator(thrust::make_tuple(input_data+size, target_data+size)),
+    //   gradInput_data,
+    //   bce_updateGradInput_functor(norm)
+    // );
   }
 
   THCudaTensor_free(state, input);
   THCudaTensor_free(state, target);
-#endif
 }

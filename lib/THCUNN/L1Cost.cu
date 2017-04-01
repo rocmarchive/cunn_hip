@@ -1,9 +1,6 @@
 #include "THCUNN.h"
 #include "common.h"
 
-// WSTHORNTON
-#define THRUST_PATH 0
-
 #if THRUST_PATH
     #include <thrust/device_ptr.h>
     #include <thrust/reduce.h>
@@ -43,13 +40,11 @@ void THNN_CudaL1Cost_updateOutput(THCState *state, THCudaTensor *input, THCudaTe
 #else
   auto input_data = THCudaTensor_data(state, input);
   auto input_data_end = input_data + size;
-// WSTHORNTON
-//   float foo = 0.0f;
-//   sum = bolt::amp::reduce(input_data, 
-//                           //input_data+size, 
-//                           input_data_end, 
-//                           foo,
-//                           l1cost_functor());
+   sum = bolt::amp::reduce(input_data, 
+                           //input_data+size, 
+                           input_data_end, 
+                           0.0f,
+                           l1cost_functor());
 #endif
 
   THCudaTensor_free(state, input);

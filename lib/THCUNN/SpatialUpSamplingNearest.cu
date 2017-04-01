@@ -2,9 +2,6 @@
 #include "THCUNN.h"
 #include "common.h"
 
-// WSTHORNTON
-#define THRUST_PATH 0
-
 #if THRUST_PATH
     #include <thrust/transform.h>
     #include <thrust/reduce.h>
