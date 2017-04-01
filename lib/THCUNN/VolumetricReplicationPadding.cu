@@ -1,4 +1,3 @@
-#if 0
 #include "hip/hip_runtime.h"
 
 #include "THCUNN.h"
@@ -38,9 +37,10 @@ __global__ void VolumetricReplicationPadding_updateOutput(hipLaunchParm lp,
   int inputPointZ = min(max(pfront, outputPointZ),
                         input.getSize(2) + pfront - 1) - oStartZ + iStartZ;
 
-  float valueToCopy =
-      input[batch][plane][inputPointZ][inputPointY][inputPointX];
-  output[batch][plane][outputPointZ][outputPointY][outputPointX] = valueToCopy;
+  // WSTHORNTON
+  // float valueToCopy =
+  //     input[batch][plane][inputPointZ][inputPointY][inputPointX];
+  // output[batch][plane][outputPointZ][outputPointY][outputPointX] = valueToCopy;
 }
 
 void THNN_CudaVolumetricReplicationPadding_updateOutput(THCState *state,
@@ -101,7 +101,7 @@ void THNN_CudaVolumetricReplicationPadding_updateOutput(THCState *state,
             devOutput.getSize(0));
   dim3 blockSize(outputPlaneSize > 256 ? 256 : outputPlaneSize);
 
-  hipLaunchKernel(HIP_KERNEL_NAME(VolumetricReplicationPadding_updateOutput), dim3(gridSize), dim3(blockSize), 0, THCState_getCurrentStream(state), 
+  stub_hipLaunchKernel(HIP_KERNEL_NAME(VolumetricReplicationPadding_updateOutput), dim3(gridSize), dim3(blockSize), 0, THCState_getCurrentStream(state), 
     devInput, devOutput, pfront, pback, ptop, pbottom, pleft, pright);
 }
 
@@ -137,10 +137,11 @@ __global__ void VolumetricReplicationPadding_updateGradInput(hipLaunchParm lp,
   int inputPointZ = min(max(pfront, outputPointZ),
                         gradInput.getSize(2) + pfront - 1) - oStartZ + iStartZ;
 
-  float valueToCopy =
-      gradOutput[batch][plane][outputPointZ][outputPointY][outputPointX];
-  atomicAdd(&gradInput[batch][plane][inputPointZ][inputPointY][inputPointX],
-            valueToCopy);
+  // WSTHORNTON
+  //float valueToCopy =
+  //    gradOutput[batch][plane][outputPointZ][outputPointY][outputPointX];
+  //atomicAdd(&gradInput[batch][plane][inputPointZ][inputPointY][inputPointX],
+  //          valueToCopy);
 }
 
 void THNN_CudaVolumetricReplicationPadding_updateGradInput(
@@ -187,7 +188,7 @@ void THNN_CudaVolumetricReplicationPadding_updateGradInput(
             devGradOutput.getSize(0));
   dim3 blockSize(outputPlaneSize > 256 ? 256 : outputPlaneSize);
 
-  hipLaunchKernel(HIP_KERNEL_NAME(VolumetricReplicationPadding_updateGradInput), dim3(gridSize), dim3(blockSize), 0, THCState_getCurrentStream(state), 
+  // WSTHORNTON
+  stub_hipLaunchKernel(HIP_KERNEL_NAME(VolumetricReplicationPadding_updateGradInput), dim3(gridSize), dim3(blockSize), 0, THCState_getCurrentStream(state), 
     devGradInput, devGradOutput, pfront, pback, ptop, pbottom, pleft, pright);
 }
-#endif

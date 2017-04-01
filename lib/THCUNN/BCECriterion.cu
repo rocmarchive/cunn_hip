@@ -1,13 +1,12 @@
-// WSTHORNTON
-#if 0
 #include "THCUNN.h"
 #include "common.h"
 
-#include <thrust/functional.h>
-#include <thrust/device_ptr.h>
-#include <thrust/iterator/zip_iterator.h>
-#include <thrust/transform.h>
-#include <thrust/transform_reduce.h>
+// WSTHORNTON
+// #include <thrust/functional.h>
+// #include <thrust/device_ptr.h>
+// #include <thrust/iterator/zip_iterator.h>
+// #include <thrust/transform.h>
+// #include <thrust/transform_reduce.h>
 
 const float eps = 1e-12f;
 
@@ -17,9 +16,11 @@ struct bce_functor
   __host__ __device__
   float operator()(Tuple x)
   {
-    float o = thrust::get<0>(x);
-    float t = thrust::get<1>(x);
-    return - (t * logf(o + eps) + (1.f - t) * logf(1.f - o + eps));
+    // WSTHORNTON
+    // float o = thrust::get<0>(x);
+    // float t = thrust::get<1>(x);
+    // return - (t * logf(o + eps) + (1.f - t) * logf(1.f - o + eps));
+    return 0.0f;
   }
 };
 
@@ -29,15 +30,19 @@ struct bce_functor_weights
   __host__ __device__
   float operator()(Tuple x)
   {
-    float o = thrust::get<0>(x);
-    float t = thrust::get<1>(x);
-    float w = thrust::get<2>(x);
-    return - w * (t * logf(o + eps) + (1.f - t) * logf(1.f - o + eps));
+    // WSTHORNTON
+    // float o = thrust::get<0>(x);
+    // float t = thrust::get<1>(x);
+    // float w = thrust::get<2>(x);
+    // return - w * (t * logf(o + eps) + (1.f - t) * logf(1.f - o + eps));
+    return 0.0f;
   }
 };
 
 void THNN_CudaBCECriterion_updateOutput(THCState *state, THCudaTensor *input, THCudaTensor *target, THCudaTensor *output, bool sizeAverage, THCudaTensor *weights)
 {
+  // WSTHORNTON
+  #if 0
   THCUNN_assertSameGPU(state, 3, input, target, weights);
 
   long size = THCudaTensor_nElement(state, input);
@@ -77,6 +82,7 @@ void THNN_CudaBCECriterion_updateOutput(THCState *state, THCudaTensor *input, TH
   THCudaTensor_free(state, target);
 
   THCudaTensor_set1d(state, output, 0, sum);
+  #endif
 }
 
 struct bce_updateGradInput_functor
@@ -91,9 +97,11 @@ struct bce_updateGradInput_functor
   __host__ __device__
   float operator()(Tuple x)
   {
-    float o = thrust::get<0>(x);
-    float t = thrust::get<1>(x);
-    return - (t - o) / ((1 - o + eps) * (o + eps)) * norm;
+    // WSTHORNTON
+    // float o = thrust::get<0>(x);
+    // float t = thrust::get<1>(x);
+    // return - (t - o) / ((1 - o + eps) * (o + eps)) * norm;
+    return 0.0f;
   }
 };
 
@@ -109,15 +117,19 @@ struct bce_updateGradInput_functor_weights
   __host__ __device__
   float operator()(Tuple x)
   {
-    float o = thrust::get<0>(x);
-    float t = thrust::get<1>(x);
-    float w = thrust::get<2>(x);
-    return - (t - o) / ((1 - o + eps) * (o + eps)) * norm * w;
+    // WSTHORNTON
+    // float o = thrust::get<0>(x);
+    // float t = thrust::get<1>(x);
+    // float w = thrust::get<2>(x);
+    // return - (t - o) / ((1 - o + eps) * (o + eps)) * norm * w;
+    return 0.0f;
   }
 };
 
 void THNN_CudaBCECriterion_updateGradInput(THCState *state, THCudaTensor *input, THCudaTensor *target, THCudaTensor *gradInput, bool sizeAverage, THCudaTensor *weights)
 {
+// WSTHORNTON
+#if 0
   THCUNN_assertSameGPU(state, 4, input, target, gradInput, weights);
 
   long size = THCudaTensor_nElement(state, input);
@@ -153,5 +165,5 @@ void THNN_CudaBCECriterion_updateGradInput(THCState *state, THCudaTensor *input,
 
   THCudaTensor_free(state, input);
   THCudaTensor_free(state, target);
-}
 #endif
+}

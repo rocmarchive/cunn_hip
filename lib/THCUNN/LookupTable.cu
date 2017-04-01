@@ -1,17 +1,17 @@
 // WSTHORNTON
-#if 0
 #include "hip/hip_runtime.h"
 #include "THCUNN.h"
 #include "common.h"
 
-#include <thrust/device_ptr.h>
-#include <thrust/execution_policy.h>
-#include <thrust/iterator/constant_iterator.h>
-#include <thrust/transform_reduce.h>
-#if CUDA_VERSION >= 7000
-#include <thrust/system/cuda/execution_policy.h>
-#endif
-#include <thrust/unique.h>
+// WSTHORNTON
+// #include <thrust/device_ptr.h>
+// #include <thrust/execution_policy.h>
+// #include <thrust/iterator/constant_iterator.h>
+// #include <thrust/transform_reduce.h>
+// #if CUDA_VERSION >= 7000
+// #include <thrust/system/cuda/execution_policy.h>
+// #endif
+// #include <thrust/unique.h>
 
 #ifndef DIVUP
 #define DIVUP(x, y) (((x) + (y) - 1) / (y))
@@ -174,6 +174,8 @@ void THNN_CudaLookupTable_accGradParameters(
   int paddingValue,
   float scale)
 {
+// WSTHORNTON
+#if 0
   THCUNN_assertSameGPU(state, 5, input, gradOutput, gradWeight, sorted, indices);
   if (!(THIndexTensor_(isContiguous)(state, input) &&
         THCudaTensor_isContiguous(state, gradOutput) &&
@@ -267,6 +269,7 @@ void THNN_CudaLookupTable_accGradParameters(
     paddingValue
   );
   THCudaCheck(hipGetLastError());
+#endif
 }
 
 /*
@@ -306,6 +309,8 @@ void THNN_CudaLookupTable_renorm(
   float maxNorm,
   float normType)
 {
+// WSTHORNTON
+#if 0
   THCUNN_assertSameGPU(state, 2, idx, weight);
   if (!(THIndexTensor_(isContiguous)(state, idx) &&
         THCudaTensor_isContiguous(state, weight)))
@@ -342,5 +347,5 @@ void THNN_CudaLookupTable_renorm(
       thrust::transform(row_ptr, row_ptr + stride, row_ptr, unary_mul);
     }
   }
-}
 #endif
+}
