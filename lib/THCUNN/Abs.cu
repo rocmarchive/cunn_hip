@@ -9,7 +9,11 @@ struct absupdateOutput_functor
   __device__ 
   void operator()(float* output, const float* input) const
   {
+#ifdef __HIP_PLATFORM_HCC__
     *output = fabsf(*input);
+#else
+    *output = abs(*input);
+#endif
   }
 
    __host__ __device__

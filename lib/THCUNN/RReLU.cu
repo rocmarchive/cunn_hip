@@ -1,8 +1,11 @@
+#if 0
 #include "hip/hip_runtime.h"
 #include "THCUNN.h"
 #include "common.h"
+#if __NVCC__
 #include <curand.h>
 #include <curand_kernel.h>
+#endif
 
 // copied from cutorch/lib/THC/THCTensorRandom.cu
 #define MAX_NUM_BLOCKS 64
@@ -177,3 +180,4 @@ void THNN_CudaRReLU_updateGradInput(THCState *state, THCudaTensor *input, THCuda
 
   THCudaTensor_free(state, gradOutput);
 }
+#endif
