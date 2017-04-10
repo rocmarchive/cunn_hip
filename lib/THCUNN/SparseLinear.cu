@@ -1,16 +1,25 @@
 #include "THCUNN.h"
-#include <cusparse.h>
-#include <thrust/device_vector.h>
 
+#ifdef __NVCC__
+  #include <cusparse.h>
+#endif
+#ifdef THRUST_PATH
+  #include <thrust/device_vector.h>
+#endif
+
+#ifdef __NVCC__
 static cusparseHandle_t cusparse_handle = 0;
+#endif
 
 static void init_cusparse() {
+#ifdef __NVCC__
   if (cusparse_handle == 0) {
     cusparseStatus_t status = cusparseCreate(&cusparse_handle);
     if (status != CUSPARSE_STATUS_SUCCESS) {
       THError("CUSPARSE Library initialization failed");
     }
   }
+#endif
 }
 
 static bool checkInput(THCudaTensor* t)
@@ -71,10 +80,11 @@ void THNN_CudaSparseLinear_updateOutput(THCState *state,
   THCudaTensor_copyCuda(state, values, sel);
 
   init_cusparse();
+#ifdef __NVCC__
   cusparseXcoo2csr(cusparse_handle,
       THCudaIntTensor_data(state, rowbuf), nnz, batchnum,
       THCudaIntTensor_data(state, csrPtrs), CUSPARSE_INDEX_BASE_ONE);
-
+#endif
   // output = bias
   THCudaTensor_resize2d(state, buffer, outDim, batchnum);
   THCudaTensor_zero(state, buffer);
@@ -84,6 +94,7 @@ void THNN_CudaSparseLinear_updateOutput(THCState *state,
   }
 
   // output = W * x
+#ifdef __NVCC__
   float one = 1;
   cusparseMatDescr_t descr = 0;
   cusparseCreateMatDescr(&descr);
@@ -100,13 +111,16 @@ void THNN_CudaSparseLinear_updateOutput(THCState *state,
       THCudaTensor_data(state, weight), inDim,
       &one, THCudaTensor_data(state, buffer), batchnum
   );
+#endif
   THCudaTensor_transpose(state, buffer, NULL, 0, 1);
 
   // We do work in the buffer to keep the output contiguous
   THCudaTensor_copy(state, output, buffer);
 
+#ifdef __NVCC__
   cusparseDestroyMatDescr(descr);
   descr = 0;
+#endif
   THCudaTensor_free(state, buffer);
   THCudaTensor_free(state, sel);
   THCudaTensor_free(state, values);
@@ -168,16 +182,18 @@ void THNN_CudaSparseLinear_accGradParameters(
 
   init_cusparse();
   // Secretly coo2csc
+#ifdef __NVCC__
   cusparseXcoo2csr(cusparse_handle,
       THCudaIntTensor_data(state, colbuf), nnz, inDim,
       THCudaIntTensor_data(state, colPtrs), CUSPARSE_INDEX_BASE_ONE);
-
+#endif
   // FORTRAN expects contiguous col-major matricies
   THCudaTensor_transpose(state, gradOutput, NULL, 0, 1);
   THCudaTensor_resize2d(state, buf, batchnum, outDim);
   THCudaTensor_copy(state, buf, gradOutput);
   THCudaTensor_transpose(state, gradOutput, NULL, 0, 1); // Restore gradOutput
 
+#ifdef __NVCC__
   float one = 1;
   cusparseMatDescr_t descr = 0;
   cusparseCreateMatDescr(&descr);
@@ -194,6 +210,7 @@ void THNN_CudaSparseLinear_accGradParameters(
       THCudaTensor_data(state, buf), batchnum,
       &one, THCudaTensor_data(state, gradWeight), inDim
   );
+#endif
 
   THCudaTensor_sum(state, buf, gradOutput, 0);
   THCudaTensor_resize1d(state, buf, outDim);
