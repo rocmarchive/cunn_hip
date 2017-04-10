@@ -3,9 +3,10 @@
 
 struct hardtanhupdateOutput_functor
 {
-  const float max_val_;
-  const float min_val_;
+  float max_val_;
+  float min_val_;
 
+  __host__ __device__
   hardtanhupdateOutput_functor(float min_val, float max_val)
     : min_val_(min_val)
     , max_val_(max_val)
@@ -28,6 +29,9 @@ struct hardtanhupdateOutput_functor
     else if (*input > max_val_)
       *input = max_val_;
   }
+
+  __host__ __device__
+  ~hardtanhupdateOutput_functor() {}
 };
 
 void THNN_CudaHardTanh_updateOutput(
@@ -54,9 +58,10 @@ void THNN_CudaHardTanh_updateOutput(
 
 struct hardtanhupdateGradInput_functor
 {
-  const float max_val_;
-  const float min_val_;
+  float max_val_;
+  float min_val_;
 
+  __host__ __device__
   hardtanhupdateGradInput_functor(float min_val, float max_val)
     : min_val_(min_val)
     , max_val_(max_val)
@@ -75,6 +80,9 @@ struct hardtanhupdateGradInput_functor
     if (*input <= min_val_ || *input >= max_val_)
       *gradInput = 0;
   }
+
+  __host__ __device__
+  ~hardtanhupdateGradInput_functor() {}
 };
 
 void THNN_CudaHardTanh_updateGradInput(

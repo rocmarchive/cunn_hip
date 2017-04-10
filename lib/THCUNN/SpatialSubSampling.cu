@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 #include "THCUNN.h"
 #include "common.h"
 
@@ -8,7 +9,7 @@
  *    this function subsamples an input 3D tensor along dimensions 1 and 2
  *    3D input, 3D output, 1D weight, 1D bias
  */
-__global__ void subsample(float *input, float *output, float *weight, float *bias,
+__global__ void subsample(hipLaunchParm lp, float *input, float *output, float *weight, float *bias,
                           int input_n, int input_h, int input_w,
                           int kH, int kW, int dH, int dW)
 {
@@ -20,17 +21,17 @@ __global__ void subsample(float *input, float *output, float *weight, float *bia
   int output_h = (input_h - kH) / dH + 1;
 
   // compute offsets based on thread/block ID
-  int o = blockIdx.x;
+  int o = hipBlockIdx_x;
   int i = o;
-  int k = blockIdx.x % input_n;
+  int k = hipBlockIdx_x % input_n;
 
-  int xx_start = threadIdx.x;
+  int xx_start = hipThreadIdx_x;
   int xx_end = output_w;
-  int xx_step = blockDim.x;
+  int xx_step = hipBlockDim_x;
 
-  int yy_start = blockDim.y*blockIdx.y + threadIdx.y;
+  int yy_start = hipBlockDim_y*hipBlockIdx_y + hipThreadIdx_y;
   int yy_end = output_h;
-  int yy_step = blockDim.y*gridDim.y;
+  int yy_step = hipBlockDim_y*hipGridDim_y;
 
   // select input/output plane
   output = output + o*output_w*output_h;
@@ -65,7 +66,7 @@ __global__ void subsample(float *input, float *output, float *weight, float *bia
  * Description:
  *    this function computes the gradWeight from input and gradOutput
  */
-__global__ void subgradweight(float *input, float *gradOutput, float *gradWeight, float *gradBias,
+__global__ void subgradweight(hipLaunchParm lp, float *input, float *gradOutput, float *gradWeight, float *gradBias,
                               int input_n, int input_h, int input_w,
                               int kH, int kW, int dH, int dW,
                               float scale)
@@ -78,24 +79,24 @@ __global__ void subgradweight(float *input, float *gradOutput, float *gradWeight
   int output_h = (input_h - kH) / dH + 1;
 
   // compute offsets based on thread/block ID
-  int o = blockIdx.x;
+  int o = hipBlockIdx_x;
   int i = o;
-  int k = blockIdx.x % input_n;
+  int k = hipBlockIdx_x % input_n;
 
-  int xx_start = threadIdx.x;
+  int xx_start = hipThreadIdx_x;
   int xx_end = output_w;
-  int xx_step = blockDim.x;
+  int xx_step = hipBlockDim_x;
 
-  int yy_start = threadIdx.y;
+  int yy_start = hipThreadIdx_y;
   int yy_end = output_h;
-  int yy_step = blockDim.y;
+  int yy_step = hipBlockDim_y;
 
   // select input/output plane
   gradOutput = gradOutput + o*output_w*output_h;
   input = input + i*input_w*input_h;
 
   // thread ID
-  int tid = blockDim.x*threadIdx.y + threadIdx.x;
+  int tid = hipBlockDim_x*hipThreadIdx_y + hipThreadIdx_x;
 
   // create array to hold partial sums
   __shared__ float sums[CUDA_MAX_THREADS];
@@ -119,21 +120,21 @@ __global__ void subgradweight(float *input, float *gradOutput, float *gradWeight
   __syncthreads();
 
   // reduce: accumulate all partial sums to produce final gradWeight
-  if ((threadIdx.x == 0) && (threadIdx.y == 0)) {
-    for(int i = 0; i < blockDim.x*blockDim.y; i++) gradWeight[k] += scale*sums[i];
+  if ((hipThreadIdx_x == 0) && (hipThreadIdx_y == 0)) {
+    for(int i = 0; i < hipBlockDim_x*hipBlockDim_y; i++) gradWeight[k] += scale*sums[i];
   }
   __syncthreads();
 
   // compute gradBias
   sums[tid] = 0;
-  for (int i=tid; i<output_w*output_h; i+=(blockDim.x*blockDim.y)) {
+  for (int i=tid; i<output_w*output_h; i+=(hipBlockDim_x*hipBlockDim_y)) {
     sums[tid] += gradOutput[i];
   }
   __syncthreads();
 
   // reduce gradBias
-  if ((threadIdx.x == 0) && (threadIdx.y == 0)) {
-    for (int i=0; i<(blockDim.x*blockDim.y); i++)
+  if ((hipThreadIdx_x == 0) && (hipThreadIdx_y == 0)) {
+    for (int i=0; i<(hipBlockDim_x*hipBlockDim_y); i++)
       gradBias[k] += scale*sums[i];
   }
 }
@@ -142,7 +143,7 @@ __global__ void subgradweight(float *input, float *gradOutput, float *gradWeight
  * Description:
  *    this function computes the gradInput from weight and gradOutput
  */
-__global__ void subgradinput(float *gradInput, float *gradOutput, float *weight,
+__global__ void subgradinput(hipLaunchParm lp, float *gradInput, float *gradOutput, float *weight,
                              int input_n, int input_h, int input_w,
                              int kH, int kW, int dH, int dW)
 {
@@ -154,17 +155,17 @@ __global__ void subgradinput(float *gradInput, float *gradOutput, float *weight,
   int output_h = (input_h - kH) / dH + 1;
 
   // compute offsets based on thread/block ID
-  int o = blockIdx.x;
+  int o = hipBlockIdx_x;
   int i = o;
-  int k = blockIdx.x % input_n;
+  int k = hipBlockIdx_x % input_n;
 
-  int xx_start = threadIdx.x;
+  int xx_start = hipThreadIdx_x;
   int xx_end = output_w;
-  int xx_step = blockDim.x;
+  int xx_step = hipBlockDim_x;
 
-  int yy_start = blockDim.y*blockIdx.y + threadIdx.y;
+  int yy_start = hipBlockDim_y*hipBlockIdx_y + hipThreadIdx_y;
   int yy_end = output_h;
-  int yy_step = blockDim.y*gridDim.y;
+  int yy_step = hipBlockDim_y*hipGridDim_y;
 
   // select input/output plane
   gradOutput = gradOutput + o*output_w*output_h;
@@ -193,7 +194,7 @@ __global__ void subgradinput(float *gradInput, float *gradOutput, float *weight,
  * Description:
  *    this function computes the gradInput from weight and gradOutput
  */
-__global__ void subgradinputAtomic(float *gradInput, float *gradOutput, float *weight,
+__global__ void subgradinputAtomic(hipLaunchParm lp, float *gradInput, float *gradOutput, float *weight,
                                    int input_n, int input_h, int input_w,
                                    int kH, int kW, int dH, int dW)
 {
@@ -205,17 +206,17 @@ __global__ void subgradinputAtomic(float *gradInput, float *gradOutput, float *w
   int output_h = (input_h - kH) / dH + 1;
 
   // compute offsets based on thread/block ID
-  int o = blockIdx.x;
+  int o = hipBlockIdx_x;
   int i = o;
-  int k = blockIdx.x % input_n;
+  int k = hipBlockIdx_x % input_n;
 
-  int xx_start = threadIdx.x;
+  int xx_start = hipThreadIdx_x;
   int xx_end = output_w;
-  int xx_step = blockDim.x;
+  int xx_step = hipBlockDim_x;
 
-  int yy_start = blockDim.y*blockIdx.y + threadIdx.y;
+  int yy_start = hipBlockDim_y*hipBlockIdx_y + hipThreadIdx_y;
   int yy_end = output_h;
-  int yy_step = blockDim.y*gridDim.y;
+  int yy_step = hipBlockDim_y*hipGridDim_y;
 
   // select input/output plane
   gradOutput = gradOutput + o*output_w*output_h;
@@ -275,10 +276,10 @@ void THNN_CudaSpatialSubSampling_updateOutput(THCState *state, THCudaTensor *inp
     dim3 threads(32,8);
 
     // run subsample kernel
-    subsample <<<blocks, threads, 0, THCState_getCurrentStream(state)>>> (
+    hipLaunchKernel(HIP_KERNEL_NAME(subsample), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), 
       input_data, output_data, weight_data, bias_data,
       nInputPlane, nInputRows, nInputCols, kH, kW, dH, dW);
-    THCudaCheck(cudaGetLastError());
+    THCudaCheck(hipGetLastError());
   } else {
     long nInputCols = input->size[3];
     long nInputRows = input->size[2];
@@ -302,10 +303,10 @@ void THNN_CudaSpatialSubSampling_updateOutput(THCState *state, THCudaTensor *inp
     dim3 threads(32,8);
 
     // run subsample kernel
-    subsample <<<blocks, threads, 0, THCState_getCurrentStream(state)>>> (
+    hipLaunchKernel(HIP_KERNEL_NAME(subsample), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), 
       input_data, output_data, weight_data, bias_data,
       nInputPlane, nInputRows, nInputCols, kH, kW, dH, dW);
-    THCudaCheck(cudaGetLastError());
+    THCudaCheck(hipGetLastError());
   }
 
   // clean
@@ -339,15 +340,15 @@ void THNN_CudaSpatialSubSampling_updateGradInput(THCState *state, THCudaTensor *
 
     // run updateGradInput kernel
     if (kH <= dH && kW <= dW) {
-      subgradinput <<<blocks, threads, 0, THCState_getCurrentStream(state)>>> (
+      hipLaunchKernel(HIP_KERNEL_NAME(subgradinput), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), 
         gradInput_data, gradOutput_data, weight_data,
         nInputPlane, nInputRows, nInputCols, kH, kW, dH, dW);
     } else {
-      subgradinputAtomic <<<blocks, threads, 0, THCState_getCurrentStream(state)>>> (
+      hipLaunchKernel(HIP_KERNEL_NAME(subgradinputAtomic), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), 
         gradInput_data, gradOutput_data, weight_data,
         nInputPlane, nInputRows, nInputCols, kH, kW, dH, dW);
     }
-    THCudaCheck(cudaGetLastError());
+    THCudaCheck(hipGetLastError());
   } else {
     long nInputCols = input->size[3];
     long nInputRows = input->size[2];
@@ -369,15 +370,15 @@ void THNN_CudaSpatialSubSampling_updateGradInput(THCState *state, THCudaTensor *
 
     // run updateGradInput kernel
     if (kH <= dH && kW <= dW) {
-      subgradinput <<<blocks, threads, 0, THCState_getCurrentStream(state)>>> (
+      hipLaunchKernel(HIP_KERNEL_NAME(subgradinput), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), 
         gradInput_data, gradOutput_data, weight_data,
         nInputPlane, nInputRows, nInputCols, kH, kW, dH, dW);
     } else {
-      subgradinputAtomic <<<blocks, threads, 0, THCState_getCurrentStream(state)>>> (
+      hipLaunchKernel(HIP_KERNEL_NAME(subgradinputAtomic), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), 
         gradInput_data, gradOutput_data, weight_data,
         nInputPlane, nInputRows, nInputCols, kH, kW, dH, dW);
     }
-    THCudaCheck(cudaGetLastError());
+    THCudaCheck(hipGetLastError());
   }
 }
 
@@ -404,10 +405,10 @@ void THNN_CudaSpatialSubSampling_accGradParameters(THCState *state, THCudaTensor
     dim3 threads(32,8);
 
     // run gradweight kernel
-    subgradweight <<<blocks, threads, 0, THCState_getCurrentStream(state)>>> (
+    hipLaunchKernel(HIP_KERNEL_NAME(subgradweight), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), 
       input_data, gradOutput_data, gradWeight_data, gradBias_data,
       nInputPlane, nInputRows, nInputCols, kH, kW, dH, dW, scale);
-    THCudaCheck(cudaGetLastError());
+    THCudaCheck(hipGetLastError());
   } else {
     long nInputCols = input->size[3];
     long nInputRows = input->size[2];
@@ -428,13 +429,13 @@ void THNN_CudaSpatialSubSampling_accGradParameters(THCState *state, THCudaTensor
     // run gradweight kernel
     long sl;
     for (sl=0; sl<nbatch; sl++) {
-      subgradweight <<<blocks, threads, 0, THCState_getCurrentStream(state)>>> (
+      hipLaunchKernel(HIP_KERNEL_NAME(subgradweight), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), 
         input_data + sl*input->stride[0],
         gradOutput_data + sl*gradOutput->stride[0],
         gradWeight_data, gradBias_data,
         nInputPlane, nInputRows, nInputCols, kH, kW, dH, dW, scale);
     }
-    THCudaCheck(cudaGetLastError());
+    THCudaCheck(hipGetLastError());
   }
 
   // clean

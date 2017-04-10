@@ -4,6 +4,13 @@
 #define THIndexTensor THCudaLongTensor
 #define THIndexTensor_(NAME) THCudaLongTensor_ ## NAME
 
+#define stub_hipLaunchKernel(...) /* whitespace */ 
+#define stub_THC_pointwiseApply1(...) /* whitespace */ 
+#define stub_THC_pointwiseApply2(...) /* whitespace */ 
+#define stub_THC_pointwiseApply3(...) /* whitespace */ 
+
+//#define THError(...) /* whitespace */
+
 TH_API void THNN_CudaAbs_updateOutput(
           THCState *state,
           THCudaTensor *input,

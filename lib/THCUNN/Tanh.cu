@@ -7,6 +7,9 @@ struct tanhupdateOutput_functor
   {
     *output = tanh(*input);
   }
+
+  __device__
+  ~tanhupdateOutput_functor() {}
 };
 
 void THNN_CudaTanh_updateOutput(THCState *state, THCudaTensor *input, THCudaTensor *output)
@@ -22,6 +25,9 @@ struct tanhupdateGradInput_functor
   {
     *gradInput = *gradOutput * (1 - *output * *output);
   }
+ 
+  __device__
+  ~tanhupdateGradInput_functor() {}
 };
 
 void THNN_CudaTanh_updateGradInput(THCState *state, THCudaTensor *input, THCudaTensor *gradOutput, THCudaTensor *gradInput, THCudaTensor *output)

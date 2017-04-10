@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 #include "THCUNN.h"
 #include "common.h"
 #include "THCDeviceTensor.cuh"
@@ -21,7 +22,7 @@ __device__ inline float getInterval(float sample,
 
 // We template on poolSizeW to allow the innermost loop to be unrolled
 template <int PoolSizeWStatic>
-__global__ void SpatialFractionalMaxPooling_updateOutput(
+__global__ void SpatialFractionalMaxPooling_updateOutput(hipLaunchParm lp, 
   THCDeviceTensor<float, 4> input,
   THCDeviceTensor<float, 4> output,
   THCDeviceTensor<float, 4> indices,
@@ -29,9 +30,9 @@ __global__ void SpatialFractionalMaxPooling_updateOutput(
   int poolSizeW, int poolSizeH) {
 
   // Output (h, w) point that this thread is responsible for
-  int ourOutputPoint = threadIdx.x + blockIdx.x * blockDim.x;
-  int plane = blockIdx.y;
-  int batch = blockIdx.z;
+  int ourOutputPoint = hipThreadIdx_x + hipBlockIdx_x * hipBlockDim_x;
+  int plane = hipBlockIdx_y;
+  int batch = hipBlockIdx_z;
 
   // Each thread generates a specific output point
   if (ourOutputPoint < output.getSize(2) * output.getSize(3)) {
@@ -63,9 +64,10 @@ __global__ void SpatialFractionalMaxPooling_updateOutput(
         }
       }
     }
-
+#if defined(__HIP_PLATFORM_NVCC__)
     assert(maxVal != -FLT_MAX);
     assert(maxIndex != -1);
+#endif
 
     // +1 for Lua index
     indices[batch][plane][outputH][outputW] = maxIndex + TH_INDEX_BASE;
@@ -142,8 +144,8 @@ void THNN_CudaSpatialFractionalMaxPooling_updateOutput(
   dim3 block(outputPlaneSize > 128 ? 128 : outputPlaneSize);
 
 #define SFMP_UPDATE_OUTPUT(POOL_W)                                      \
-  SpatialFractionalMaxPooling_updateOutput<POOL_W>                      \
-    <<<grid, block, 0, THCState_getCurrentStream(state)>>>(             \
+  hipLaunchKernel(SpatialFractionalMaxPooling_updateOutput<POOL_W>                      \
+    ,grid, block, 0, THCState_getCurrentStream(state),            \
       devInput, devOutput, devIndices, devSamples, poolSizeW, poolSizeH);
 
 #define SFMP_UPDATE_OUTPUT_CASE(POOL_W)                 \
@@ -160,17 +162,17 @@ void THNN_CudaSpatialFractionalMaxPooling_updateOutput(
       // dynamic pool width
       SFMP_UPDATE_OUTPUT_CASE(-1);
   }
-  THCudaCheck(cudaGetLastError());
+  THCudaCheck(hipGetLastError());
 }
 
-__global__ void SpatialFractionalMaxPooling_updateGradInput(
+__global__ void SpatialFractionalMaxPooling_updateGradInput(hipLaunchParm lp,
   THCDeviceTensor<float, 4> gradInput,
   THCDeviceTensor<float, 4> gradOutput,
   THCDeviceTensor<float, 4> indices) {
   // Output (h, w) point that this thread is responsible for
-  int ourOutputPoint = threadIdx.x + blockIdx.x * blockDim.x;
-  int plane = blockIdx.y;
-  int batch = blockIdx.z;
+  int ourOutputPoint = hipThreadIdx_x + hipBlockIdx_x * hipBlockDim_x;
+  int plane = hipBlockIdx_y;
+  int batch = hipBlockIdx_z;
 
   // Each thread generates a specific output point
   if (ourOutputPoint < gradOutput.getSize(2) * gradOutput.getSize(3)) {
@@ -178,10 +180,14 @@ __global__ void SpatialFractionalMaxPooling_updateGradInput(
     int outputH = ourOutputPoint / gradOutput.getSize(3);
 
     int index = indices[batch][plane][outputH][outputW] - TH_INDEX_BASE;
+#if defined(__HIP_PLATFORM_NVCC__)
     assert(index >= 0);
+#endif
     int inputW = index % gradInput.getSize(3);
     int inputH = index / gradInput.getSize(3);
+#if defined(__HIP_PLATFORM_NVCC__)
     assert(inputH < gradInput.getSize(2));
+#endif
 
     atomicAdd(gradInput[batch][plane][inputH][inputW].data(),
               gradOutput[batch][plane][outputH][outputW]);
@@ -242,8 +248,7 @@ void THNN_CudaSpatialFractionalMaxPooling_updateGradInput(
             devGradInput.getSize(0));
   dim3 block(outputPlaneSize > 128 ? 128 : outputPlaneSize);
 
-  SpatialFractionalMaxPooling_updateGradInput
-    <<<grid, block, 0, THCState_getCurrentStream(state)>>>(
+  hipLaunchKernel(HIP_KERNEL_NAME(SpatialFractionalMaxPooling_updateGradInput), dim3(grid), dim3(block), 0, THCState_getCurrentStream(state), 
       devGradInput, devGradOutput, devIndices);
-  THCudaCheck(cudaGetLastError());
+  THCudaCheck(hipGetLastError());
 }

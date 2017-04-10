@@ -40,7 +40,7 @@ void THNN_CudaSpatialDilatedConvolution_updateOutput(THCState *state,
 
   if (outputWidth < 1 || outputHeight < 1)
     THError("Given input size: (%dx%dx%d). Calculated output size: (%dx%dx%d). Output size is too small",
-        nInputPlane,inputHeight,inputWidth,nOutputPlane,outputHeight,outputWidth);
+       nInputPlane,inputHeight,inputWidth,nOutputPlane,outputHeight,outputWidth);
 
   // Batch size + input planes
   long batchSize = input->size[0];

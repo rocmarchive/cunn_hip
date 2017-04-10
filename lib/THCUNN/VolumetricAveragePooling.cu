@@ -1,17 +1,18 @@
+#include "hip/hip_runtime.h"
 #include "THCUNN.h"
 #include "common.h"
 #include "THCDeviceTensor.cuh"
 #include "THCDeviceTensorUtils.cuh"
 #include "THCDeviceUtils.cuh"
 
-__global__ void cuda_VolumetricAveragePooling_updateOutput(
+__global__ void cuda_VolumetricAveragePooling_updateOutput(hipLaunchParm lp,
   THCDeviceTensor<float, 4> input, THCDeviceTensor<float, 4> output,
   int kT, int kH, int kW, int dT, int dH, int dW, float normFactor, int offsetZ)
 {
-  int oCol   = blockIdx.x * blockDim.x + threadIdx.x;
-  int oRow   = blockIdx.y * blockDim.y + threadIdx.y;
-  int oFrame = (blockIdx.z + offsetZ) % output.getSize(1); // output frame/time
-  int slice  = (blockIdx.z + offsetZ) / output.getSize(1); // output slice/feature
+  int oCol   = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x;
+  int oRow   = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
+  int oFrame = (hipBlockIdx_z + offsetZ) % output.getSize(1); // output frame/time
+  int slice  = (hipBlockIdx_z + offsetZ) / output.getSize(1); // output slice/feature
 
   if (oRow < output.getSize(2) && oCol < output.getSize(3))
   {
@@ -50,14 +51,14 @@ __global__ void cuda_VolumetricAveragePooling_updateOutput(
 // performance reasons.
 //
 template<int KERNEL_WIDTH>
-__global__ void cuda_VolumetricAveragePooling_updateOutput(
+__global__ void cuda_VolumetricAveragePooling_updateOutput(hipLaunchParm lp, 
   THCDeviceTensor<float, 4> input, THCDeviceTensor<float, 4> output,
   int kT, int kH, int dT, int dH, int dW, float normFactor, int offsetZ)
 {
-  int oCol   = blockIdx.x * blockDim.x + threadIdx.x;
-  int oRow   = blockIdx.y * blockDim.y + threadIdx.y;
-  int oFrame = (blockIdx.z + offsetZ) % output.getSize(1); // output frame/time
-  int slice  = (blockIdx.z + offsetZ) / output.getSize(1); // output slice/feature
+  int oCol   = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x;
+  int oRow   = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
+  int oFrame = (hipBlockIdx_z + offsetZ) % output.getSize(1); // output frame/time
+  int slice  = (hipBlockIdx_z + offsetZ) / output.getSize(1); // output slice/feature
 
   if (oRow < output.getSize(2) && oCol < output.getSize(3))
   {
@@ -93,7 +94,7 @@ __global__ void cuda_VolumetricAveragePooling_updateOutput(
 }
 
 #define LAUNCH_UPDATE_OUTPUT_KERNEL_WIDTH(KW) case KW:                  \
-  cuda_VolumetricAveragePooling_updateOutput<KW><<<grid, block>>>(      \
+  hipLaunchKernel(HIP_KERNEL_NAME(cuda_VolumetricAveragePooling_updateOutput<KW>), dim3(grid), dim3(block), 0, 0,       \
     cudaInput, cudaOutput, kT, kH, dT, dH, dW, normFactor, offsetZ); \
   break
 
@@ -197,7 +198,7 @@ void THNN_CudaVolumetricAveragePooling_updateOutput(
         LAUNCH_UPDATE_OUTPUT_KERNEL_WIDTH(6);
         LAUNCH_UPDATE_OUTPUT_KERNEL_WIDTH(7);
       default:
-        cuda_VolumetricAveragePooling_updateOutput<<<grid, block>>>(
+        hipLaunchKernel(HIP_KERNEL_NAME(cuda_VolumetricAveragePooling_updateOutput), dim3(grid), dim3(block), 0, 0, 
                                                                     cudaInput,
                                                                     cudaOutput,
                                                                     kT, kH, kW,
@@ -209,20 +210,20 @@ void THNN_CudaVolumetricAveragePooling_updateOutput(
       }
     totalZ -= 65535;
     offsetZ += 65535;
-    THCudaCheck(cudaGetLastError());
+    THCudaCheck(hipGetLastError());
   }
   THCudaTensor_free(state, input);
 }
 
-__global__ void cuda_VolumetricAveragePooling_updateGradInput_Stride1(
+__global__ void cuda_VolumetricAveragePooling_updateGradInput_Stride1(hipLaunchParm lp, 
   THCDeviceTensor<float, 4> gradOutput,
   THCDeviceTensor<float, 4> gradInput,
   int kT, int kH, int kW, float normFactor, int offsetZ)
 {
-  int iCol   = blockIdx.x * blockDim.x + threadIdx.x;
-  int iRow   = blockIdx.y * blockDim.y + threadIdx.y;
-  int iFrame = (blockIdx.z + offsetZ) % gradInput.getSize(1); // input frame/time
-  int slice  = (blockIdx.z + offsetZ) / gradInput.getSize(1); // input slice/feature
+  int iCol   = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x;
+  int iRow   = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
+  int iFrame = (hipBlockIdx_z + offsetZ) % gradInput.getSize(1); // input frame/time
+  int slice  = (hipBlockIdx_z + offsetZ) / gradInput.getSize(1); // input slice/feature
 
   // guard against over-tiled threads
   if (iRow < gradInput.getSize(2) && iCol < gradInput.getSize(3))
@@ -256,15 +257,15 @@ __global__ void cuda_VolumetricAveragePooling_updateGradInput_Stride1(
   }
 }
 
-__global__ void cuda_VolumetricAveragePooling_updateGradInput_atomicAdd(
+__global__ void cuda_VolumetricAveragePooling_updateGradInput_atomicAdd(hipLaunchParm lp, 
   THCDeviceTensor<float, 4> gradOutput,
   THCDeviceTensor<float, 4> gradInput,
   int kT, int kH, int kW, int dT, int dH, int dW, int offsetZ)
 {
-  int oCol   = blockIdx.x * blockDim.x + threadIdx.x;
-  int oRow   = blockIdx.y * blockDim.y + threadIdx.y;
-  int oFrame = (blockIdx.z + offsetZ) % gradOutput.getSize(1); // gradOutput frame/time
-  int slice  = (blockIdx.z + offsetZ) / gradOutput.getSize(1); // gradOutput slice/feature
+  int oCol   = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x;
+  int oRow   = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
+  int oFrame = (hipBlockIdx_z + offsetZ) % gradOutput.getSize(1); // gradOutput frame/time
+  int slice  = (hipBlockIdx_z + offsetZ) / gradOutput.getSize(1); // gradOutput slice/feature
 
   // guard against over-tiled threads
   if (oRow < gradOutput.getSize(2) && oCol < gradOutput.getSize(3))
@@ -283,16 +284,16 @@ __global__ void cuda_VolumetricAveragePooling_updateGradInput_atomicAdd(
   }
 }
 
-__global__ void cuda_VolumetricAveragePooling_updateGradInput(
+__global__ void cuda_VolumetricAveragePooling_updateGradInput(hipLaunchParm lp,
   THCDeviceTensor<float, 4> gradOutput,
   THCDeviceTensor<float, 4> gradInput,
   int kT, int kH, int kW,
   int dT, int dH, int dW, int offsetZ)
 {
-  int oCol   = blockIdx.x * blockDim.x + threadIdx.x;
-  int oRow   = blockIdx.y * blockDim.y + threadIdx.y;
-  int oFrame = (blockIdx.z + offsetZ) % gradOutput.getSize(1); // gradOutput frame/time
-  int slice  = (blockIdx.z + offsetZ) / gradOutput.getSize(1); // gradOutput slice/feature
+  int oCol   = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x;
+  int oRow   = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
+  int oFrame = (hipBlockIdx_z + offsetZ) % gradOutput.getSize(1); // gradOutput frame/time
+  int slice  = (hipBlockIdx_z + offsetZ) / gradOutput.getSize(1); // gradOutput slice/feature
 
   // guard against over-tiled threads
   if (oRow < gradOutput.getSize(2) && oCol < gradOutput.getSize(3))
@@ -390,9 +391,9 @@ void THNN_CudaVolumetricAveragePooling_updateGradInput(
       dim3 grid(THCCeilDiv(inputWidth, static_cast<int>(block.x)),
                 THCCeilDiv(inputHeight, static_cast<int>(block.y)),
                 totalZ > 65535 ? 65535 : totalZ);
-      cuda_VolumetricAveragePooling_updateGradInput_Stride1<<<grid, block>>>(
+      hipLaunchKernel(HIP_KERNEL_NAME(cuda_VolumetricAveragePooling_updateGradInput_Stride1), dim3(grid), dim3(block), 0, 0, 
          cudaGradOutput, cudaGradInput, kT, kH, kW, 1.0f/(kT * kH * kW), offsetZ);
-      THCudaCheck(cudaGetLastError());
+      THCudaCheck(hipGetLastError());
       totalZ -= 65535;
       offsetZ += 65535;
     }
@@ -408,15 +409,15 @@ void THNN_CudaVolumetricAveragePooling_updateGradInput(
                 totalZ > 65535 ? 65535 : totalZ);
       if (kernelsOverlap)
         {
-          cuda_VolumetricAveragePooling_updateGradInput_atomicAdd<<<grid, block>>>(
+          hipLaunchKernel(HIP_KERNEL_NAME(cuda_VolumetricAveragePooling_updateGradInput_atomicAdd), dim3(grid), dim3(block), 0, 0, 
             cudaGradOutput, cudaGradInput, kT, kH, kW, dT, dH, dW, offsetZ);
         }
       else
         {
-          cuda_VolumetricAveragePooling_updateGradInput<<<grid, block>>>(
+          hipLaunchKernel(HIP_KERNEL_NAME(cuda_VolumetricAveragePooling_updateGradInput), dim3(grid), dim3(block), 0, 0, 
              cudaGradOutput, cudaGradInput, kT, kH, kW, dT, dH, dW, offsetZ);
         }
-      THCudaCheck(cudaGetLastError());
+      THCudaCheck(hipGetLastError());
       totalZ -= 65535;
       offsetZ += 65535;
     }

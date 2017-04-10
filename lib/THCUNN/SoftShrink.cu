@@ -5,6 +5,7 @@ struct SoftShrinkUpdateOutput
 {
   const float lambda_;
 
+  __host__ __device__
   SoftShrinkUpdateOutput(float lambda)
     : lambda_(lambda)
   {}
@@ -16,6 +17,9 @@ struct SoftShrinkUpdateOutput
     else if (x < -lambda_) *out = x + lambda_;
     else *out = 0;
   }
+
+  __host__ __device__
+  ~SoftShrinkUpdateOutput() {}
 };
 
 void THNN_CudaSoftShrink_updateOutput(THCState *state, THCudaTensor *input, THCudaTensor *output, double lambda)
@@ -23,13 +27,14 @@ void THNN_CudaSoftShrink_updateOutput(THCState *state, THCudaTensor *input, THCu
   THCUNN_assertSameGPU(state, 2, input, output);
   THCudaTensor_resizeAs(state, output, input);
   THC_pointwiseApply2(state, output, input, SoftShrinkUpdateOutput(lambda));
-  THCudaCheck(cudaGetLastError());
+  THCudaCheck(hipGetLastError());
 }
 
 struct SoftShrinkUpdateGradInput
 {
   const float lambda_;
 
+  __host__ __device__
   SoftShrinkUpdateGradInput(float lambda)
     : lambda_(lambda)
   {}
@@ -42,6 +47,9 @@ struct SoftShrinkUpdateGradInput
     else
       *gradInput = 0;
   }
+
+  __host__ __device__
+  ~SoftShrinkUpdateGradInput() {}
 };
 
 
@@ -50,5 +58,5 @@ void THNN_CudaSoftShrink_updateGradInput(THCState *state, THCudaTensor *input, T
   THCUNN_assertSameGPU(state, 3, input, gradOutput, gradInput);
   THCudaTensor_resizeAs(state, gradInput, input);
   THC_pointwiseApply3(state, gradInput, input, gradOutput, SoftShrinkUpdateGradInput(lambda));
-  THCudaCheck(cudaGetLastError());
+  THCudaCheck(hipGetLastError());
 }

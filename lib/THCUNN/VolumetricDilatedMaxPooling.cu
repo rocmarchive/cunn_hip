@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 #include "THCUNN.h"
 #include "common.h"
 #include "THCDeviceTensor.cuh"
@@ -6,7 +7,7 @@
 
 #include <cfloat>
 
-__global__ void cuda_VolumetricDilatedMaxPooling_updateOutput(
+__global__ void cuda_VolumetricDilatedMaxPooling_updateOutput(hipLaunchParm lp, 
   THCDeviceTensor<float, 4> input,
   THCDeviceTensor<float, 4> indices,
   THCDeviceTensor<float, 4> output,
@@ -16,10 +17,10 @@ __global__ void cuda_VolumetricDilatedMaxPooling_updateOutput(
   int dilationT, int dilationH, int dilationW,
   int offsetZ)
 {
-  int oColumn = blockIdx.x * blockDim.x + threadIdx.x;
-  int oRow    = blockIdx.y * blockDim.y + threadIdx.y;
-  int oFrame  = (blockIdx.z + offsetZ) % output.getSize(1); // output frame/time
-  int slice   = (blockIdx.z + offsetZ) / output.getSize(1); // output slice/feature
+  int oColumn = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x;
+  int oRow    = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
+  int oFrame  = (hipBlockIdx_z + offsetZ) % output.getSize(1); // output frame/time
+  int slice   = (hipBlockIdx_z + offsetZ) / output.getSize(1); // output slice/feature
 
   if (oRow < output.getSize(2) && oColumn < output.getSize(3))
   {
@@ -71,7 +72,7 @@ __global__ void cuda_VolumetricDilatedMaxPooling_updateOutput(
 }
 
 template <int KERNEL_WIDTH>
-__global__ void cuda_VolumetricDilatedMaxPooling_updateOutput(
+__global__ void cuda_VolumetricDilatedMaxPooling_updateOutput(hipLaunchParm lp, 
   THCDeviceTensor<float, 4> input, THCDeviceTensor<float, 4> indices,
   THCDeviceTensor<float, 4> output,
   int kT, int kH,
@@ -80,10 +81,10 @@ __global__ void cuda_VolumetricDilatedMaxPooling_updateOutput(
   int dilationT, int dilationH, int dilationW,
   int offsetZ)
 {
-  int oColumn = blockIdx.x * blockDim.x + threadIdx.x;
-  int oRow    = blockIdx.y * blockDim.y + threadIdx.y;
-  int oFrame  = (blockIdx.z + offsetZ) % output.getSize(1); // output frame/time
-  int slice   = (blockIdx.z + offsetZ) / output.getSize(1); // output slice/feature
+  int oColumn = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x;
+  int oRow    = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
+  int oFrame  = (hipBlockIdx_z + offsetZ) % output.getSize(1); // output frame/time
+  int slice   = (hipBlockIdx_z + offsetZ) / output.getSize(1); // output slice/feature
 
   if (oRow < output.getSize(2) && oColumn < output.getSize(3))
   {
@@ -135,8 +136,8 @@ __global__ void cuda_VolumetricDilatedMaxPooling_updateOutput(
 }
 
 #define UPDATE_OUTPUT_KERNEL_WIDTH(KW) case KW:                         \
-  cuda_VolumetricDilatedMaxPooling_updateOutput<KW><<<grid, block,             \
-    0, THCState_getCurrentStream(state)>>>(                             \
+  hipLaunchKernel(cuda_VolumetricDilatedMaxPooling_updateOutput<KW>, grid, block,             \
+    0, THCState_getCurrentStream(state),                             \
     cudaInput, cudaIndices, cudaOutput, kT, kH, dT, dH, dW, padT, padH, padW,\
     dilationT, dilationH, dilationW, offsetZ); \
     break
@@ -298,13 +299,12 @@ void THNN_CudaVolumetricDilatedMaxPooling_updateOutput(
         UPDATE_OUTPUT_KERNEL_WIDTH(6);
         UPDATE_OUTPUT_KERNEL_WIDTH(7);
       default:
-        cuda_VolumetricDilatedMaxPooling_updateOutput<<<grid, block,
-          0, THCState_getCurrentStream(state)>>>(
+        hipLaunchKernel(HIP_KERNEL_NAME(cuda_VolumetricDilatedMaxPooling_updateOutput), dim3(grid), dim3(block), 0, THCState_getCurrentStream(state), 
                              cudaInput, cudaIndices, cudaOutput,
                              kT, kH, kW, dT, dH, dW,
                              padT, padH, padW, dilationT, dilationH, dilationW, offsetZ);
       }
-    THCudaCheck(cudaGetLastError());
+    THCudaCheck(hipGetLastError());
     totalZ -= 65535;
     offsetZ += 65535;
   }
@@ -315,7 +315,7 @@ void THNN_CudaVolumetricDilatedMaxPooling_updateOutput(
 
 #undef UPDATE_OUTPUT_KERNEL_WIDTH
 
-__global__ void cuda_VolumetricDilatedMaxPooling_updateGradInput(
+__global__ void cuda_VolumetricDilatedMaxPooling_updateGradInput(hipLaunchParm lp,
   THCDeviceTensor<float, 4> gradOutput,
   THCDeviceTensor<float, 4> indices,
   THCDeviceTensor<float, 4> gradInput,
@@ -324,10 +324,10 @@ __global__ void cuda_VolumetricDilatedMaxPooling_updateGradInput(
   int dilationT, int dilationH, int dilationW,
   int offsetZ)
 {
-  int oColumn = blockIdx.x * blockDim.x + threadIdx.x;
-  int oRow    = blockIdx.y * blockDim.y + threadIdx.y;
-  int oFrame  = (blockIdx.z + offsetZ) % gradOutput.getSize(1); // output frame/time
-  int slice   = (blockIdx.z + offsetZ) / gradOutput.getSize(1); // output slice/feature
+  int oColumn = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x;
+  int oRow    = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
+  int oFrame  = (hipBlockIdx_z + offsetZ) % gradOutput.getSize(1); // output frame/time
+  int slice   = (hipBlockIdx_z + offsetZ) / gradOutput.getSize(1); // output slice/feature
 
   if (oRow < gradOutput.getSize(2) && oColumn < gradOutput.getSize(3))
   {
@@ -418,15 +418,14 @@ void THNN_CudaVolumetricDilatedMaxPooling_updateGradInput(
               THCCeilDiv(outputHeight, static_cast<int>(block.y)),
               totalZ > 65535 ? 65535 : totalZ);
 
-    cuda_VolumetricDilatedMaxPooling_updateGradInput<<<grid, block,
-      0, THCState_getCurrentStream(state)>>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(cuda_VolumetricDilatedMaxPooling_updateGradInput), dim3(grid), dim3(block), 0, THCState_getCurrentStream(state), 
                                              cudaGradOutput,
                                              cudaIndices,
                                              cudaGradInput,
                                              dT, dH, dW,
                                              padT, padH, padW, 
                                              dilationT, dilationH, dilationW, offsetZ);
-    THCudaCheck(cudaGetLastError());
+    THCudaCheck(hipGetLastError());
     totalZ -= 65535;
     offsetZ += 65535;
   }

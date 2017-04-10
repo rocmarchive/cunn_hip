@@ -1,10 +1,11 @@
+#include "hip/hip_runtime.h"
 #include "THCUNN.h"
 #include "common.h"
 
-__global__ void cunn_SpatialLogSoftMax_updateOutput_kernel(float *output, float *input, int classSize, int height, int width)
+__global__ void cunn_SpatialLogSoftMax_updateOutput_kernel(hipLaunchParm lp, float *output, float *input, int classSize, int height, int width)
 {
-  int batchIndex = blockIdx.x;
-  int index = threadIdx.x;
+  int batchIndex = hipBlockIdx_x;
+  int index = hipThreadIdx_x;
 
   while (index < height*width) {
     int y = index / width;
@@ -33,14 +34,14 @@ __global__ void cunn_SpatialLogSoftMax_updateOutput_kernel(float *output, float 
         x;
       output[outputIndex] = logf(sum * __expf(input[inputStartIndex + i]));
     }
-    index += blockDim.x;
+    index += hipBlockDim_x;
   }
 }
 
-__global__ void cunn_SpatialLogSoftMax_updateGradInput_kernel(float *gradInput, float *output, float *gradOutput, int classSize, int height, int width)
+__global__ void cunn_SpatialLogSoftMax_updateGradInput_kernel(hipLaunchParm lp, float *gradInput, float *output, float *gradOutput, int classSize, int height, int width)
 {
-  int batchIndex = blockIdx.x;
-  int index = threadIdx.x;
+  int batchIndex = hipBlockIdx_x;
+  int index = hipThreadIdx_x;
 
   while (index < height*width) {
     int y = index / width;
@@ -68,7 +69,7 @@ __global__ void cunn_SpatialLogSoftMax_updateGradInput_kernel(float *gradInput, 
         x;
       gradInput[inputIndex] = gradOutput[outputStartIndex + i] - __expf(output[outputStartIndex + i]) * sum;
     }
-    index += blockDim.x;
+    index += hipBlockDim_x;
   }
 }
 
@@ -135,19 +136,19 @@ blockReduce(float* smem, float val,
   // need a sync here
   __syncthreads();
 
-  smem[threadIdx.x] = val;
+  smem[hipThreadIdx_x] = val;
 
   __syncthreads();
 
   float warpVal = defaultVal;
 
   // First warp will perform per-warp reductions for the remaining warps
-  if ((threadIdx.x / 32) == 0) // only threads in warp1 go into this (if)
+  if ((hipThreadIdx_x / 32) == 0) // only threads in warp1 go into this (if)
   {
-    int lane = threadIdx.x % 32; // from 0 to 31
+    int lane = hipThreadIdx_x % 32; // from 0 to 31
 
     // if less than 1024 threads per block, then only activate the relevant lanes
-    if (lane < blockDim.x / 32)
+    if (lane < hipBlockDim_x / 32)
     {
 #pragma unroll
       for (int i = 0; i < 32; ++i)
@@ -164,9 +165,9 @@ blockReduce(float* smem, float val,
   // First thread will perform a reduction of the above per-warp reductions
   float blockVal = defaultVal;
 
-  if (threadIdx.x == 0)
+  if (hipThreadIdx_x == 0)
   {
-    for (int i = 0; i < blockDim.x / 32; ++i)
+    for (int i = 0; i < hipBlockDim_x / 32; ++i)
     {
       blockVal = r(blockVal, smem[i]);
     }
@@ -196,19 +197,19 @@ ilpReduce(float* data,
           float defaultVal)
 {
   float threadVal = defaultVal;
-  int offset = threadIdx.x;
+  int offset = hipThreadIdx_x;
 
-  int last = size % (ILP * blockDim.x);
+  int last = size % (ILP * hipBlockDim_x);
 
   // Body (unroll by ILP times)
-  for (; offset < size - last; offset += blockDim.x * ILP)
+  for (; offset < size - last; offset += hipBlockDim_x * ILP)
   {
     float tmp[ILP];
 
 #pragma unroll
     for (int j = 0; j < ILP; ++j)
     {
-      tmp[j] = data[offset + j * blockDim.x];
+      tmp[j] = data[offset + j * hipBlockDim_x];
     }
 
 #pragma unroll
@@ -219,7 +220,7 @@ ilpReduce(float* data,
   }
 
   // Epilogue
-  for (; offset < size; offset += blockDim.x)
+  for (; offset < size; offset += hipBlockDim_x)
   {
     threadVal = r(threadVal, data[offset]);
   }
@@ -229,13 +230,14 @@ ilpReduce(float* data,
 
 template <int ILP>
 __global__ void
-cunn_LogSoftMax_updateOutput_kernel(float *output, float *input, int classes)
+cunn_LogSoftMax_updateOutput_kernel(hipLaunchParm lp, float *output, float *input, int classes)
 {
-  extern __shared__ float buffer[];
-  // forward pointers to batch[blockIdx.x]
+  //HIP_DYNAMIC_SHARED( float, buffer)
+  __shared__ float buffer[1024];
+  // forward pointers to batch[hipBlockIdx_x]
   // each block handles a sample in the mini-batch
-  input += blockIdx.x * classes;
-  output += blockIdx.x * classes;
+  input += hipBlockIdx_x * classes;
+  output += hipBlockIdx_x * classes;
 
   // find the max of the batch
   float threadMax =
@@ -251,26 +253,26 @@ cunn_LogSoftMax_updateOutput_kernel(float *output, float *input, int classes)
       buffer, threadExp, SumFloat(), 0.0f, LSMFinal(max_k));
 
   // Output LSM (hand ILP)
-  int offset = threadIdx.x;
+  int offset = hipThreadIdx_x;
 
-  int last = classes % (ILP * blockDim.x);
-  for (; offset < classes - last; offset += blockDim.x * ILP)
+  int last = classes % (ILP * hipBlockDim_x);
+  for (; offset < classes - last; offset += hipBlockDim_x * ILP)
   {
     float tmp[ILP];
 
 #pragma unroll
     for (int j = 0; j < ILP; ++j) {
-      tmp[j] = input[offset + j * blockDim.x];
+      tmp[j] = input[offset + j * hipBlockDim_x];
     }
 
 #pragma unroll
     for (int j = 0; j < ILP; ++j)
     {
-      output[offset + j * blockDim.x] = tmp[j] - logsum_k;
+      output[offset + j * hipBlockDim_x] = tmp[j] - logsum_k;
     }
   }
 
-  for (; offset < classes; offset += blockDim.x)
+  for (; offset < classes; offset += hipBlockDim_x)
   {
     output[offset] = input[offset] - logsum_k;
   }
@@ -278,15 +280,16 @@ cunn_LogSoftMax_updateOutput_kernel(float *output, float *input, int classes)
 
 template <int ILP>
 __global__ void
-cunn_LogSoftMax_updateGradInput_kernel(float *gradInput,
+cunn_LogSoftMax_updateGradInput_kernel(hipLaunchParm lp, float *gradInput,
                                        float *output,
                                        float *gradOutput,
                                        int classes)
 {
-  extern __shared__ float buffer[];
-  gradInput += blockIdx.x * classes;
-  output += blockIdx.x * classes;
-  gradOutput += blockIdx.x * classes;
+  //HIP_DYNAMIC_SHARED( float, buffer)
+  __shared__ float buffer[1024];
+  gradInput += hipBlockIdx_x * classes;
+  output += hipBlockIdx_x * classes;
+  gradOutput += hipBlockIdx_x * classes;
 
   float threadSum =
     ilpReduce<SumFloat, 4>(gradOutput, classes, SumFloat(), 0.0f);
@@ -294,9 +297,9 @@ cunn_LogSoftMax_updateGradInput_kernel(float *gradInput,
     blockReduce<SumFloat>(buffer, threadSum, SumFloat(), 0.0f);
 
   // Update gradInput (hand ILP)
-  int offset = threadIdx.x;
-  int last = classes % (ILP * blockDim.x);
-  for (; offset < classes - last; offset += blockDim.x * ILP)
+  int offset = hipThreadIdx_x;
+  int last = classes % (ILP * hipBlockDim_x);
+  for (; offset < classes - last; offset += hipBlockDim_x * ILP)
   {
     float tmpGradOutput[ILP];
     float tmpOutput[ILP];
@@ -304,19 +307,19 @@ cunn_LogSoftMax_updateGradInput_kernel(float *gradInput,
 #pragma unroll
     for (int j = 0; j < ILP; ++j)
     {
-      tmpGradOutput[j] = gradOutput[offset + j * blockDim.x];
-      tmpOutput[j] = output[offset + j * blockDim.x];
+      tmpGradOutput[j] = gradOutput[offset + j * hipBlockDim_x];
+      tmpOutput[j] = output[offset + j * hipBlockDim_x];
     }
 
 #pragma unroll
     for (int j = 0; j < ILP; ++j)
     {
-      gradInput[offset + j * blockDim.x] =
+      gradInput[offset + j * hipBlockDim_x] =
         tmpGradOutput[j] - __expf(tmpOutput[j]) * sum_k;
     }
   }
 
-  for (; offset < classes; offset += blockDim.x)
+  for (; offset < classes; offset += hipBlockDim_x)
   {
     gradInput[offset] =
       gradOutput[offset] - __expf(output[offset]) * sum_k;
@@ -393,8 +396,7 @@ void THNN_CudaLogSoftMax_updateOutput(THCState *state, THCudaTensor *input, THCu
     dim3 grid(batchSize);
     dim3 block(1024);
 
-    cunn_LogSoftMax_updateOutput_kernel<2>
-      <<<grid, block, block.x * sizeof(float), THCState_getCurrentStream(state)>>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(cunn_LogSoftMax_updateOutput_kernel<2>), dim3(grid), dim3(block), block.x * sizeof(float), THCState_getCurrentStream(state), 
         THCudaTensor_data(state, output),
         THCudaTensor_data(state, input),
         classSize
@@ -405,18 +407,17 @@ void THNN_CudaLogSoftMax_updateOutput(THCState *state, THCudaTensor *input, THCu
     dim3 grid(batchSize);
     dim3 block(1024);
 
-    cunn_SpatialLogSoftMax_updateOutput_kernel
-      <<<grid, block, 0, THCState_getCurrentStream(state)>>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(cunn_SpatialLogSoftMax_updateOutput_kernel), dim3(grid), dim3(block), 0, THCState_getCurrentStream(state), 
         THCudaTensor_data(state, output),
         THCudaTensor_data(state, input),
         classSize, height, width
     );
   }
 
-  cudaError errcode = cudaGetLastError();
-  if (errcode != cudaSuccess)
+  hipError_t errcode = hipGetLastError();
+  if (errcode != hipSuccess)
   {
-    THError(cudaGetErrorString(errcode));
+    THError(hipGetErrorString(errcode));
   }
 
   THCudaTensor_free(state, input);
@@ -515,8 +516,7 @@ void THNN_CudaLogSoftMax_updateGradInput(THCState *state, THCudaTensor *input, T
     dim3 grid(batchSize);
     dim3 block(1024);
 
-    cunn_LogSoftMax_updateGradInput_kernel<2>
-      <<<grid, block, block.x * sizeof(float), THCState_getCurrentStream(state)>>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(cunn_LogSoftMax_updateGradInput_kernel<2>), dim3(grid), dim3(block), block.x * sizeof(float), THCState_getCurrentStream(state), 
         THCudaTensor_data(state, gradInput),
         THCudaTensor_data(state, output),
         THCudaTensor_data(state, gradOutput),
@@ -528,8 +528,7 @@ void THNN_CudaLogSoftMax_updateGradInput(THCState *state, THCudaTensor *input, T
     dim3 grid(batchSize);
     dim3 block(1024);
 
-    cunn_SpatialLogSoftMax_updateGradInput_kernel
-      <<<grid, block, 0, THCState_getCurrentStream(state)>>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(cunn_SpatialLogSoftMax_updateGradInput_kernel), dim3(grid), dim3(block), 0, THCState_getCurrentStream(state), 
         THCudaTensor_data(state, gradInput),
         THCudaTensor_data(state, output),
         THCudaTensor_data(state, gradOutput),
@@ -537,10 +536,10 @@ void THNN_CudaLogSoftMax_updateGradInput(THCState *state, THCudaTensor *input, T
     );
   }
 
-  cudaError errcode = cudaGetLastError();
-  if (errcode != cudaSuccess)
+  hipError_t errcode = hipGetLastError();
+  if (errcode != hipSuccess)
   {
-    THError(cudaGetErrorString(errcode));
+    THError(hipGetErrorString(errcode));
   }
 
   THCudaTensor_free(state, gradOutput);

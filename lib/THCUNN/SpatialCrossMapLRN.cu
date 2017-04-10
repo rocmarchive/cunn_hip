@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 #include "THCUNN.h"
 #include "common.h"
 
@@ -6,7 +7,7 @@ __global__ void
 #if __CUDA_ARCH__ >= 320
 __launch_bounds__(CUDA_NUM_THREADS)
 #endif
-LRNFillScale(const int nthreads, const Dtype* const in,
+LRNFillScale(hipLaunchParm lp, const int nthreads, const Dtype* const in,
     const int num, const int channels, const int height,
     const int width, const int size, const Dtype alpha_over_size,
     const Dtype k, Dtype* const scale) {
@@ -51,7 +52,7 @@ LRNFillScale(const int nthreads, const Dtype* const in,
   }
 }
 
-__global__ void LRNComputeOutput(const int nthreads, const float* in,
+__global__ void LRNComputeOutput(hipLaunchParm lp, const int nthreads, const float* in,
     const float* scale, const float negative_beta, float* out) {
   CUDA_KERNEL_LOOP(index, nthreads) {
     out[index] = in[index] * pow(scale[index], negative_beta);
@@ -59,7 +60,7 @@ __global__ void LRNComputeOutput(const int nthreads, const float* in,
 }
 
 template <typename Dtype>
-__global__ void LRNComputeDiff(const int nthreads,
+__global__ void LRNComputeDiff(hipLaunchParm lp, const int nthreads,
     const Dtype* const bottom_data, const Dtype* const top_data,
     const Dtype* const scale, const Dtype* const top_diff,
     const int num, const int channels, const int height,
@@ -145,14 +146,14 @@ void LRNforward(THCState* state, THCudaTensor* input, THCudaTensor* output,
   input = THCudaTensor_newContiguous(state, input);
 
   int n_threads = batchSize * imsize_h * imsize_w;
-  LRNFillScale<<<GET_BLOCKS(n_threads), CUDA_NUM_THREADS, 0, THCState_getCurrentStream(state)>>>(
+  hipLaunchKernel(HIP_KERNEL_NAME(LRNFillScale), dim3(GET_BLOCKS(n_threads)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state), 
       n_threads, THCudaTensor_data(state, input), batchSize, nInputPlane, imsize_h, imsize_w, local_size,
       alpha / local_size, k, THCudaTensor_data(state, scale));
   n_threads *= nInputPlane;
-  THCudaCheck(cudaGetLastError());
-  LRNComputeOutput<<<GET_BLOCKS(n_threads), CUDA_NUM_THREADS, 0, THCState_getCurrentStream(state)>>>(
+  THCudaCheck(hipGetLastError());
+  hipLaunchKernel(HIP_KERNEL_NAME(LRNComputeOutput), dim3(GET_BLOCKS(n_threads)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state), 
     n_threads, THCudaTensor_data(state, input), THCudaTensor_data(state, scale), -beta, THCudaTensor_data(state, output));
-  THCudaCheck(cudaGetLastError());
+  THCudaCheck(hipGetLastError());
 
   THCudaTensor_free(state, input);
 }
@@ -188,12 +189,12 @@ void LRNbackward(THCState* state, THCudaTensor* input, THCudaTensor* output,
   gradOutput = THCudaTensor_newContiguous(state, gradOutput);
 
   int n_threads = batchSize * imsize_h * imsize_w;
-  LRNComputeDiff<<<GET_BLOCKS(n_threads), CUDA_NUM_THREADS, 0, THCState_getCurrentStream(state)>>>(
+  hipLaunchKernel(HIP_KERNEL_NAME(LRNComputeDiff), dim3(GET_BLOCKS(n_threads)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state), 
       n_threads, THCudaTensor_data(state, input), THCudaTensor_data(state, output),
       THCudaTensor_data(state, scale), THCudaTensor_data(state, gradOutput), batchSize, nInputPlane, imsize_h, imsize_w,
       local_size, -beta, float(2. * alpha * beta / local_size),
       THCudaTensor_data(state, gradInput));
-  THCudaCheck(cudaGetLastError());
+  THCudaCheck(hipGetLastError());
 
   THCudaTensor_free(state, input);
   THCudaTensor_free(state, gradOutput);

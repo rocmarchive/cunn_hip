@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 #include "THCUNN.h"
 #include "common.h"
 #include <curand.h>
@@ -8,14 +9,14 @@
 #define BLOCK_SIZE 256
 #define NUM_BLOCKS(n) min((int)THCCeilDiv(n, (long) BLOCK_SIZE), MAX_NUM_BLOCKS)
 
-__global__ void rreluUpdateOutputTrain(int n, curandStateMtgp32 *state,
+__global__ void rreluUpdateOutputTrain(hipLaunchParm lp, int n, curandStateMtgp32 *state,
   float *input, float* noise, float *output, double a, double b)
 {
   CUDA_KERNEL_LOOP(i, n)
   {
     if (input[i] <= 0)
     {
-      float r = curand_uniform(&state[blockIdx.x]);
+      float r = curand_uniform(&state[hipBlockIdx_x]);
       r = r * (b-a) + a;
       output[i] = input[i] * r;
       noise[i] = r;
@@ -76,7 +77,7 @@ void THNN_CudaRReLU_updateOutput(THCState *state, THCudaTensor *input, THCudaTen
     long n = THCudaTensor_nElement(state, input);
     if (inplace)
     {
-      rreluUpdateOutputTrain<<<NUM_BLOCKS(n), BLOCK_SIZE, 0, THCState_getCurrentStream(state)>>>(
+      hipLaunchKernel(HIP_KERNEL_NAME(rreluUpdateOutputTrain), dim3(NUM_BLOCKS(n)), dim3(BLOCK_SIZE), 0, THCState_getCurrentStream(state), 
         n, gen_states, input_data, noise_data, input_data, lower, upper);
       THCudaTensor_set(state, output, input);
     }
@@ -84,10 +85,10 @@ void THNN_CudaRReLU_updateOutput(THCState *state, THCudaTensor *input, THCudaTen
     {
       THCudaTensor_resizeAs(state, output, input);
       float *output_data = THCudaTensor_data(state, output);
-      rreluUpdateOutputTrain<<<NUM_BLOCKS(n), BLOCK_SIZE, 0, THCState_getCurrentStream(state)>>>(
+      hipLaunchKernel(HIP_KERNEL_NAME(rreluUpdateOutputTrain), dim3(NUM_BLOCKS(n)), dim3(BLOCK_SIZE), 0, THCState_getCurrentStream(state), 
         n, gen_states, input_data, noise_data, output_data, lower, upper);
     }
-    THCudaCheck(cudaGetLastError());
+    THCudaCheck(hipGetLastError());
     THCudaTensor_free(state, input);
   }
   else

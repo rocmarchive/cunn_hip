@@ -1,3 +1,5 @@
+#include "hip/hip_runtime.h"
+#include "hip/hip_runtime.h"
 #ifndef THCUNN_VOL2COL_H
 #define THCUNN_VOL2COL_H
 
@@ -5,7 +7,7 @@
 
 // Kernel for fast unfold+copy on volumes
 template <typename Dtype>
-__global__ void vol2col_kernel(const int n, const Dtype* data_vol,
+__global__ void vol2col_kernel(hipLaunchParm lp, const int n, const Dtype* data_vol,
     const int depth, const int height, const int width,
     const int ksize_t, const int ksize_h, const int ksize_w,
     const int pad_t, const int pad_h, const int pad_w,
@@ -42,7 +44,7 @@ CUDA_KERNEL_LOOP(index, n) {
 }
 
 template <typename Dtype>
-void vol2col(cudaStream_t stream, const Dtype* data_vol, const int channels,
+void vol2col(hipStream_t stream, const Dtype* data_vol, const int channels,
     const int depth, const int height, const int width,
     const int ksize_t, const int ksize_h, const int ksize_w,
     const int pad_t, const int pad_h, const int pad_w,
@@ -56,17 +58,17 @@ void vol2col(cudaStream_t stream, const Dtype* data_vol, const int channels,
   int width_col = (width + 2 * pad_w - (dilation_w * (ksize_w - 1) + 1)) / stride_w + 1;
   int num_kernels = channels * depth_col * height_col * width_col;
   // Launch
-  vol2col_kernel <<<GET_BLOCKS(num_kernels), CUDA_NUM_THREADS, 0, stream>>> (
+  hipLaunchKernel(HIP_KERNEL_NAME(vol2col_kernel), dim3(GET_BLOCKS(num_kernels)), dim3(CUDA_NUM_THREADS), 0, stream, 
       num_kernels, data_vol, depth, height, width, ksize_t, ksize_h, ksize_w,
       pad_t, pad_h, pad_w, stride_t, stride_h, stride_w,
       dilation_t, dilation_h, dilation_w,
       depth_col, height_col, width_col, data_col
   );
-  THCudaCheck(cudaGetLastError());
+  THCudaCheck(hipGetLastError());
 }
 
 template <typename Dtype>
-__global__ void vol2im_kernel(const int n, const Dtype* data_col,
+__global__ void vol2im_kernel(hipLaunchParm lp, const int n, const Dtype* data_col,
     const int depth, const int height, const int width, const int channels,
     const int kernel_t, const int kernel_h, const int kernel_w,
     const int pad_t, const int pad_h, const int pad_w,
@@ -117,7 +119,7 @@ __global__ void vol2im_kernel(const int n, const Dtype* data_col,
 }
 
 template <typename Dtype>
-void col2vol(cudaStream_t stream, const Dtype* data_col, const int channels,
+void col2vol(hipStream_t stream, const Dtype* data_col, const int channels,
     const int depth, const int height, const int width,
     const int patch_t, const int patch_h, const int patch_w,
     const int pad_t, const int pad_h, const int pad_w,
@@ -130,13 +132,13 @@ void col2vol(cudaStream_t stream, const Dtype* data_col, const int channels,
   int num_kernels = channels * depth * height * width;
   // To avoid involving atomic operations, we will launch one kernel per
   // bottom dimension, and then in the kernel add up the top dimensions.
-  vol2im_kernel <<<GET_BLOCKS(num_kernels), CUDA_NUM_THREADS, 0, stream>>> (
+  hipLaunchKernel(HIP_KERNEL_NAME(vol2im_kernel), dim3(GET_BLOCKS(num_kernels)), dim3(CUDA_NUM_THREADS), 0, stream, 
       num_kernels, data_col, depth, height, width, channels,
       patch_t, patch_h, patch_w, pad_t, pad_h, pad_w, stride_t, stride_h, stride_w,
       dilation_t, dilation_h, dilation_w,
       depth_col, height_col, width_col, data_vol
   );
-  THCudaCheck(cudaGetLastError());
+  THCudaCheck(hipGetLastError());
 }
 
 #endif

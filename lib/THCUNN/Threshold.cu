@@ -3,9 +3,10 @@
 
 struct ThresholdUpdateOutput
 {
-  const float threshold_;
-  const float val_;
+  float threshold_;
+  float val_;
 
+  __host__ __device__
   ThresholdUpdateOutput(float threshold, float val)
     : threshold_(threshold)
     , val_(val)
@@ -16,14 +17,18 @@ struct ThresholdUpdateOutput
     float x = *in;
     *out = (x > threshold_) ? x : val_;
   }
+
+  __host__ __device__
+  ~ThresholdUpdateOutput () {}
 };
 
 // in-place variant
 struct ThresholdUpdateOutputIP
 {
-  const float threshold_;
-  const float val_;
+  float threshold_;
+  float val_;
 
+  __host__ __device__
   ThresholdUpdateOutputIP(float threshold, float val)
     : threshold_(threshold)
     , val_(val)
@@ -33,6 +38,9 @@ struct ThresholdUpdateOutputIP
   {
     *x = (*x > threshold_) ? *x : val_;
   }
+
+  __host__ __device__
+  ~ThresholdUpdateOutputIP() {}
 };
 
 void THNN_CudaThreshold_updateOutput(THCState *state, THCudaTensor *input, THCudaTensor *output,
@@ -55,13 +63,14 @@ void THNN_CudaThreshold_updateOutput(THCState *state, THCudaTensor *input, THCud
     );
   }
 
-  THCudaCheck(cudaGetLastError());
+  THCudaCheck(hipGetLastError());
 }
 
 struct ThresholdUpdateGradInput
 {
-  const float threshold_;
+  float threshold_;
 
+  __host__ __device__
   ThresholdUpdateGradInput(float threshold)
     : threshold_(threshold)
   {}
@@ -71,12 +80,16 @@ struct ThresholdUpdateGradInput
   {
     *gradInput = (*input > threshold_) ? *gradOutput : 0;
   }
+
+  __host__ __device__
+  ~ThresholdUpdateGradInput() {}
 };
 
 struct ThresholdUpdateGradInputIP
 {
-  const float threshold_;
+  float threshold_;
 
+  __host__ __device__
   ThresholdUpdateGradInputIP(float threshold)
     : threshold_(threshold)
   {}
@@ -86,6 +99,9 @@ struct ThresholdUpdateGradInputIP
   {
     *gradOutput = (*input > threshold_) ? *gradOutput : 0;
   }
+
+  __host__ __device__
+  ~ThresholdUpdateGradInputIP() {}
 };
 
 void THNN_CudaThreshold_updateGradInput(THCState *state, THCudaTensor *input, THCudaTensor *gradOutput,
@@ -108,5 +124,5 @@ void THNN_CudaThreshold_updateGradInput(THCState *state, THCudaTensor *input, TH
     );
   }
 
-  THCudaCheck(cudaGetLastError());
+  THCudaCheck(hipGetLastError());
 }

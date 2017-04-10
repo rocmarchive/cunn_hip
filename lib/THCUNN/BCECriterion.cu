@@ -18,6 +18,7 @@ struct bce_functor
     float o = thrust::get<0>(x);
     float t = thrust::get<1>(x);
     return - (t * logf(o + eps) + (1.f - t) * logf(1.f - o + eps));
+    return 0.0f;
   }
 };
 
@@ -31,6 +32,7 @@ struct bce_functor_weights
     float t = thrust::get<1>(x);
     float w = thrust::get<2>(x);
     return - w * (t * logf(o + eps) + (1.f - t) * logf(1.f - o + eps));
+    return 0.0f;
   }
 };
 
@@ -92,6 +94,7 @@ struct bce_updateGradInput_functor
     float o = thrust::get<0>(x);
     float t = thrust::get<1>(x);
     return - (t - o) / ((1 - o + eps) * (o + eps)) * norm;
+    return 0.0f;
   }
 };
 
@@ -111,6 +114,7 @@ struct bce_updateGradInput_functor_weights
     float t = thrust::get<1>(x);
     float w = thrust::get<2>(x);
     return - (t - o) / ((1 - o + eps) * (o + eps)) * norm * w;
+    return 0.0f;
   }
 };
 

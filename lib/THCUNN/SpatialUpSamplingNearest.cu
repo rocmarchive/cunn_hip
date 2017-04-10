@@ -1,11 +1,13 @@
+#include "hip/hip_runtime.h"
 #include "THCUNN.h"
 #include "common.h"
 
-#include <thrust/transform.h>
-#include <thrust/reduce.h>
-#include <thrust/transform_reduce.h>
-#include <thrust/functional.h>
-
+#if THRUST_PATH
+    #include <thrust/transform.h>
+    #include <thrust/reduce.h>
+    #include <thrust/transform_reduce.h>
+    #include <thrust/functional.h>
+#endif
 
 /*
  * Description:
@@ -46,12 +48,12 @@ __device__ int translate_idx_inv(int ii, int d1, int d2, int d3, int scale_facto
 
 }
 
-__global__ void upscale(float *input, float *output, long no_elements,
+__global__ void upscale(hipLaunchParm lp, float *input, float *output, long no_elements,
                         int scale_factor, int d1, int d2, int d3)
 {
   // output offset:
-  long ii = threadIdx.x + blockDim.x * blockIdx.x;
-  ii += threadIdx.y + blockDim.y * (blockDim.x * gridDim.x) * blockIdx.y;
+  long ii = hipThreadIdx_x + hipBlockDim_x * hipBlockIdx_x;
+  ii += hipThreadIdx_y + hipBlockDim_y * (hipBlockDim_x * hipGridDim_x) * hipBlockIdx_y;
   if (ii >= no_elements) return;
   int ipidx = translate_idx(ii, d1, d2, d3, scale_factor);
   output[ii]=input[ipidx];
@@ -103,8 +105,8 @@ void THNN_CudaSpatialUpSamplingNearest_updateOutput(THCState *state, THCudaTenso
   dim3 threads(nthreads);
 
   // kernel:
-  upscale<<<blocks, threads, 0, THCState_getCurrentStream(state)>>> (input_data, output_data, no_elements, scale_factor, d1, d2, d3);
-  THCudaCheck(cudaGetLastError());
+  hipLaunchKernel(HIP_KERNEL_NAME(upscale), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), input_data, output_data, no_elements, scale_factor, d1, d2, d3);
+  THCudaCheck(hipGetLastError());
 
   // final cut:
   THCudaTensor_free(state, input);
@@ -113,12 +115,12 @@ void THNN_CudaSpatialUpSamplingNearest_updateOutput(THCState *state, THCudaTenso
 /*
  * Description:
  */
-__global__ void downscale(float *gradInput_data, float *gradOutput_data, long no_elements,
+__global__ void downscale(hipLaunchParm lp, float *gradInput_data, float *gradOutput_data, long no_elements,
                               int scale_factor, int d1, int d2, int d3)
 {
   // output offset:
-  long ii = threadIdx.x + blockDim.x * blockIdx.x;
-  ii += threadIdx.y + blockDim.y * (blockDim.x * gridDim.x) * blockIdx.y;
+  long ii = hipThreadIdx_x + hipBlockDim_x * hipBlockIdx_x;
+  ii += hipThreadIdx_y + hipBlockDim_y * (hipBlockDim_x * hipGridDim_x) * hipBlockIdx_y;
   if (ii >= no_elements) return;
   for (int i=0; i < scale_factor; i++){
     for(int j=0; j < scale_factor; j++){
@@ -171,7 +173,7 @@ void THNN_CudaSpatialUpSamplingNearest_updateGradInput(THCState *state, THCudaTe
   dim3 threads(nthreads);
 
   // kernel:
-  downscale<<<blocks, threads, 0, THCState_getCurrentStream(state)>>> (gradInput_data, gradOutput_data, no_elements,
+  hipLaunchKernel(HIP_KERNEL_NAME(downscale), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), gradInput_data, gradOutput_data, no_elements,
     scale_factor, d1, d2, d3);
-  THCudaCheck(cudaGetLastError());
+  THCudaCheck(hipGetLastError());
 }

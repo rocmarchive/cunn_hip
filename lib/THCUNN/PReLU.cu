@@ -1,13 +1,17 @@
+#include "hip/hip_runtime.h"
 #include "THCUNN.h"
 #include "THCReduce.cuh"
 #include "common.h"
 
-#include <thrust/functional.h>
+#if THRUST_PATH
+    #include <thrust/functional.h>
+#endif
 
 struct PReLUUpdateOutput
 {
   float* weight_;
 
+  __host__ __device__
   PReLUUpdateOutput(float* weight)
     : weight_(weight)
   {}
@@ -17,9 +21,12 @@ struct PReLUUpdateOutput
     float x = *in;
     *out = (x > 0) ? x : weight_[0] * x;
   }
+
+  __host__ __device__
+  ~PReLUUpdateOutput() {} 
 };
 
-__global__ void preluForward(float *output, const float *input, const float *weight, int n, int nElemsPerSample, int mapSize)
+__global__ void preluForward(hipLaunchParm lp, float *output, const float *input, const float *weight, int n, int nElemsPerSample, int mapSize)
 {
   CUDA_KERNEL_LOOP(i, n)
   {
@@ -56,13 +63,13 @@ void THNN_CudaPReLU_updateOutput(
     else if (ndim == 4)
       mapSize = (input->size[2] * input->size[3]);
     int nElemsPerSample = nOutputPlane * mapSize;
-    preluForward<<<GET_BLOCKS(n), CUDA_NUM_THREADS, 0, THCState_getCurrentStream(state)>>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(preluForward), dim3(GET_BLOCKS(n)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state), 
       THCudaTensor_data(state, output),
       THCudaTensor_data(state, input),
       w,
       n, nElemsPerSample, mapSize
     );
-    THCudaCheck(cudaGetLastError());
+    THCudaCheck(hipGetLastError());
     THCudaTensor_free(state, input);
   }
 }
@@ -71,6 +78,7 @@ struct PReLUUpdateGradInput
 {
   float *weight_;
 
+  __host__ __device__
   PReLUUpdateGradInput(float *weight)
     : weight_(weight)
   {}
@@ -79,9 +87,12 @@ struct PReLUUpdateGradInput
   {
     *gradInput = *input > 0 ? *gradOutput : *gradOutput * *weight_;
   }
+
+  __host__ __device__
+  ~PReLUUpdateGradInput() {}
 };
 
-__global__ void preluBackward(
+__global__ void preluBackward(hipLaunchParm lp, 
   float *gradInput,
   const float *input,
   const float *weight,
@@ -124,14 +135,14 @@ void THNN_CudaPReLU_updateGradInput(
     else if (ndim == 4)
       mapSize = (input->size[2] * input->size[3]);
     int nElemsPerSample = nOutputPlane * mapSize;
-    preluBackward<<<GET_BLOCKS(n), CUDA_NUM_THREADS, 0, THCState_getCurrentStream(state)>>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(preluBackward), dim3(GET_BLOCKS(n)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state), 
       THCudaTensor_data(state, gradInput),
       THCudaTensor_data(state, input),
       w,
       THCudaTensor_data(state, gradOutput),
       n, nElemsPerSample, mapSize
     );
-    THCudaCheck(cudaGetLastError());
+    THCudaCheck(hipGetLastError());
     THCudaTensor_free(state, input);
     THCudaTensor_free(state, gradOutput);
   }
@@ -149,6 +160,7 @@ struct PReLUAccGradParameters
 {
   float scale;
 
+  __host__ __device__
   PReLUAccGradParameters(float scale)
     : scale(scale)
   {}
@@ -157,12 +169,16 @@ struct PReLUAccGradParameters
   {
     *gradInput = (*input) * (*gradOutput) * scale * (*input <= 0);
   }
+
+  __host__ __device__
+  ~PReLUAccGradParameters() {}
 };
 
 struct PReLUAccGradParameters1to1
 {
   float scale;
 
+  __host__ __device__
   PReLUAccGradParameters1to1(float scale)
     : scale(scale)
   {}
@@ -171,6 +187,9 @@ struct PReLUAccGradParameters1to1
   {
     *gradWeight += (*input) * (*gradOutput) * scale * (*input <= 0);
   }
+
+  __host__ __device__
+  ~PReLUAccGradParameters1to1() {}
 };
 
 void THNN_CudaPReLU_accGradParameters(
