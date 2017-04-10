@@ -1,5 +1,3 @@
-// WSTHORNTON
-#if 0
 #include "THCUNN.h"
 #include <cusparse.h>
 #include <thrust/device_vector.h>
@@ -262,4 +260,3 @@ TH_API void THNN_CudaSparseLinear_updateParameters(
 
 void THNN_CudaSparseLinear_cudaClearState(THCState *state) {
 }
-#endif

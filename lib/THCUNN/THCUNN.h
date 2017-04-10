@@ -467,8 +467,6 @@ TH_API void THNN_CudaTemporalMaxPooling_updateGradInput(
           THCudaTensor *indices,
           int kW, int dW);
 
-// WSTHORNTON
-#if 0
 TH_API void THNN_CudaSparseLinear_updateOutput(
           THCState *state,
           THCudaTensor *input,
@@ -514,7 +512,6 @@ TH_API void THNN_CudaSparseLinear_updateParameters(
           THCudaTensor *gradBias,
           THCudaTensor *lastInput,
           double learningRate);
-#endif
 
 TH_API void THNN_CudaBatchNormalization_updateOutput(
           THCState *state,

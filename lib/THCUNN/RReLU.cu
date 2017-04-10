@@ -1,5 +1,3 @@
-// WSTHORNTON
-#if 0
 #include "hip/hip_runtime.h"
 #include "THCUNN.h"
 #include "common.h"
@@ -179,4 +177,3 @@ void THNN_CudaRReLU_updateGradInput(THCState *state, THCudaTensor *input, THCuda
 
   THCudaTensor_free(state, gradOutput);
 }
-#endif
