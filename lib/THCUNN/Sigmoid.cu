@@ -8,7 +8,7 @@ struct sigmoidupdateOutput_functor
     *output = 1./(1.+ exp(-*input));
   }
 
-  __device__
+  __device__ __host__
   ~sigmoidupdateOutput_functor() {}
 };
 
@@ -26,7 +26,7 @@ struct sigmoidupdateGradInput_functor
     *gradInput = *gradOutput * (1.-*output) * (*output);
   }
 
-  __device__
+  __device__ __host__
   ~sigmoidupdateGradInput_functor() {}
 };
 

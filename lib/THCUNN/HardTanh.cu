@@ -3,8 +3,8 @@
 
 struct hardtanhupdateOutput_functor
 {
-  float max_val_;
   float min_val_;
+  float max_val_;
 
   __host__ __device__
   hardtanhupdateOutput_functor(float min_val, float max_val)
@@ -58,8 +58,8 @@ void THNN_CudaHardTanh_updateOutput(
 
 struct hardtanhupdateGradInput_functor
 {
-  float max_val_;
   float min_val_;
+  float max_val_;
 
   __host__ __device__
   hardtanhupdateGradInput_functor(float min_val, float max_val)

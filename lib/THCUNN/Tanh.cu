@@ -8,7 +8,7 @@ struct tanhupdateOutput_functor
     *output = tanh(*input);
   }
 
-  __device__
+  __device__ __host__
   ~tanhupdateOutput_functor() {}
 };
 
@@ -26,7 +26,7 @@ struct tanhupdateGradInput_functor
     *gradInput = *gradOutput * (1 - *output * *output);
   }
  
-  __device__
+  __device__ __host__
   ~tanhupdateGradInput_functor() {}
 };
 

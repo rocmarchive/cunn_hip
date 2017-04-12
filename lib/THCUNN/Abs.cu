@@ -33,7 +33,7 @@ struct absupdateGradInput_functor
   {
     *gradInput = *input < 0 ? - *gradOutput : *gradOutput;
   }
-  __device__
+  __device__ __host__
   ~absupdateGradInput_functor() {}
 };
 
