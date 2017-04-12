@@ -56,6 +56,7 @@ ENDIF()
 FILE(GLOB src-cuda *.cu)
 
 IF (${PLATFORM} MATCHES "hcc")
+  set (CMAKE_MODULE_LINKER_FLAGS "-Wl,-Bsymbolic")
   include_directories(${HIPBLAS_PATH}/include)
   MESSAGE(STATUS "including HIPBLAS headers" ${HIPBLAS_PATH})
 ENDIF()
