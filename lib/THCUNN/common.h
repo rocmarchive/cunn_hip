@@ -2,6 +2,9 @@
 #ifndef THCUNN_COMMON_H
 #define THCUNN_COMMON_H
 
+#ifdef __NVCC__
+#define CURAND_PATH 1
+#endif
 // CUDA: grid stride looping
 #define CUDA_KERNEL_LOOP(i, n) \
   for (int i = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x; i < (n); i += hipBlockDim_x * hipGridDim_x)

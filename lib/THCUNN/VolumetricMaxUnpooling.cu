@@ -35,7 +35,7 @@ __global__ void cuda_VolumetricMaxUnpooling_updateOutput(hipLaunchParm lp,
   }
 }
 
-void THNN_CudaVolumetricMaxUnpooling_updateOutput(hipLaunchParm lp, 
+void THNN_CudaVolumetricMaxUnpooling_updateOutput(
   THCState *state, THCudaTensor *input, THCudaTensor *output, THCudaTensor *indices,
   int outputTime, int outputWidth, int outputHeight,
   int dT, int dW, int dH,
