@@ -1,11 +1,13 @@
 #include "THCUNN.h"
 #include "common.h"
 
-#include <thrust/functional.h>
-#include <thrust/device_ptr.h>
-#include <thrust/iterator/zip_iterator.h>
-#include <thrust/transform.h>
-#include <thrust/transform_reduce.h>
+#ifdef THRUST_PATH
+  #include <thrust/functional.h>
+  #include <thrust/device_ptr.h>
+  #include <thrust/iterator/zip_iterator.h>
+  #include <thrust/transform.h>
+  #include <thrust/transform_reduce.h>
+#endif
 
 const float eps = 1e-12f;
 
@@ -15,10 +17,14 @@ struct bce_functor
   __host__ __device__
   float operator()(Tuple x)
   {
+#ifdef THRUST_PATH
     float o = thrust::get<0>(x);
     float t = thrust::get<1>(x);
     return - (t * logf(o + eps) + (1.f - t) * logf(1.f - o + eps));
+#else
     return 0.0f;
+#endif
+  
   }
 };
 
@@ -28,11 +34,14 @@ struct bce_functor_weights
   __host__ __device__
   float operator()(Tuple x)
   {
+#ifdef THRUST_PATH
     float o = thrust::get<0>(x);
     float t = thrust::get<1>(x);
     float w = thrust::get<2>(x);
     return - w * (t * logf(o + eps) + (1.f - t) * logf(1.f - o + eps));
+#else
     return 0.0f;
+#endif
   }
 };
 
@@ -45,10 +54,13 @@ void THNN_CudaBCECriterion_updateOutput(THCState *state, THCudaTensor *input, TH
   input = THCudaTensor_newContiguous(state, input);
   target = THCudaTensor_newContiguous(state, target);
 
+#ifdef THRUST_PATH
   thrust::device_ptr<float> input_data(THCudaTensor_data(state, input));
   thrust::device_ptr<float> target_data(THCudaTensor_data(state, target));
+#endif
 
   float sum;
+#ifdef THRUST_PATH
   if (weights) {
     weights = THCudaTensor_newContiguous(state, weights);
     thrust::device_ptr<float> weights_data(THCudaTensor_data(state, weights));
@@ -69,6 +81,7 @@ void THNN_CudaBCECriterion_updateOutput(THCState *state, THCudaTensor *input, TH
       thrust::plus<float>()
     );
   }
+#endif
 
   if (sizeAverage)
     sum /= size;
@@ -91,10 +104,13 @@ struct bce_updateGradInput_functor
   __host__ __device__
   float operator()(Tuple x)
   {
+#ifdef THRUST_PATH
     float o = thrust::get<0>(x);
     float t = thrust::get<1>(x);
     return - (t - o) / ((1 - o + eps) * (o + eps)) * norm;
+#else
     return 0.0f;
+#endif
   }
 };
 
@@ -110,11 +126,14 @@ struct bce_updateGradInput_functor_weights
   __host__ __device__
   float operator()(Tuple x)
   {
+#ifdef THRUST_PATH
     float o = thrust::get<0>(x);
     float t = thrust::get<1>(x);
     float w = thrust::get<2>(x);
     return - (t - o) / ((1 - o + eps) * (o + eps)) * norm * w;
+#else
     return 0.0f;
+#endif
   }
 };
 
@@ -130,6 +149,7 @@ void THNN_CudaBCECriterion_updateGradInput(THCState *state, THCudaTensor *input,
 
   THCudaTensor_resizeAs(state, gradInput, input);
 
+#ifdef THRUST_PATH
   thrust::device_ptr<float> input_data(THCudaTensor_data(state, input));
   thrust::device_ptr<float> target_data(THCudaTensor_data(state, target));
   thrust::device_ptr<float> gradInput_data(THCudaTensor_data(state, gradInput));
@@ -152,6 +172,7 @@ void THNN_CudaBCECriterion_updateGradInput(THCState *state, THCudaTensor *input,
       bce_updateGradInput_functor(norm)
     );
   }
+#endif
 
   THCudaTensor_free(state, input);
   THCudaTensor_free(state, target);

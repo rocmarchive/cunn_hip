@@ -9,7 +9,7 @@ struct logSigmoid_updateOutput_functor
     *output = -log(1. + z);
   }
 
-  __device__
+  __device__ __host__
   ~logSigmoid_updateOutput_functor() {}
 };
 
@@ -28,7 +28,7 @@ struct logSigmoid_updateGradInput_functor
     *gradInput = *gradOutput * z / (1. + z);
   }
 
-  __device__
+  __device__ __host__
   ~logSigmoid_updateGradInput_functor() {}
 };
 

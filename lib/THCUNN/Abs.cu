@@ -9,7 +9,11 @@ struct absupdateOutput_functor
   __device__ 
   void operator()(float* output, const float* input) const
   {
+#ifdef __HIP_PLATFORM_HCC__
     *output = fabsf(*input);
+#else
+    *output = abs(*input);
+#endif
   }
 
    __host__ __device__
@@ -29,7 +33,7 @@ struct absupdateGradInput_functor
   {
     *gradInput = *input < 0 ? - *gradOutput : *gradOutput;
   }
-  __device__
+  __device__ __host__
   ~absupdateGradInput_functor() {}
 };
 

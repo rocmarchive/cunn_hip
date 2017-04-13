@@ -8,7 +8,7 @@ struct squareupdateOutput_functor
     *output = (*input) * (*input);
   }
 
-  __device__
+  __device__ __host__
   ~squareupdateOutput_functor() {}
 };
 
@@ -26,7 +26,7 @@ struct squareupdateGradInput_functor
     *gradInput = 2.0 * (*gradOutput) * (*input);
   }
 
-  __device__
+  __device__ __host__
   ~squareupdateGradInput_functor() {}
 };
 

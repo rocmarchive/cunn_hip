@@ -21,7 +21,11 @@ __global__ void cunn_SpatialLogSoftMax_updateOutput_kernel(hipLaunchParm lp, flo
 
     float sum = 0;
     for (int i = 0; i < classSize; i++) {
+#ifdef __HIP_PLATFORM_HCC__
+      sum += expf(input[inputStartIndex + i]);
+#else
       sum += __expf(input[inputStartIndex + i]);
+#endif
     }
     sum = 1.0f / sum;
 
@@ -32,7 +36,11 @@ __global__ void cunn_SpatialLogSoftMax_updateOutput_kernel(hipLaunchParm lp, flo
         (height*width)*i +
         (width)*y +
         x;
+#ifdef __HIP_PLATFORM_HCC__
+      output[outputIndex] = logf(sum * expf(input[inputStartIndex + i]));
+#else
       output[outputIndex] = logf(sum * __expf(input[inputStartIndex + i]));
+#endif
     }
     index += hipBlockDim_x;
   }
@@ -67,7 +75,11 @@ __global__ void cunn_SpatialLogSoftMax_updateGradInput_kernel(hipLaunchParm lp, 
         (height*width)*i +
         (width)*y +
         x;
+#ifdef __HIP_PLATFORM_HCC__
+      gradInput[inputIndex] = gradOutput[outputStartIndex + i] - expf(output[outputStartIndex + i]) * sum;
+#else
       gradInput[inputIndex] = gradOutput[outputStartIndex + i] - __expf(output[outputStartIndex + i]) * sum;
+#endif
     }
     index += hipBlockDim_x;
   }
@@ -97,7 +109,11 @@ struct SumExpFloat
 
   __device__ __forceinline__ float operator()(float sum, float v) const
   {
+#ifdef __HIP_PLATFORM_HCC__
     return sum + expf(v - max_k);
+#else
+    return sum + expf(v - max_k);
+#endif
   }
 
   const float max_k;
@@ -315,14 +331,22 @@ cunn_LogSoftMax_updateGradInput_kernel(hipLaunchParm lp, float *gradInput,
     for (int j = 0; j < ILP; ++j)
     {
       gradInput[offset + j * hipBlockDim_x] =
+#ifdef __HIP_PLATFORM_HCC__
+        tmpGradOutput[j] - expf(tmpOutput[j]) * sum_k;
+#else
         tmpGradOutput[j] - __expf(tmpOutput[j]) * sum_k;
+#endif
     }
   }
 
   for (; offset < classes; offset += hipBlockDim_x)
   {
     gradInput[offset] =
+#ifdef __HIP_PLATFORM_HCC__
+      gradOutput[offset] - expf(output[offset]) * sum_k;
+#else
       gradOutput[offset] - __expf(output[offset]) * sum_k;
+#endif
   }
 }
 

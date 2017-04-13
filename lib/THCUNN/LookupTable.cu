@@ -2,14 +2,16 @@
 #include "THCUNN.h"
 #include "common.h"
 
-#include <thrust/device_ptr.h>
-#include <thrust/execution_policy.h>
-#include <thrust/iterator/constant_iterator.h>
-#include <thrust/transform_reduce.h>
-#if CUDA_VERSION >= 7000
-#include <thrust/system/cuda/execution_policy.h>
-#endif
-#include <thrust/unique.h>
+#ifdef THRUST_PATH
+  #include <thrust/device_ptr.h>
+  #include <thrust/execution_policy.h>
+  #include <thrust/iterator/constant_iterator.h>
+  #include <thrust/transform_reduce.h>
+  #if CUDA_VERSION >= 7000
+  #include <thrust/system/cuda/execution_policy.h>
+  #endif
+  #include <thrust/unique.h>
+#endif 
 
 #ifndef DIVUP
 #define DIVUP(x, y) (((x) + (y) - 1) / (y))
@@ -214,6 +216,7 @@ void THNN_CudaLookupTable_accGradParameters(
   long  *indices_data = THIndexTensor_(data)(state, indices);
   long *count_data = NULL;
 
+#ifdef THRUST_PATH
   if (scaleGradByFreq)
   {
     THIndexTensor_(resizeAs)(state, count, input);
@@ -265,6 +268,7 @@ void THNN_CudaLookupTable_accGradParameters(
     paddingValue
   );
   THCudaCheck(hipGetLastError());
+#endif
 }
 
 /*
@@ -318,6 +322,7 @@ void THNN_CudaLookupTable_renorm(
   long numel = THIndexTensor_(nElement)(state, idx);
   long stride = weight->stride[0];
 
+#ifdef THRUST_PATH
   // get the unique indices
   thrust::device_ptr<float> weight_ptr(THCudaTensor_data(state, weight));
   thrust::device_ptr<long> idx_ptr(THIndexTensor_(data)(state, idx));
@@ -340,4 +345,5 @@ void THNN_CudaLookupTable_renorm(
       thrust::transform(row_ptr, row_ptr + stride, row_ptr, unary_mul);
     }
   }
+#endif
 }

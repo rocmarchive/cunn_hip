@@ -45,7 +45,11 @@ __global__ void cunn_SoftMax_updateOutput_kernel(hipLaunchParm lp,
   float max_k = buffer[SOFTMAX_THREADS];
   buffer[hipThreadIdx_x] = 0;
   for (int i=i_start; i<i_end; i+=i_step) {
+#ifdef __HIP_PLATFORM_HCC__
+    float z = expf(input_k[i*stride0]-max_k);
+#else
     float z = __expf(input_k[i*stride0]-max_k);
+#endif
     buffer[hipThreadIdx_x] += z;
     output_k[i*stride0] = z;
   }

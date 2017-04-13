@@ -19,7 +19,11 @@ struct l1cost_functor
   __device__
   float operator()(float x, float y) const
   {
+#ifdef __HIP_PLATFORM_HCC__
+    return fabsf(x) + fabsf(y);
+#else
     return std::abs(x) + std::abs(y);
+#endif
   }
 
   l1cost_functor(const l1cost_functor& fun) = default;

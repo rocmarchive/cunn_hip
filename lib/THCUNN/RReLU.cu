@@ -1,14 +1,20 @@
 #include "hip/hip_runtime.h"
 #include "THCUNN.h"
 #include "common.h"
+#ifdef CURAND_PATH
 #include <curand.h>
 #include <curand_kernel.h>
+#else
+#include "hip/hcc.h"
+#include "MTGP/hiprand_mtgp32.h"
+#endif
 
 // copied from cutorch/lib/THC/THCTensorRandom.cu
 #define MAX_NUM_BLOCKS 64
 #define BLOCK_SIZE 256
 #define NUM_BLOCKS(n) min((int)THCCeilDiv(n, (long) BLOCK_SIZE), MAX_NUM_BLOCKS)
 
+#ifdef CURAND_PATH
 __global__ void rreluUpdateOutputTrain(hipLaunchParm lp, int n, curandStateMtgp32 *state,
   float *input, float* noise, float *output, double a, double b)
 {
@@ -28,12 +34,47 @@ __global__ void rreluUpdateOutputTrain(hipLaunchParm lp, int n, curandStateMtgp3
     }
   }
 }
+#else
+
+struct user_uniform_functor {
+  double _a;
+  double _b;
+  user_uniform_functor(double a, double b) __attribute__((hc, cpu)) : _a(a), _b(b) {}
+  inline double operator()(const float& x) const __attribute__((hc, cpu)) {
+    return x * (_b - _a) + _a;
+  }
+  // User should provide copy ctor
+  user_uniform_functor(const user_uniform_functor&other) __attribute__((hc, cpu)) : _a(other._a), _b(other._b) { }
+  // User should provide copy assign ctor
+  user_uniform_functor& operator = (const user_uniform_functor&other) __attribute__((hc, cpu)) {
+    _a = other._a;
+    _b = other._b;
+    return *this;
+  }
+};
+
+__global__ void rreluUpdateOutputTrain(hipLaunchParm lp, int n, HipRandStateMtgp32 *state,
+  float *input, float* noise, float *output, double a, double b)
+{
+  CUDA_KERNEL_LOOP(i, n)
+  {
+    if (input[i] <= 0) {
+      output[i] = input[i] * noise[i];
+    }
+    else
+    {
+      output[i] = input[i];
+      noise[i] = 1;
+    }
+  }
+}
+#endif
 
 struct RReLUUpdateOutputEval_functor
 {
   const float negSlope_;
 
-  RReLUUpdateOutputEval_functor(float negSlope)
+ __host__ __device__  RReLUUpdateOutputEval_functor(float negSlope)
     : negSlope_(negSlope)
   {}
 
@@ -49,7 +90,7 @@ struct RReLUUpdateOutputEvalIP_functor
 {
   const float negSlope_;
 
-  RReLUUpdateOutputEvalIP_functor(float negSlope)
+  __host__ __device__ RReLUUpdateOutputEvalIP_functor(float negSlope)
     : negSlope_(negSlope)
   {}
 
@@ -66,8 +107,11 @@ void THNN_CudaRReLU_updateOutput(THCState *state, THCudaTensor *input, THCudaTen
   THCudaTensor *noise, double lower, double upper, bool train, bool inplace, void *generator)
 {
   THCUNN_assertSameGPU(state, 3, input, output, noise);
+#ifdef CURAND_PATH
   struct curandStateMtgp32* gen_states = THCRandom_generatorStates(state);
-
+#else
+  struct HipRandStateMtgp32* gen_states = THCRandom_generatorStates(state);
+#endif
   if (train)
   {
     input = THCudaTensor_newContiguous(state, input);
@@ -77,16 +121,35 @@ void THNN_CudaRReLU_updateOutput(THCState *state, THCudaTensor *input, THCudaTen
     long n = THCudaTensor_nElement(state, input);
     if (inplace)
     {
+#ifdef CURAND_PATH
       hipLaunchKernel(HIP_KERNEL_NAME(rreluUpdateOutputTrain), dim3(NUM_BLOCKS(n)), dim3(BLOCK_SIZE), 0, THCState_getCurrentStream(state), 
         n, gen_states, input_data, noise_data, input_data, lower, upper);
       THCudaTensor_set(state, output, input);
+#else
+      hipStream_t currentStream = THCState_getCurrentStream(state); 
+      hc::accelerator_view* current_accl_view; 
+      hipHccGetAcceleratorView(currentStream, &current_accl_view); 
+      user_uniform_kernel(*current_accl_view, gen_states, noise_data, user_uniform_functor(lower, upper)); 
+      hipLaunchKernel(HIP_KERNEL_NAME(rreluUpdateOutputTrain), dim3(NUM_BLOCKS(n)), dim3(BLOCK_SIZE), 0, THCState_getCurrentStream(state), 
+        n, gen_states, input_data, noise_data, input_data, lower, upper);
+      THCudaTensor_set(state, output, input);
+#endif
     }
     else
     {
       THCudaTensor_resizeAs(state, output, input);
       float *output_data = THCudaTensor_data(state, output);
+#ifdef CURAND_PATH
       hipLaunchKernel(HIP_KERNEL_NAME(rreluUpdateOutputTrain), dim3(NUM_BLOCKS(n)), dim3(BLOCK_SIZE), 0, THCState_getCurrentStream(state), 
         n, gen_states, input_data, noise_data, output_data, lower, upper);
+#else
+      hipStream_t currentStream = THCState_getCurrentStream(state); 
+      hc::accelerator_view* current_accl_view; 
+      hipHccGetAcceleratorView(currentStream, &current_accl_view); 
+      user_uniform_kernel(*current_accl_view, gen_states, noise_data, user_uniform_functor(lower, upper)); 
+      hipLaunchKernel(HIP_KERNEL_NAME(rreluUpdateOutputTrain), dim3(NUM_BLOCKS(n)), dim3(BLOCK_SIZE), 0, THCState_getCurrentStream(state), 
+        n, gen_states, input_data, noise_data, output_data, lower, upper);
+#endif
     }
     THCudaCheck(hipGetLastError());
     THCudaTensor_free(state, input);
@@ -111,7 +174,7 @@ struct RReLUupdateGradInputEval_functor
 {
   const float negSlope_;
 
-  RReLUupdateGradInputEval_functor(float negSlope)
+  __host__ __device__ RReLUupdateGradInputEval_functor(float negSlope)
     : negSlope_(negSlope)
   {}
 
@@ -125,7 +188,7 @@ struct RReLUupdateGradInputEvalIP_functor
 {
   const float negSlope_;
 
-  RReLUupdateGradInputEvalIP_functor(float negSlope)
+  __host__ __device__ RReLUupdateGradInputEvalIP_functor(float negSlope)
     : negSlope_(negSlope)
   {}
 
