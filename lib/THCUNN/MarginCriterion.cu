@@ -110,11 +110,11 @@ void THNN_CudaMarginCriterion_updateGradInput(THCState *state, THCudaTensor *inp
   auto target_data = THCudaTensor_data(state, target);
   auto gradInput_data = THCudaTensor_data(state, gradInput);
 
-  bolt::amp::transform(input_data, 
+/*  bolt::amp::transform(input_data, 
                        input_data+size, 
                        target_data, 
                        gradInput_data, 
-                       margin_updateGradInput_functor(margin, norm));
+                       margin_updateGradInput_functor(margin, norm));*/
 #endif
 
   THCudaTensor_free(state, input);

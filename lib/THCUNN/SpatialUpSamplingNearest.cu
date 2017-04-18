@@ -48,7 +48,7 @@ __device__ int translate_idx_inv(int ii, int d1, int d2, int d3, int scale_facto
 
 }
 
-__global__ void upscale(hipLaunchParm lp, float *input, float *output, long no_elements,
+__global__ void upscale( float *input, float *output, long no_elements,
                         int scale_factor, int d1, int d2, int d3)
 {
   // output offset:
@@ -105,7 +105,7 @@ void THNN_CudaSpatialUpSamplingNearest_updateOutput(THCState *state, THCudaTenso
   dim3 threads(nthreads);
 
   // kernel:
-  hipLaunchKernel(HIP_KERNEL_NAME(upscale), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), input_data, output_data, no_elements, scale_factor, d1, d2, d3);
+  hipLaunchKernelGGL((upscale), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), input_data, output_data, no_elements, scale_factor, d1, d2, d3);
   THCudaCheck(hipGetLastError());
 
   // final cut:
@@ -115,7 +115,7 @@ void THNN_CudaSpatialUpSamplingNearest_updateOutput(THCState *state, THCudaTenso
 /*
  * Description:
  */
-__global__ void downscale(hipLaunchParm lp, float *gradInput_data, float *gradOutput_data, long no_elements,
+__global__ void downscale( float *gradInput_data, float *gradOutput_data, long no_elements,
                               int scale_factor, int d1, int d2, int d3)
 {
   // output offset:
@@ -173,7 +173,7 @@ void THNN_CudaSpatialUpSamplingNearest_updateGradInput(THCState *state, THCudaTe
   dim3 threads(nthreads);
 
   // kernel:
-  hipLaunchKernel(HIP_KERNEL_NAME(downscale), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), gradInput_data, gradOutput_data, no_elements,
+  hipLaunchKernelGGL((downscale), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), gradInput_data, gradOutput_data, no_elements,
     scale_factor, d1, d2, d3);
   THCudaCheck(hipGetLastError());
 }

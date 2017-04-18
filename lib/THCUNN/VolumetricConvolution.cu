@@ -5,7 +5,7 @@
 // Kernel for fast unfold+copy
 // Borrowed from Theano
 // Authors: Arjun Jain, Frédéric Bastien, Jan Schlüter, Nicolas Ballas
-__global__ void im3d2col_kernel(hipLaunchParm lp, const int n, const float* data_im,
+__global__ void im3d2col_kernel( const int n, const float* data_im,
                                 const int height, const int width, const int depth,
                                 const int kernel_h, const int kernel_w, const int kernel_d,
                                 const int pad_h, const int pad_w, const int pad_d,
@@ -70,7 +70,7 @@ void im3d2col(hipStream_t stream, const float* data_im, const int channels,
   int width_col = (width + 2 * pad_w - kernel_w) / stride_w + 1;
   int depth_col = (depth + 2 * pad_d - kernel_d) / stride_d + 1;
   int num_kernels = channels * height_col * width_col * depth_col;
-  hipLaunchKernel(HIP_KERNEL_NAME(im3d2col_kernel), dim3(GET_BLOCKS(num_kernels)), dim3(CUDA_NUM_THREADS), 0, stream, num_kernels, data_im,
+  hipLaunchKernelGGL((im3d2col_kernel), dim3(GET_BLOCKS(num_kernels)), dim3(CUDA_NUM_THREADS), 0, stream, num_kernels, data_im,
                                    height, width, depth,
                                    kernel_h, kernel_w, kernel_d,
                                    pad_h, pad_w, pad_d,
@@ -81,7 +81,7 @@ void im3d2col(hipStream_t stream, const float* data_im, const int channels,
 }
 
 
-__global__ void col2im3d_kernel(hipLaunchParm lp, const int n, const float* data_col,
+__global__ void col2im3d_kernel( const int n, const float* data_col,
                                 const int height, const int width, const int depth,
                                 const int channels,
                                 const int patch_h, const int patch_w, const int patch_d,
@@ -138,7 +138,7 @@ void col2im3d(hipStream_t stream, const float* data_col, const int channels,
 
   // To avoid involving atomic operations, we will launch one kernel per
   // bottom dimension, and then in the kernel add up the top dimensions.
-  hipLaunchKernel(HIP_KERNEL_NAME(col2im3d_kernel), dim3(GET_BLOCKS(num_kernels)), dim3(CUDA_NUM_THREADS), 0, stream, num_kernels, data_col,
+  hipLaunchKernelGGL((col2im3d_kernel), dim3(GET_BLOCKS(num_kernels)), dim3(CUDA_NUM_THREADS), 0, stream, num_kernels, data_col,
                                    height, width, depth, channels,
                                    patch_h, patch_w, patch_d,
                                    pad_h, pad_w, pad_d,

@@ -4,7 +4,7 @@
 
 #define SOFTMAX_THREADS 128
 
-__global__ void cunn_SoftMax_updateOutput_kernel(hipLaunchParm lp, 
+__global__ void cunn_SoftMax_updateOutput_kernel( 
   float *output, float *input, int nframe, int dim, int stride0, int stride1)
 {
   __shared__ float buffer[SOFTMAX_THREADS+1];
@@ -73,7 +73,7 @@ __global__ void cunn_SoftMax_updateOutput_kernel(hipLaunchParm lp,
     output_k[i*stride0] = output_k[i*stride0] / sum_k;
 }
 
-__global__ void cunn_SoftMax_updateGradInput_kernel(hipLaunchParm lp, 
+__global__ void cunn_SoftMax_updateGradInput_kernel( 
   float *gradInput, float *output, float *gradOutput, int nframe, int dim, int stride0, int stride1)
 {
   __shared__ float buffer[SOFTMAX_THREADS];
@@ -165,7 +165,7 @@ void THNN_CudaSoftMax_updateOutput(THCState *state, THCudaTensor *input, THCudaT
 
   dim3 blocks(batchSize, blocksY, blocksZ);
   dim3 threads(SOFTMAX_THREADS);
-  hipLaunchKernel(HIP_KERNEL_NAME(cunn_SoftMax_updateOutput_kernel), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), 
+  hipLaunchKernelGGL((cunn_SoftMax_updateOutput_kernel), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), 
     THCudaTensor_data(state, output),
     THCudaTensor_data(state, input),
     batchSize, dim, stride0, stride1
@@ -234,7 +234,7 @@ void THNN_CudaSoftMax_updateGradInput(THCState *state, THCudaTensor *input, THCu
 
   dim3 blocks(batchSize, blocksY, blocksZ);
   dim3 threads(SOFTMAX_THREADS);
-  hipLaunchKernel(HIP_KERNEL_NAME(cunn_SoftMax_updateGradInput_kernel), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), 
+  hipLaunchKernelGGL((cunn_SoftMax_updateGradInput_kernel), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), 
     THCudaTensor_data(state, gradInput),
     THCudaTensor_data(state, output),
     THCudaTensor_data(state, gradOutput),

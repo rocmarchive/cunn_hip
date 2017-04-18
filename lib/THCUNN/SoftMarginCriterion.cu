@@ -114,11 +114,11 @@ void THNN_CudaSoftMarginCriterion_updateGradInput(THCState *state,
   auto target_data = THCudaTensor_data(state, target);
   auto gradInput_data = THCudaTensor_data(state, gradInput);
 
-  bolt::amp::transform(input_data, 
+/*  bolt::amp::transform(input_data, 
                        input_data+size, 
                        target_data, 
                        gradInput_data, 
-                       softmargin_updateGradInput_functor(norm));
+                       softmargin_updateGradInput_functor(norm));*/
 #endif
 
   THCudaTensor_free(state, input);

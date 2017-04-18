@@ -4,7 +4,7 @@
 
 #define TEMPORAL_MAX_POOLING_THREADS 1024
 
-__global__ void cunn_TemporalMaxPooling_updateOutputKernel(hipLaunchParm lp, float *input, float *output, float *indices, int input_w, int input_n, int output_w, int kW, int dW) {
+__global__ void cunn_TemporalMaxPooling_updateOutputKernel( float *input, float *output, float *indices, int input_w, int input_n, int output_w, int kW, int dW) {
   // Block idx is the batch index, thread idx + block idx y * MAX_THREADS is the time index
   float *input_data = input + hipBlockIdx_x * input_w * input_n + (
       hipThreadIdx_x + hipBlockIdx_y * TEMPORAL_MAX_POOLING_THREADS) * input_n * dW;
@@ -37,7 +37,7 @@ __global__ void cunn_TemporalMaxPooling_updateOutputKernel(hipLaunchParm lp, flo
   }
 }
 
-__global__ void cunn_TemporalMaxPooling_updateGradInputKernel(hipLaunchParm lp, float *gradInput, float *gradOutput, float *indices, int input_w, int input_n, int output_w, int kW, int dW) {
+__global__ void cunn_TemporalMaxPooling_updateGradInputKernel( float *gradInput, float *gradOutput, float *indices, int input_w, int input_n, int output_w, int kW, int dW) {
   // Block idx is the batch index, thread idx + block idx y * MAX_THREADS is the time index
   float *gradInput_data = gradInput + hipBlockIdx_x * input_w * input_n + (
       hipThreadIdx_x + hipBlockIdx_y * TEMPORAL_MAX_POOLING_THREADS) * input_n * dW;
@@ -56,7 +56,7 @@ __global__ void cunn_TemporalMaxPooling_updateGradInputKernel(hipLaunchParm lp, 
   }
 }
 
-__global__ void cunn_TemporalMaxPooling_updateGradInputKernelAtomic(hipLaunchParm lp, float *gradInput, float *gradOutput, float *indices, int input_w, int input_n, int output_w, int kW, int dW) {
+__global__ void cunn_TemporalMaxPooling_updateGradInputKernelAtomic( float *gradInput, float *gradOutput, float *indices, int input_w, int input_n, int output_w, int kW, int dW) {
   // Block idx is the batch index, thread idx + block idx y * MAX_THREADS is the time index
   float *gradInput_data = gradInput + hipBlockIdx_x * input_w * input_n + (
       hipThreadIdx_x + hipBlockIdx_y * TEMPORAL_MAX_POOLING_THREADS) * input_n * dW;
@@ -142,7 +142,7 @@ void THNN_CudaTemporalMaxPooling_updateOutput(
   }
 
   dim3 threads(nthreads);
-  hipLaunchKernel(HIP_KERNEL_NAME(cunn_TemporalMaxPooling_updateOutputKernel), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state) , 
+  hipLaunchKernelGGL((cunn_TemporalMaxPooling_updateOutputKernel), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state) , 
       input_data, output_data, indices_data, input_w, input_n, output_w, kW, dW);
   THCudaCheck(hipGetLastError());
   THCudaTensor_free(state, input);
@@ -210,10 +210,10 @@ void THNN_CudaTemporalMaxPooling_updateGradInput(
 
   dim3 threads(nthreads);
   if (kW <= dW) {
-    hipLaunchKernel(HIP_KERNEL_NAME(cunn_TemporalMaxPooling_updateGradInputKernel), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state) , 
+    hipLaunchKernelGGL((cunn_TemporalMaxPooling_updateGradInputKernel), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state) , 
         gradInput_data, gradOutput_data, indices_data, input_w, input_n, output_w, kW, dW);
   } else {
-    hipLaunchKernel(HIP_KERNEL_NAME(cunn_TemporalMaxPooling_updateGradInputKernelAtomic), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state) , 
+    hipLaunchKernelGGL((cunn_TemporalMaxPooling_updateGradInputKernelAtomic), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state) , 
         gradInput_data, gradOutput_data, indices_data, input_w, input_n, output_w, kW, dW);
   }
   THCudaCheck(hipGetLastError());

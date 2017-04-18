@@ -3,7 +3,7 @@
 #include "common.h"
 
 template <typename Dtype, bool COUNT_INCLUDE_PAD>
-__global__ void AvePoolForward(hipLaunchParm lp, const int nthreads,
+__global__ void AvePoolForward( const int nthreads,
     const Dtype* const bottom_data, const int num, const int channels,
     const int height, const int width, const int pooled_height,
     const int pooled_width, const int kernel_h, const int kernel_w,
@@ -91,12 +91,12 @@ void THNN_CudaSpatialAveragePooling_updateOutput(THCState *state, THCudaTensor *
   int count = THCudaTensor_nElement(state, output);
 
   if(count_include_pad) {
-    hipLaunchKernel(HIP_KERNEL_NAME(AvePoolForward<float, true>), dim3(GET_BLOCKS(count)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state) , 
+    hipLaunchKernelGGL((AvePoolForward<float, true>), dim3(GET_BLOCKS(count)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state) , 
         count, input_data,
         batchSize, nInputPlane, nInputRows, nInputCols, nOutputRows, nOutputCols,
         kH, kW, dH, dW, padH, padW, output_data);
   } else {
-    hipLaunchKernel(HIP_KERNEL_NAME(AvePoolForward<float, false>), dim3(GET_BLOCKS(count)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state) , 
+    hipLaunchKernelGGL((AvePoolForward<float, false>), dim3(GET_BLOCKS(count)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state) , 
         count, input_data,
         batchSize, nInputPlane, nInputRows, nInputCols, nOutputRows, nOutputCols,
         kH, kW, dH, dW, padH, padW, output_data);
@@ -111,7 +111,7 @@ void THNN_CudaSpatialAveragePooling_updateOutput(THCState *state, THCudaTensor *
 }
 
 template <typename Dtype, bool COUNT_INCLUDE_PAD>
-__global__ void AvePoolBackward(hipLaunchParm lp, const int nthreads, const Dtype* const top_diff,
+__global__ void AvePoolBackward( const int nthreads, const Dtype* const top_diff,
     const int num, const int channels, const int height,
     const int width, const int pooled_height, const int pooled_width,
     const int kernel_h, const int kernel_w, const int stride_h,
@@ -200,13 +200,13 @@ void THNN_CudaSpatialAveragePooling_updateGradInput(THCState *state, THCudaTenso
   int count = THCudaTensor_nElement(state, input);
 
   if(count_include_pad) {
-    hipLaunchKernel(HIP_KERNEL_NAME(AvePoolBackward<float, true>), dim3(GET_BLOCKS(count)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state) , count,
+    hipLaunchKernelGGL((AvePoolBackward<float, true>), dim3(GET_BLOCKS(count)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state) , count,
         THCudaTensor_data(state, gradOutput),
         batchSize, nInputPlane, nInputRows, nInputCols, nOutputRows, nOutputCols,
         kH, kW, dH, dW, padH, padW,
         THCudaTensor_data(state, gradInput));
   } else {
-    hipLaunchKernel(HIP_KERNEL_NAME(AvePoolBackward<float, false>), dim3(GET_BLOCKS(count)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state) , count,
+    hipLaunchKernelGGL((AvePoolBackward<float, false>), dim3(GET_BLOCKS(count)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state) , count,
         THCudaTensor_data(state, gradOutput),
         batchSize, nInputPlane, nInputRows, nInputCols, nOutputRows, nOutputCols,
         kH, kW, dH, dW, padH, padW,

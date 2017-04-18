@@ -11,7 +11,7 @@
 
 #define MULTILABELMARGIN_THREADS 1024
 
-__global__ void cunn_MultiLabelMarginCriterion_updateOutput_kernel(hipLaunchParm lp, float *output,
+__global__ void cunn_MultiLabelMarginCriterion_updateOutput_kernel( float *output,
                                                                    float *input,
                                                                    float *target,
                                                                    float *istarget,
@@ -81,7 +81,7 @@ __global__ void cunn_MultiLabelMarginCriterion_updateOutput_kernel(hipLaunchParm
   }
 }
 
-__global__ void cunn_MultiLabelMarginCriterion_updateGradInput_kernel(hipLaunchParm lp, float *gradInput,
+__global__ void cunn_MultiLabelMarginCriterion_updateGradInput_kernel( float *gradInput,
                                                                       float *input,
                                                                       float *target,
                                                                       float *istarget,
@@ -164,7 +164,7 @@ void THNN_CudaMultiLabelMarginCriterion_updateOutput(
     dim3 blocks(1);
     dim3 threads(MULTILABELMARGIN_THREADS);
 
-    hipLaunchKernel(HIP_KERNEL_NAME(cunn_MultiLabelMarginCriterion_updateOutput_kernel), dim3(blocks), dim3(threads), 0, 0, 
+    hipLaunchKernelGGL((cunn_MultiLabelMarginCriterion_updateOutput_kernel), dim3(blocks), dim3(threads), 0, 0, 
         THCudaTensor_data(state, output),
         THCudaTensor_data(state, input),
         THCudaTensor_data(state, target),
@@ -181,7 +181,7 @@ void THNN_CudaMultiLabelMarginCriterion_updateOutput(
     dim3 blocks(input->size[0]);
     dim3 threads(MULTILABELMARGIN_THREADS);
 
-    hipLaunchKernel(HIP_KERNEL_NAME(cunn_MultiLabelMarginCriterion_updateOutput_kernel), dim3(blocks), dim3(threads), 0, 0, 
+    hipLaunchKernelGGL((cunn_MultiLabelMarginCriterion_updateOutput_kernel), dim3(blocks), dim3(threads), 0, 0, 
         THCudaTensor_data(state, output_tmp),
         THCudaTensor_data(state, input),
         THCudaTensor_data(state, target),
@@ -220,7 +220,7 @@ void THNN_CudaMultiLabelMarginCriterion_updateGradInput(
     dim3 blocks(1);
     dim3 threads(MULTILABELMARGIN_THREADS);
 
-    hipLaunchKernel(HIP_KERNEL_NAME(cunn_MultiLabelMarginCriterion_updateGradInput_kernel), dim3(blocks), dim3(threads), 0, 0, THCudaTensor_data(state, gradInput),
+    hipLaunchKernelGGL((cunn_MultiLabelMarginCriterion_updateGradInput_kernel), dim3(blocks), dim3(threads), 0, 0, THCudaTensor_data(state, gradInput),
         THCudaTensor_data(state, input),
         THCudaTensor_data(state, target),
         THCudaTensor_data(state, istarget),
@@ -233,7 +233,7 @@ void THNN_CudaMultiLabelMarginCriterion_updateGradInput(
     dim3 blocks(gradInput->size[0]);
     dim3 threads(MULTILABELMARGIN_THREADS);
 
-    hipLaunchKernel(HIP_KERNEL_NAME(cunn_MultiLabelMarginCriterion_updateGradInput_kernel), dim3(blocks), dim3(threads), 0, 0, THCudaTensor_data(state, gradInput),
+    hipLaunchKernelGGL((cunn_MultiLabelMarginCriterion_updateGradInput_kernel), dim3(blocks), dim3(threads), 0, 0, THCudaTensor_data(state, gradInput),
         THCudaTensor_data(state, input),
         THCudaTensor_data(state, target),
         THCudaTensor_data(state, istarget),

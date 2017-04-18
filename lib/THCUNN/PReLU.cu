@@ -26,7 +26,7 @@ struct PReLUUpdateOutput
   ~PReLUUpdateOutput() {} 
 };
 
-__global__ void preluForward(hipLaunchParm lp, float *output, const float *input, const float *weight, int n, int nElemsPerSample, int mapSize)
+__global__ void preluForward( float *output, const float *input, const float *weight, int n, int nElemsPerSample, int mapSize)
 {
   CUDA_KERNEL_LOOP(i, n)
   {
@@ -63,7 +63,7 @@ void THNN_CudaPReLU_updateOutput(
     else if (ndim == 4)
       mapSize = (input->size[2] * input->size[3]);
     int nElemsPerSample = nOutputPlane * mapSize;
-    hipLaunchKernel(HIP_KERNEL_NAME(preluForward), dim3(GET_BLOCKS(n)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state), 
+    hipLaunchKernelGGL((preluForward), dim3(GET_BLOCKS(n)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state), 
       THCudaTensor_data(state, output),
       THCudaTensor_data(state, input),
       w,
@@ -92,7 +92,7 @@ struct PReLUUpdateGradInput
   ~PReLUUpdateGradInput() {}
 };
 
-__global__ void preluBackward(hipLaunchParm lp, 
+__global__ void preluBackward( 
   float *gradInput,
   const float *input,
   const float *weight,
@@ -135,7 +135,7 @@ void THNN_CudaPReLU_updateGradInput(
     else if (ndim == 4)
       mapSize = (input->size[2] * input->size[3]);
     int nElemsPerSample = nOutputPlane * mapSize;
-    hipLaunchKernel(HIP_KERNEL_NAME(preluBackward), dim3(GET_BLOCKS(n)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state), 
+    hipLaunchKernelGGL((preluBackward), dim3(GET_BLOCKS(n)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state), 
       THCudaTensor_data(state, gradInput),
       THCudaTensor_data(state, input),
       w,

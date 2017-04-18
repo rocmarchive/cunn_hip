@@ -7,7 +7,7 @@
 
 #include <cfloat>
 
-__global__ void cuda_VolumetricMaxUnpooling_updateOutput(hipLaunchParm lp, 
+__global__ void cuda_VolumetricMaxUnpooling_updateOutput( 
   THCDeviceTensor<float, 4> input,
   THCDeviceTensor<float, 4> indices,
   THCDeviceTensor<float, 4> output,
@@ -115,7 +115,7 @@ void THNN_CudaVolumetricMaxUnpooling_updateOutput(
               THCCeilDiv(inputHeight, static_cast<int>(block.y)),
               totalZ > 65535 ? 65535 : totalZ);
 
-    hipLaunchKernel(HIP_KERNEL_NAME(cuda_VolumetricMaxUnpooling_updateOutput), dim3(grid), dim3(block), 0, THCState_getCurrentStream(state), 
+    hipLaunchKernelGGL((cuda_VolumetricMaxUnpooling_updateOutput), dim3(grid), dim3(block), 0, THCState_getCurrentStream(state), 
                              cudaInput, cudaIndices, cudaOutput,
                              dT, dH, dW,
                              padT, padH, padW, offsetZ);
@@ -128,7 +128,7 @@ void THNN_CudaVolumetricMaxUnpooling_updateOutput(
   THCudaTensor_free(state, indices);
 }
 
-__global__ void cuda_VolumetricMaxUnpooling_updateGradInput(hipLaunchParm lp, 
+__global__ void cuda_VolumetricMaxUnpooling_updateGradInput( 
   THCDeviceTensor<float, 4> gradOutput,
   THCDeviceTensor<float, 4> indices,
   THCDeviceTensor<float, 4> gradInput,
@@ -227,7 +227,7 @@ void THNN_CudaVolumetricMaxUnpooling_updateGradInput(
               THCCeilDiv(inputHeight, static_cast<int>(block.y)),
               totalZ > 65535 ? 65535 : totalZ);
 
-    hipLaunchKernel(HIP_KERNEL_NAME(cuda_VolumetricMaxUnpooling_updateGradInput), dim3(grid), dim3(block), 0, THCState_getCurrentStream(state), 
+    hipLaunchKernelGGL((cuda_VolumetricMaxUnpooling_updateGradInput), dim3(grid), dim3(block), 0, THCState_getCurrentStream(state), 
                                              cudaGradOutput,
                                              cudaIndices,
                                              cudaGradInput,

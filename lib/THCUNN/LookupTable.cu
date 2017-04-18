@@ -52,7 +52,7 @@ __device__ __forceinline__ bool warpHasCollision(int val)
   return __any(dup) != 0;
 }
 
-__global__ void cunn_LookupTable_accGradParametersKernelByFeature(hipLaunchParm lp, 
+__global__ void cunn_LookupTable_accGradParametersKernelByFeature( 
   long *input, float *gradOutput, float *gradWeight, float scale, long numel,
   long stride, int paddingValue) {
 
@@ -98,7 +98,7 @@ __global__ void cunn_LookupTable_accGradParametersKernelByFeature(hipLaunchParm 
   }
 }
 
-__global__ void cunn_LookupTable_accGradParametersKernel(hipLaunchParm lp, 
+__global__ void cunn_LookupTable_accGradParametersKernel( 
   long *input, long *indices, float *gradOutput, float *gradWeight,
   long *count, float defaultScale, long numel, long stride, int paddingValue) {
 
@@ -192,7 +192,7 @@ void THNN_CudaLookupTable_accGradParameters(
   hipStream_t stream = THCState_getCurrentStream(state);
 
   if (numel <= 768 && !scaleGradByFreq) {
-    hipLaunchKernel(HIP_KERNEL_NAME(cunn_LookupTable_accGradParametersKernelByFeature), dim3(DIVUP(stride,4)), dim3(128), 0, stream, 
+    hipLaunchKernelGGL((cunn_LookupTable_accGradParametersKernelByFeature), dim3(DIVUP(stride,4)), dim3(128), 0, stream, 
       THIndexTensor_(data)(state, input),
       THCudaTensor_data(state, gradOutput),
       THCudaTensor_data(state, gradWeight),
@@ -256,7 +256,7 @@ void THNN_CudaLookupTable_accGradParameters(
 
   dim3 grid(DIVUP(numel,4), DIVUP(stride,128));
   dim3 block(32, 4);
-  hipLaunchKernel(HIP_KERNEL_NAME(cunn_LookupTable_accGradParametersKernel), dim3(grid), dim3(block), 0, stream, 
+  hipLaunchKernelGGL((cunn_LookupTable_accGradParametersKernel), dim3(grid), dim3(block), 0, stream, 
     sorted_data,
     indices_data,
     THCudaTensor_data(state, gradOutput),

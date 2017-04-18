@@ -9,7 +9,7 @@
  *    this function adaptively maxpools an input 4D tensor along dimensions 2 and 3
  *    4D input, 4D output, 4D argmax x and y
  */
-__global__ void adaptivemaxpool(hipLaunchParm lp, float *input, float *output, float *indices_x, float *indices_y,
+__global__ void adaptivemaxpool( float *input, float *output, float *indices_x, float *indices_y,
                         int input_n, int input_h, int input_w,
                         int output_h, int output_w,
                         int strideh, int stridew,
@@ -82,7 +82,7 @@ __global__ void adaptivemaxpool(hipLaunchParm lp, float *input, float *output, f
  * Description:
  *    this function computes the gradInput from weight and gradOutput
  */
-__global__ void adaptivemaxgradinput(hipLaunchParm lp, float *gradInput, float *gradOutput, float *indices_x, float *indices_y,
+__global__ void adaptivemaxgradinput( float *gradInput, float *gradOutput, float *indices_x, float *indices_y,
                              int input_n, int input_h, int input_w,
                              int output_h, int output_w)
 {
@@ -136,7 +136,7 @@ __global__ void adaptivemaxgradinput(hipLaunchParm lp, float *gradInput, float *
  *    this function computes the gradInput from weight and gradOutput
  *    when kH != dH or kW != dW (uses atomic add)
  */
-__global__ void atomicadaptivemaxgradinput(hipLaunchParm lp, 
+__global__ void atomicadaptivemaxgradinput( 
   float *gradInput, float *gradOutput, float *indices_x, float *indices_y,
   int input_n, int input_h, int input_w, int output_h, int output_w
 )
@@ -220,7 +220,7 @@ void THNN_CudaSpatialAdaptiveMaxPooling_updateOutput(THCState *state, THCudaTens
     dim3 threads(32,8);
 
     // run maxpool kernel
-    hipLaunchKernel(HIP_KERNEL_NAME(adaptivemaxpool), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), input_data, output_data,
+    hipLaunchKernelGGL((adaptivemaxpool), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), input_data, output_data,
                                    indices_data+nInputPlane*nOutputCols*nOutputRows, indices_data,
                                    nInputPlane, nInputRows, nInputCols, nOutputRows, nOutputCols,
                                    istride_h, istride_w, istride_d);
@@ -252,7 +252,7 @@ void THNN_CudaSpatialAdaptiveMaxPooling_updateOutput(THCState *state, THCudaTens
     dim3 threads(32,8);
 
     // run maxpool kernel
-    hipLaunchKernel(HIP_KERNEL_NAME(adaptivemaxpool), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), input_data, output_data,
+    hipLaunchKernelGGL((adaptivemaxpool), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), input_data, output_data,
                                    indices_data+nbatch*nInputPlane*nOutputCols*nOutputRows, indices_data,
                                    nInputPlane, nInputRows, nInputCols, nOutputRows, nOutputCols,
                                    istride_h, istride_w, istride_d);
@@ -299,14 +299,14 @@ void THNN_CudaSpatialAdaptiveMaxPooling_updateGradInput(THCState *state, THCudaT
     if(atomic)
     {
       // run updateGradInput kernel, accumulate gradients atomically
-      hipLaunchKernel(HIP_KERNEL_NAME(atomicadaptivemaxgradinput), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), gradInput_data, gradOutput_data,
+      hipLaunchKernelGGL((atomicadaptivemaxgradinput), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), gradInput_data, gradOutput_data,
                                           indices_data+nInputPlane*nOutputCols*nOutputRows, indices_data,
                                           nInputPlane, nInputRows, nInputCols, nOutputRows, nOutputCols);
     }
     else
     {
       // run updateGradInput kernel
-      hipLaunchKernel(HIP_KERNEL_NAME(atomicadaptivemaxgradinput), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), gradInput_data, gradOutput_data,
+      hipLaunchKernelGGL((atomicadaptivemaxgradinput), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), gradInput_data, gradOutput_data,
                                           indices_data+nInputPlane*nOutputCols*nOutputRows, indices_data,
                                           nInputPlane, nInputRows, nInputCols, nOutputRows, nOutputCols);
     }
@@ -337,14 +337,14 @@ void THNN_CudaSpatialAdaptiveMaxPooling_updateGradInput(THCState *state, THCudaT
     if(atomic)
     {
       // run updateGradInput kernel, accumulate gradients atomically
-      hipLaunchKernel(HIP_KERNEL_NAME(atomicadaptivemaxgradinput), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), gradInput_data, gradOutput_data,
+      hipLaunchKernelGGL((atomicadaptivemaxgradinput), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), gradInput_data, gradOutput_data,
                                           indices_data+nbatch*nInputPlane*nOutputCols*nOutputRows, indices_data,
                                           nInputPlane, nInputRows, nInputCols, nOutputRows, nOutputCols);
     }
     else
     {
       // run updateGradInput kernel, accumulate gradients atomically
-      hipLaunchKernel(HIP_KERNEL_NAME(adaptivemaxgradinput), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), gradInput_data, gradOutput_data,
+      hipLaunchKernelGGL((adaptivemaxgradinput), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), gradInput_data, gradOutput_data,
                                           indices_data+nbatch*nInputPlane*nOutputCols*nOutputRows, indices_data,
                                           nInputPlane, nInputRows, nInputCols, nOutputRows, nOutputCols);
     }

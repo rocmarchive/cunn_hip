@@ -9,7 +9,7 @@
 // Kernel for fast unfold+copy
 // (borrowed from Caffe: https://github.com/BVLC/caffe/blob/master/src/caffe/layers/conv_layer.cu)
 template <typename Dtype>
-__global__ void im2col_kernel(hipLaunchParm lp, const int n, const Dtype* data_im,
+__global__ void im2col_kernel( const int n, const Dtype* data_im,
                               const int height, const int width,
                               const int ksize_h, const int ksize_w,
                               const int pad_h, const int pad_w,
@@ -53,7 +53,7 @@ void im2col(hipStream_t stream, const Dtype* data_im, const int channels,
                   / stride_w + 1;
   int num_kernels = channels * height_col * width_col;
   // Launch
-  hipLaunchKernel(HIP_KERNEL_NAME(im2col_kernel), dim3(GET_BLOCKS(num_kernels)), dim3(CUDA_NUM_THREADS), 0, stream, 
+  hipLaunchKernelGGL((im2col_kernel), dim3(GET_BLOCKS(num_kernels)), dim3(CUDA_NUM_THREADS), 0, stream, 
       num_kernels, data_im, height, width, ksize_h, ksize_w,
       pad_h, pad_w, stride_h, stride_w,
       dilation_h, dilation_w,
@@ -63,7 +63,7 @@ void im2col(hipStream_t stream, const Dtype* data_im, const int channels,
 }
 
 template <typename Dtype>
-__global__ void col2im_kernel(hipLaunchParm lp, const int n, const Dtype* data_col,
+__global__ void col2im_kernel( const int n, const Dtype* data_col,
                                   const int height, const int width, const int channels,
                                   const int kernel_h, const int kernel_w,
                                   const int pad_h, const int pad_w,
@@ -116,7 +116,7 @@ void col2im(hipStream_t stream, const Dtype* data_col, const int channels,
   int num_kernels = channels * height * width;
   // To avoid involving atomic operations, we will launch one kernel per
   // bottom dimension, and then in the kernel add up the top dimensions.
-  hipLaunchKernel(HIP_KERNEL_NAME(col2im_kernel), dim3(GET_BLOCKS(num_kernels)), dim3(CUDA_NUM_THREADS), 0, stream, 
+  hipLaunchKernelGGL((col2im_kernel), dim3(GET_BLOCKS(num_kernels)), dim3(CUDA_NUM_THREADS), 0, stream, 
       num_kernels, data_col, height, width, channels,
       patch_h, patch_w, pad_h, pad_w, stride_h, stride_w,
       dilation_h, dilation_w,

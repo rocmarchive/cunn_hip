@@ -3,7 +3,7 @@
 #include "common.h"
 
 template <typename Dtype>
-__global__ void MaxUnpoolForward(hipLaunchParm lp, const int nthreads, const Dtype* bottom_data, const Dtype* bottom_mask,
+__global__ void MaxUnpoolForward( const int nthreads, const Dtype* bottom_data, const Dtype* bottom_mask,
     const int num, const int channels, const int iheight, const int iwidth, const int oheight, const int owidth, Dtype* top_data) {
   CUDA_KERNEL_LOOP(index, nthreads) { //index here indices the input pixels
     int c = (index / iwidth / iheight) % channels;
@@ -16,7 +16,7 @@ __global__ void MaxUnpoolForward(hipLaunchParm lp, const int nthreads, const Dty
 }
 
 template <typename Dtype>
-__global__ void MaxUnpoolBackward(hipLaunchParm lp, const int nthreads, const Dtype* top_diff, const Dtype* bottom_mask,
+__global__ void MaxUnpoolBackward( const int nthreads, const Dtype* top_diff, const Dtype* bottom_mask,
     const int num, const int channels, const int iheight, const int iwidth, const int oheight, const int owidth, Dtype* bottom_diff) {
   CUDA_KERNEL_LOOP(index, nthreads) {
     int c = (index / iwidth / iheight) % channels;
@@ -56,7 +56,7 @@ void THNN_CudaSpatialMaxUnpooling_updateOutput(THCState *state, THCudaTensor *in
 
   int count = THCudaTensor_nElement(state, input);
 
-  hipLaunchKernel(HIP_KERNEL_NAME(MaxUnpoolForward), dim3(GET_BLOCKS(count)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state) , count, THCudaTensor_data(state, input), THCudaTensor_data(state, indices),
+  hipLaunchKernelGGL((MaxUnpoolForward), dim3(GET_BLOCKS(count)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state) , count, THCudaTensor_data(state, input), THCudaTensor_data(state, indices),
       batchSize, nInputPlane, nInputRows, nInputCols, oheight, owidth, THCudaTensor_data(state, output));
   THCudaCheck(hipGetLastError());
 
@@ -94,7 +94,7 @@ void THNN_CudaSpatialMaxUnpooling_updateGradInput(THCState *state, THCudaTensor 
 
   int count = THCudaTensor_nElement(state, input);
 
-  hipLaunchKernel(HIP_KERNEL_NAME(MaxUnpoolBackward), dim3(GET_BLOCKS(count)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state) , count, THCudaTensor_data(state, gradOutput), THCudaTensor_data(state, indices),
+  hipLaunchKernelGGL((MaxUnpoolBackward), dim3(GET_BLOCKS(count)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state) , count, THCudaTensor_data(state, gradOutput), THCudaTensor_data(state, indices),
       batchSize, nInputPlane, nInputRows, nInputCols, oheight, owidth, THCudaTensor_data(state, gradInput));
   THCudaCheck(hipGetLastError());
 

@@ -86,10 +86,10 @@ void THNN_CudaL1Cost_updateGradInput(THCState *state, THCudaTensor *input, THCud
   auto input_data = THCudaTensor_data(state, input);
   auto gradInput_data = THCudaTensor_data(state, gradInput);
 
-  bolt::amp::transform(input_data, 
+/*  bolt::amp::transform(input_data, 
                        input_data+size, 
                        gradInput_data, 
-                       l1cost_updateGradInput_functor());
+                       l1cost_updateGradInput_functor());*/
 #endif
 
   THCudaTensor_free(state, input);

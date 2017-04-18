@@ -6,7 +6,7 @@
 #include "THCDeviceUtils.cuh"
 #include "THCReduceApplyUtils.cuh"
 
-__global__ void SpatialReflectionPadding_updateOutput( hipLaunchParm lp, 
+__global__ void SpatialReflectionPadding_updateOutput(  
   THCDeviceTensor<float, 4> input,
   THCDeviceTensor<float, 4> output,
   int padT, int padB, int padL, int padR) {
@@ -102,12 +102,12 @@ void THNN_CudaSpatialReflectionPadding_updateOutput(THCState *state,
             devOutput.getSize(0));
   dim3 blockSize(outputPlaneSize > 256 ? 256 : outputPlaneSize);
 
-  hipLaunchKernel(HIP_KERNEL_NAME(SpatialReflectionPadding_updateOutput), dim3(gridSize), dim3(blockSize), 0, THCState_getCurrentStream(state), 
+  hipLaunchKernelGGL((SpatialReflectionPadding_updateOutput), dim3(gridSize), dim3(blockSize), 0, THCState_getCurrentStream(state), 
     devInput, devOutput, padT, padB, padL, padR);
   THCudaCheck(hipGetLastError());
 }
 
-__global__ void SpatialReflectionPadding_updateGradInput(hipLaunchParm lp, 
+__global__ void SpatialReflectionPadding_updateGradInput( 
   THCDeviceTensor<float, 4> gradInput,
   THCDeviceTensor<float, 4> gradOutput,
   int padT, int padB, int padL, int padR) {
@@ -195,7 +195,7 @@ void THNN_CudaSpatialReflectionPadding_updateGradInput(THCState *state,
             devGradOutput.getSize(0));
   dim3 blockSize(outputPlaneSize > 256 ? 256 : outputPlaneSize);
 
-  hipLaunchKernel(HIP_KERNEL_NAME(SpatialReflectionPadding_updateGradInput), dim3(gridSize), dim3(blockSize), 0, THCState_getCurrentStream(state), 
+  hipLaunchKernelGGL((SpatialReflectionPadding_updateGradInput), dim3(gridSize), dim3(blockSize), 0, THCState_getCurrentStream(state), 
     devGradInput, devGradOutput, padT, padB, padL, padR);
   THCudaCheck(hipGetLastError());
 }
