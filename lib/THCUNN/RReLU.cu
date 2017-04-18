@@ -5,7 +5,7 @@
 #include <curand.h>
 #include <curand_kernel.h>
 #else
-#include "hip/hcc.h"
+#include <hip/hip_hcc.h>
 #include "MTGP/hiprand_mtgp32.h"
 #endif
 
@@ -122,15 +122,15 @@ void THNN_CudaRReLU_updateOutput(THCState *state, THCudaTensor *input, THCudaTen
     if (inplace)
     {
 #ifdef CURAND_PATH
-      hipLaunchKernelGGL((rreluUpdateOutputTrain), dim3(NUM_BLOCKS(n)), dim3(BLOCK_SIZE), 0, THCState_getCurrentStream(state), 
+      hipLaunchKernelGGL((rreluUpdateOutputTrain), dim3(NUM_BLOCKS(n)), dim3(BLOCK_SIZE), 0, THCState_getCurrentStream(state),
         n, gen_states, input_data, noise_data, input_data, lower, upper);
       THCudaTensor_set(state, output, input);
 #else
-      hipStream_t currentStream = THCState_getCurrentStream(state); 
-      hc::accelerator_view* current_accl_view; 
-      hipHccGetAcceleratorView(currentStream, &current_accl_view); 
-      user_uniform_kernel(*current_accl_view, gen_states, noise_data, user_uniform_functor(lower, upper)); 
-      hipLaunchKernelGGL((rreluUpdateOutputTrain), dim3(NUM_BLOCKS(n)), dim3(BLOCK_SIZE), 0, THCState_getCurrentStream(state), 
+      hipStream_t currentStream = THCState_getCurrentStream(state);
+      hc::accelerator_view* current_accl_view;
+      hipHccGetAcceleratorView(currentStream, &current_accl_view);
+      user_uniform_kernel(*current_accl_view, gen_states, noise_data, user_uniform_functor(lower, upper));
+      hipLaunchKernelGGL((rreluUpdateOutputTrain), dim3(NUM_BLOCKS(n)), dim3(BLOCK_SIZE), 0, THCState_getCurrentStream(state),
         n, gen_states, input_data, noise_data, input_data, lower, upper);
       THCudaTensor_set(state, output, input);
 #endif
@@ -140,14 +140,14 @@ void THNN_CudaRReLU_updateOutput(THCState *state, THCudaTensor *input, THCudaTen
       THCudaTensor_resizeAs(state, output, input);
       float *output_data = THCudaTensor_data(state, output);
 #ifdef CURAND_PATH
-      hipLaunchKernelGGL((rreluUpdateOutputTrain), dim3(NUM_BLOCKS(n)), dim3(BLOCK_SIZE), 0, THCState_getCurrentStream(state), 
+      hipLaunchKernelGGL((rreluUpdateOutputTrain), dim3(NUM_BLOCKS(n)), dim3(BLOCK_SIZE), 0, THCState_getCurrentStream(state),
         n, gen_states, input_data, noise_data, output_data, lower, upper);
 #else
-      hipStream_t currentStream = THCState_getCurrentStream(state); 
-      hc::accelerator_view* current_accl_view; 
-      hipHccGetAcceleratorView(currentStream, &current_accl_view); 
-      user_uniform_kernel(*current_accl_view, gen_states, noise_data, user_uniform_functor(lower, upper)); 
-      hipLaunchKernelGGL((rreluUpdateOutputTrain), dim3(NUM_BLOCKS(n)), dim3(BLOCK_SIZE), 0, THCState_getCurrentStream(state), 
+      hipStream_t currentStream = THCState_getCurrentStream(state);
+      hc::accelerator_view* current_accl_view;
+      hipHccGetAcceleratorView(currentStream, &current_accl_view);
+      user_uniform_kernel(*current_accl_view, gen_states, noise_data, user_uniform_functor(lower, upper));
+      hipLaunchKernelGGL((rreluUpdateOutputTrain), dim3(NUM_BLOCKS(n)), dim3(BLOCK_SIZE), 0, THCState_getCurrentStream(state),
         n, gen_states, input_data, noise_data, output_data, lower, upper);
 #endif
     }

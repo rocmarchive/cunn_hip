@@ -10,6 +10,7 @@
 #else
     #include <bolt/amp/functional.h>
     #include <bolt/amp/inner_product.h>
+    #include <bolt/amp/iterator/ubiquitous_iterator.h>
 #endif
 
 struct kl_functor
@@ -45,12 +46,14 @@ void THNN_CudaDistKLDivCriterion_updateOutput(THCState *state, THCudaTensor *inp
   thrust::device_ptr<float> target_data(THCudaTensor_data(state, target));
   sum = thrust::inner_product(input_data, input_data+size, target_data, (float) 0, thrust::plus<float>(), kl_functor());
 #else
-  auto input_data = THCudaTensor_data(state, input);
-  auto target_data = THCudaTensor_data(state, target);
-  sum = bolt::amp::inner_product(input_data, 
-                                 input_data+size, 
-                                 target_data, 0.0f, 
-                                 bolt::amp::plus<float>(), 
+  auto input_data =
+      bolt::amp::make_ubiquitous_iterator(THCudaTensor_data(state, input));
+  auto target_data =
+      bolt::amp::make_ubiquitous_iterator(THCudaTensor_data(state, target));
+  sum = bolt::amp::inner_product(input_data,
+                                 input_data+size,
+                                 target_data, 0.0f,
+                                 bolt::amp::plus<float>(),
                                  kl_functor());
 #endif
 
@@ -67,18 +70,16 @@ struct kl_updateGradInput_functor
 {
   float norm;
 
-  __host__ __device__ 
-  kl_updateGradInput_functor() = default;
-
-  __host__ __device__ 
+  __host__ __device__
+  explicit
   kl_updateGradInput_functor(float norm_)
     : norm(norm_)
   {}
 
   kl_updateGradInput_functor(const kl_updateGradInput_functor& fun) = default;
 
-  __host__ __device__ 
-  float operator()(const float& x, const float& y) const
+  __host__ __device__
+  float operator()(float x, float y) const
   {
       return y > 0 ? norm * (-y) : 0;
   }
@@ -106,14 +107,17 @@ void THNN_CudaDistKLDivCriterion_updateGradInput(THCState *state, THCudaTensor *
 
   thrust::transform(input_data, input_data+size, target_data, gradInput_data, kl_updateGradInput_functor(norm));
 #else
-  auto input_data = THCudaTensor_data(state, input);
-  auto target_data = THCudaTensor_data(state, target);
-  auto gradInput_data = THCudaTensor_data(state, gradInput);
+  auto input_data =
+      bolt::amp::make_ubiquitous_iterator(THCudaTensor_data(state, input));
+  auto target_data =
+      bolt::amp::make_ubiquitous_iterator(THCudaTensor_data(state, target));
+  auto gradInput_data =
+      bolt::amp::make_ubiquitous_iterator(THCudaTensor_data(state, gradInput));
 
-  bolt::amp::transform(input_data, 
-                       input_data+size, 
-                       target_data, 
-                       gradInput_data, 
+  bolt::amp::transform(input_data,
+                       input_data + size,
+                       target_data,
+                       gradInput_data,
                        kl_updateGradInput_functor(norm));
 #endif
 

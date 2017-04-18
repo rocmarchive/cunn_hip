@@ -10,26 +10,25 @@
 #else
     #include <bolt/amp/functional.h>
     #include <bolt/amp/inner_product.h>
+    #include <bolt/amp/iterator/ubiquitous_iterator.h>
 #endif
 
 struct margin_functor
 {
   __host__ __device__
+  explicit
   margin_functor(float margin)
     : margin(margin)
   {}
 
-  __host__ __device__ 
-  float operator()(const float &x, const float &y) const
+  __host__ __device__
+  float operator()(float x, float y) const
   {
     float z = margin - x * y;
     return z >= 0 ? z : 0;
   }
 
-  __host__ __device__
-  ~margin_functor() {}
-
-  const float margin;
+  float margin;
 };
 
 void THNN_CudaMarginCriterion_updateOutput(THCState *state, THCudaTensor *input, THCudaTensor *target, THCudaTensor *output, bool sizeAverage, float margin)
@@ -46,13 +45,15 @@ void THNN_CudaMarginCriterion_updateOutput(THCState *state, THCudaTensor *input,
   thrust::device_ptr<float> target_data(THCudaTensor_data(state, target));
   float sum = thrust::inner_product(input_data, input_data+size, target_data, (float) 0, thrust::plus<float>(), margin_functor(margin));
 #else
-  auto input_data = THCudaTensor_data(state, input);
-  auto target_data = THCudaTensor_data(state, target);
-  float sum = bolt::amp::inner_product(input_data, 
-                                       input_data+size, 
-                                       target_data, 
-                                       0.0f, 
-                                       bolt::amp::plus<float>(), 
+  auto input_data =
+      bolt::amp::make_ubiquitous_iterator(THCudaTensor_data(state, input));
+  auto target_data =
+      bolt::amp::make_ubiquitous_iterator(THCudaTensor_data(state, target));
+  float sum = bolt::amp::inner_product(input_data,
+                                       input_data + size,
+                                       target_data,
+                                       0.0f,
+                                       bolt::amp::plus<float>(),
                                        margin_functor(margin));
 #endif
 
@@ -69,19 +70,14 @@ struct margin_updateGradInput_functor
 {
   float margin, norm;
 
-  __host__ __device__ 
-  margin_updateGradInput_functor() = default;
-
-  __host__ __device__ 
+  __host__ __device__
   margin_updateGradInput_functor(float margin_, float norm_)
     : margin(margin_)
     , norm(norm_)
   {}
 
-  margin_updateGradInput_functor(const margin_updateGradInput_functor& fun) = default;
-
-  __host__ __device__ 
-  float operator()(const float &x, const float &y) const
+  __host__ __device__
+  float operator()(float x, float y) const
   {
     return (x * y) < margin ? -norm * y : 0;
   }
@@ -110,11 +106,11 @@ void THNN_CudaMarginCriterion_updateGradInput(THCState *state, THCudaTensor *inp
   auto target_data = THCudaTensor_data(state, target);
   auto gradInput_data = THCudaTensor_data(state, gradInput);
 
-/*  bolt::amp::transform(input_data, 
-                       input_data+size, 
-                       target_data, 
-                       gradInput_data, 
-                       margin_updateGradInput_functor(margin, norm));*/
+  bolt::amp::transform(input_data,
+                       input_data + size,
+                       target_data,
+                       gradInput_data,
+                       margin_updateGradInput_functor(margin, norm));
 #endif
 
   THCudaTensor_free(state, input);
