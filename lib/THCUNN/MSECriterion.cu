@@ -117,15 +117,32 @@ void THNN_CudaMSECriterion_updateGradInput(THCState *state, THCudaTensor *input,
     input_data, input_data+size, target_data, gradInput_data,
     mse_updateGradInput_functor(norm));
 #else
+  // Device to Host sync up
+  size_t inputSize, targetSize, gradInputSize;
   auto input_data = THCudaTensor_data(state, input);
   auto target_data = THCudaTensor_data(state, target);
   auto gradInput_data = THCudaTensor_data(state, gradInput);
+  hipMemPtrGetInfo(input_data, &inputSize);
+  hipMemPtrGetInfo(target_data, &targetSize);
+  hipMemPtrGetInfo(gradInput_data, &gradInputSize);
+  float* input_host = (float*)malloc(inputSize);
+  float* target_host = (float*)malloc(targetSize);
+  float* gradInput_host = (float*) malloc(gradInputSize);
+//  hipMemcpy(input_host, input_data, inputSize, hipMemcpyDeviceToHost);
+//  hipMemcpy(gradInput_host, gradInput_data, gradInputSize, hipMemcpyDeviceToHost);
+//  hipMemcpy(target_host, target_data, targetSize, hipMemcpyDeviceToHost);
 
-  bolt::amp::transform(input_data, 
-                       input_data+size, 
-                       target_data, 
-                       gradInput_data,
+  printf("%p inputdevice \n", input_data);
+  printf("%p targetdevice \n", target_data);
+  printf("%p gradinputdevice \n", gradInput_data);
+  bolt::amp::transform(input_host, 
+                       input_host + size, 
+                       target_host, 
+                       gradInput_host,
                        mse_updateGradInput_functor(norm));
+//  hipMemcpy(input_data, input_host, inputSize, hipMemcpyHostToDevice);
+//  hipMemcpy(target_data, target_host, targetSize, hipMemcpyHostToDevice);
+//  hipMemcpy(gradInput_data, gradInput_host, gradInputSize, hipMemcpyHostToDevice);
 #endif
 
   THCudaTensor_free(state, input);
