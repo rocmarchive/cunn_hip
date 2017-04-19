@@ -13,21 +13,16 @@
 #else
     #include <bolt/amp/functional.h>
     #include <bolt/amp/inner_product.h>
+    #include <bolt/amp/iterator/ubiquitous_iterator.h>
 #endif
 
 struct mse_functor
 {
-  __host__ __device__
-  mse_functor() {}
-
   __host__ __device__ float operator()(const float &x, const float &y) const
   {
     float z = x-y;
     return z*z;
   }
-
-  __host__ __device__
-  ~mse_functor() {}
 };
 
 void THNN_CudaMSECriterion_updateOutput(THCState *state, THCudaTensor *input, THCudaTensor *target, THCudaTensor *output, bool sizeAverage)
@@ -52,12 +47,14 @@ void THNN_CudaMSECriterion_updateOutput(THCState *state, THCudaTensor *input, TH
     input_data, input_data+size, target_data, (float) 0,
     thrust::plus<float>(), mse_functor());
 #else
-  auto input_data = THCudaTensor_data(state, input);
-  auto target_data = THCudaTensor_data(state, target);
-  float sum = bolt::amp::inner_product(input_data, 
-                                       input_data+size, 
+  auto input_data =
+      bolt::amp::make_ubiquitous_iterator(THCudaTensor_data(state, input));
+  auto target_data =
+      bolt::amp::make_ubiquitous_iterator(THCudaTensor_data(state, target));
+  float sum = bolt::amp::inner_product(input_data,
+                                       input_data+size,
                                        target_data, 0.0f,
-                                       bolt::amp::plus<float>(), 
+                                       bolt::amp::plus<float>(),
                                        mse_functor());
 #endif
   if (sizeAverage)
@@ -73,18 +70,14 @@ struct mse_updateGradInput_functor
 {
   float norm;
 
-  __host__ __device__ 
-  mse_updateGradInput_functor() = default;
-
-  __host__ __device__ 
+  __host__ __device__
+  explicit
   mse_updateGradInput_functor(float norm_)
     : norm(norm_)
   {}
 
-  mse_updateGradInput_functor(const mse_updateGradInput_functor& fun) = default;
-
-  __host__ __device__ 
-  float operator()(const float &x, const float &y) const
+  __host__ __device__
+  float operator()(float x, float y) const
   {
     return norm * (x - y);
   }
@@ -117,32 +110,18 @@ void THNN_CudaMSECriterion_updateGradInput(THCState *state, THCudaTensor *input,
     input_data, input_data+size, target_data, gradInput_data,
     mse_updateGradInput_functor(norm));
 #else
-  // Device to Host sync up
-  size_t inputSize, targetSize, gradInputSize;
-  auto input_data = THCudaTensor_data(state, input);
-  auto target_data = THCudaTensor_data(state, target);
-  auto gradInput_data = THCudaTensor_data(state, gradInput);
-  hipMemPtrGetInfo(input_data, &inputSize);
-  hipMemPtrGetInfo(target_data, &targetSize);
-  hipMemPtrGetInfo(gradInput_data, &gradInputSize);
-  float* input_host = (float*)malloc(inputSize);
-  float* target_host = (float*)malloc(targetSize);
-  float* gradInput_host = (float*) malloc(gradInputSize);
-//  hipMemcpy(input_host, input_data, inputSize, hipMemcpyDeviceToHost);
-//  hipMemcpy(gradInput_host, gradInput_data, gradInputSize, hipMemcpyDeviceToHost);
-//  hipMemcpy(target_host, target_data, targetSize, hipMemcpyDeviceToHost);
+  auto input_data =
+      bolt::amp::make_ubiquitous_iterator(THCudaTensor_data(state, input));
+  auto target_data =
+      bolt::amp::make_ubiquitous_iterator(THCudaTensor_data(state, target));
+  auto gradInput_data =
+      bolt::amp::make_ubiquitous_iterator(THCudaTensor_data(state, gradInput));
 
-  printf("%p inputdevice \n", input_data);
-  printf("%p targetdevice \n", target_data);
-  printf("%p gradinputdevice \n", gradInput_data);
-  bolt::amp::transform(input_host, 
-                       input_host + size, 
-                       target_host, 
-                       gradInput_host,
+  bolt::amp::transform(input_data,
+                       input_data + size,
+                       target_data,
+                       gradInput_data,
                        mse_updateGradInput_functor(norm));
-//  hipMemcpy(input_data, input_host, inputSize, hipMemcpyHostToDevice);
-//  hipMemcpy(target_data, target_host, targetSize, hipMemcpyHostToDevice);
-//  hipMemcpy(gradInput_data, gradInput_host, gradInputSize, hipMemcpyHostToDevice);
 #endif
 
   THCudaTensor_free(state, input);

@@ -7,16 +7,17 @@
     #include <thrust/transform.h>
 #else
     #include <bolt/amp/functional.h>
+    #include <bolt/amp/iterator/ubiquitous_iterator.h>
     #include <bolt/amp/reduce.h>
     #include <bolt/amp/transform.h>
 #endif
 
 struct l1cost_functor
 {
-  __host__ __device__ 
+  __host__ __device__
   l1cost_functor() = default;
 
-  __device__
+  __host__ __device__
   float operator()(float x, float y) const
   {
 #ifdef __HIP_PLATFORM_HCC__
@@ -26,10 +27,8 @@ struct l1cost_functor
 #endif
   }
 
-  l1cost_functor(const l1cost_functor& fun) = default;
-
-  __host__ __device__ 
-  ~l1cost_functor() {}
+//  __host__ __device__
+//  ~l1cost_functor() {}
 };
 
 void THNN_CudaL1Cost_updateOutput(THCState *state, THCudaTensor *input, THCudaTensor *output)
@@ -42,13 +41,14 @@ void THNN_CudaL1Cost_updateOutput(THCState *state, THCudaTensor *input, THCudaTe
   thrust::device_ptr<float> input_data(THCudaTensor_data(state, input));
   sum = thrust::reduce(input_data, input_data+size, (float) 0, l1cost_functor());
 #else
-  auto input_data = THCudaTensor_data(state, input);
-  auto input_data_end = input_data + size;
-   sum = bolt::amp::reduce(input_data, 
-                           //input_data+size, 
-                           input_data_end, 
-                           0.0f,
-                           l1cost_functor());
+  auto input_data =
+      bolt::amp::make_ubiquitous_iterator(THCudaTensor_data(state, input));
+  //auto input_data_end = input_data + size;
+  sum = bolt::amp::reduce(input_data,
+                          input_data + size,
+                          //input_data_end,
+                          0.0f,
+                          l1cost_functor());
 #endif
 
   THCudaTensor_free(state, input);
@@ -83,13 +83,15 @@ void THNN_CudaL1Cost_updateGradInput(THCState *state, THCudaTensor *input, THCud
 
   thrust::transform(input_data, input_data+size, gradInput_data, l1cost_updateGradInput_functor());
 #else
-  auto input_data = THCudaTensor_data(state, input);
-  auto gradInput_data = THCudaTensor_data(state, gradInput);
+  auto input_data =
+      bolt::amp::make_ubiquitous_iterator(THCudaTensor_data(state, input));
+  auto gradInput_data =
+      bolt::amp::make_ubiquitous_iterator(THCudaTensor_data(state, gradInput));
 
-/*  bolt::amp::transform(input_data, 
-                       input_data+size, 
-                       gradInput_data, 
-                       l1cost_updateGradInput_functor());*/
+  bolt::amp::transform(input_data,
+                       input_data + size,
+                       gradInput_data,
+                       l1cost_updateGradInput_functor());
 #endif
 
   THCudaTensor_free(state, input);

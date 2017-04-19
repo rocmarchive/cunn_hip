@@ -13,6 +13,7 @@
 #else
     #include <bolt/amp/functional.h>
     #include <bolt/amp/inner_product.h>
+    #include <bolt/amp/iterator/ubiquitous_iterator.h>
 #endif
 
 struct smoothl1_functor
@@ -54,12 +55,14 @@ void THNN_CudaSmoothL1Criterion_updateOutput(THCState *state, THCudaTensor *inpu
     thrust::plus<float>(), smoothl1_functor()
   );
 #else
-  auto input_data = THCudaTensor_data(state, input);
-  auto target_data = THCudaTensor_data(state, target);
-  float sum = bolt::amp::inner_product(input_data, 
-                                       input_data+size, 
+  auto input_data =
+      bolt::amp::make_ubiquitous_iterator(THCudaTensor_data(state, input));
+  auto target_data =
+      bolt::amp::make_ubiquitous_iterator(THCudaTensor_data(state, target));
+  float sum = bolt::amp::inner_product(input_data,
+                                       input_data+size,
                                        target_data, 0.0f,
-                                       bolt::amp::plus<float>(), 
+                                       bolt::amp::plus<float>(),
                                        smoothl1_functor());
 #endif
 
@@ -76,17 +79,17 @@ struct smoothl1_updateGradInput_functor
 {
   float norm;
 
-  __host__ __device__ 
+  __host__ __device__
   smoothl1_updateGradInput_functor() = default;
 
-  __host__ __device__ 
+  __host__ __device__
   smoothl1_updateGradInput_functor(float norm_)
     : norm(norm_)
   {}
 
   smoothl1_updateGradInput_functor(const smoothl1_updateGradInput_functor& fun) = default;
 
-  __host__ __device__ 
+  __host__ __device__
   float operator()(const float &x, const float &y) const
   {
     float z = x - y;
@@ -128,13 +131,16 @@ void THNN_CudaSmoothL1Criterion_updateGradInput(THCState *state, THCudaTensor *i
     smoothl1_updateGradInput_functor(norm)
   );
 #else
-  auto input_data = THCudaTensor_data(state, input);
-  auto target_data = THCudaTensor_data(state, target);
-  auto gradInput_data = THCudaTensor_data(state, gradInput);
+  auto input_data =
+      bolt::amp::make_ubiquitous_iterator(THCudaTensor_data(state, input));
+  auto target_data =
+      bolt::amp::make_ubiquitous_iterator(THCudaTensor_data(state, target));
+  auto gradInput_data =
+      bolt::amp::make_ubiquitous_iterator(THCudaTensor_data(state, gradInput));
 
-  bolt::amp::transform(input_data, 
-                       input_data+size, 
-                       target_data, 
+  bolt::amp::transform(input_data,
+                       input_data+size,
+                       target_data,
                        gradInput_data,
                        smoothl1_updateGradInput_functor(norm));
 #endif

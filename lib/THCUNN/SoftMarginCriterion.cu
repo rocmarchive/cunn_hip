@@ -10,6 +10,7 @@
 #else
     #include <bolt/amp/functional.h>
     #include <bolt/amp/inner_product.h>
+    #include <bolt/amp/iterator/ubiquitous_iterator.h>
 #endif
 
 struct softmargin_functor
@@ -47,12 +48,14 @@ void THNN_CudaSoftMarginCriterion_updateOutput(THCState *state,
   thrust::device_ptr<float> target_data(THCudaTensor_data(state, target));
   sum = thrust::inner_product(input_data, input_data+size, target_data, (float) 0, thrust::plus<float>(), softmargin_functor());
 #else
-  auto input_data = THCudaTensor_data(state, input);
-  auto target_data = THCudaTensor_data(state, target);
-  sum = bolt::amp::inner_product(input_data, 
-                                 input_data+size, 
-                                 target_data, 0.0f, 
-                                 bolt::amp::plus<float>(), 
+  auto input_data =
+      bolt::amp::make_ubiquitous_iterator(THCudaTensor_data(state, input));
+  auto target_data =
+      bolt::amp::make_ubiquitous_iterator(THCudaTensor_data(state, target));
+  sum = bolt::amp::inner_product(input_data,
+                                 input_data+size,
+                                 target_data, 0.0f,
+                                 bolt::amp::plus<float>(),
                                  softmargin_functor());
 #endif
 
@@ -70,15 +73,15 @@ struct softmargin_updateGradInput_functor
 {
   float norm;
 
-  __host__ __device__ 
+  __host__ __device__
   softmargin_updateGradInput_functor() = default;
-  __host__ __device__ 
+  __host__ __device__
   softmargin_updateGradInput_functor(float norm_) :
     norm(norm_) {}
 
   softmargin_updateGradInput_functor(const softmargin_updateGradInput_functor& fun) = default;
 
-  __host__ __device__ 
+  __host__ __device__
   float operator()(const float& x, const float& y) const
     {
       float temp = exp(-x*y);
@@ -90,8 +93,7 @@ void THNN_CudaSoftMarginCriterion_updateGradInput(THCState *state,
                                                   THCudaTensor *input,
                                                   THCudaTensor *target,
                                                   THCudaTensor *gradInput,
-                                                  int sizeAverage
-                                                 )
+                                                  int sizeAverage)
 {
   THCUNN_assertSameGPU(state, 3, input, target, gradInput);
 
@@ -110,15 +112,18 @@ void THNN_CudaSoftMarginCriterion_updateGradInput(THCState *state,
 
   thrust::transform(input_data, input_data+size, target_data, gradInput_data, softmargin_updateGradInput_functor(norm));
 #else
-  auto input_data = THCudaTensor_data(state, input);
-  auto target_data = THCudaTensor_data(state, target);
-  auto gradInput_data = THCudaTensor_data(state, gradInput);
+  auto input_data =
+      bolt::amp::make_ubiquitous_iterator(THCudaTensor_data(state, input));
+  auto target_data =
+      bolt::amp::make_ubiquitous_iterator(THCudaTensor_data(state, target));
+  auto gradInput_data =
+      bolt::amp::make_ubiquitous_iterator(THCudaTensor_data(state, gradInput));
 
-/*  bolt::amp::transform(input_data, 
-                       input_data+size, 
-                       target_data, 
-                       gradInput_data, 
-                       softmargin_updateGradInput_functor(norm));*/
+  bolt::amp::transform(input_data,
+                       input_data + size,
+                       target_data,
+                       gradInput_data,
+                       softmargin_updateGradInput_functor(norm));
 #endif
 
   THCudaTensor_free(state, input);
