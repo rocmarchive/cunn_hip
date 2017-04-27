@@ -22,7 +22,7 @@ function test()
       if opt.progressBar then xlua.progress(t, nTesting) end
       -- test sample
       local input, _, target = getTest(t, lightTesting)
-      input = input:hc()
+      input = input:cuda()
       local output = model:forward(input)
       output = output:mean(1)[1]:float()
       local err = criterion:forward(output, target)

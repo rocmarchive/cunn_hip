@@ -44,6 +44,6 @@ for k,v in pairs(model:findModules(('%s.SpatialConvolution'):format(backend_name
   v.bias:zero()
 end
 
---print(#model:hc():forward(torch.HcTensor(1,3,32,32)))
+--print(#model:cuda():forward(torch.HcTensor(1,3,32,32)))
 
 return model

@@ -1,5 +1,5 @@
 require 'torch'
-require 'hctorch'
+require 'cutorch'
 
 torch.setdefaulttensortype('torch.FloatTensor')
 cmd = torch.CmdLine()
@@ -26,7 +26,7 @@ opt = cmd:parse(arg or {})
 -- nb of threads and fixed seed (for repeatable experiments)
 torch.setnumthreads(opt.threads)
 torch.manualSeed(opt.seed)
-hctorch.setDevice(opt.gpuid)
+cutorch.setDevice(opt.gpuid)
 
 
 -- loadSize   = {3, 256, 256}

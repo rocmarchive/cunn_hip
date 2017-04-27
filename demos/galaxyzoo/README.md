@@ -15,4 +15,4 @@ The winning model was Sander Dieleman's convnet appropach described here: http:/
 
 For install instructions, please look at INSTALL.md
 
-NOTE: This is the ported version of [galaxyzoo](https://github.com/soumith/galaxyzoo) to support hcnn backend
+NOTE: This is the ported version of [galaxyzoo](https://github.com/soumith/galaxyzoo) to support cunn backend

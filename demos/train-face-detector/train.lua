@@ -77,8 +77,8 @@ local x = torch.Tensor(opt.batchSize,trainData.data:size(2),
          trainData.data:size(3), trainData.data:size(4)) --faces data
 local yt = torch.Tensor(opt.batchSize)
 if opt.type == 'hc' then 
-   x = x:hc()
-   yt = yt:hc()
+   x = x:cuda()
+   yt = yt:cuda()
 end
 
 ----------------------------------------------------------------------

@@ -1,5 +1,5 @@
 require 'nn'
-require 'hcnn'
+require 'cunn'
 
 local backend_name = 'nn'
 
@@ -44,7 +44,7 @@ ConvBNReLU(512,512)
 vgg:add(MaxPooling(2,2,2,2):ceil())
 
 -- In the last block of convolutions the inputs are smaller than
--- the kernels and cudnn doesn't handle that, have to use hcnn
+-- the kernels and cudnn doesn't handle that, have to use cunn
 backend = nn
 ConvBNReLU(512,512):add(nn.Dropout(0.4))
 ConvBNReLU(512,512):add(nn.Dropout(0.4))
@@ -79,6 +79,6 @@ MSRinit(vgg)
 
 -- check that we can propagate forward without errors
 -- should get 16x10 tensor
---print(#vgg:hc():forward(torch.HcTensor(16,3,32,32)))
+--print(#vgg:cuda():forward(torch.HcTensor(16,3,32,32)))
 
 return vgg

@@ -16,7 +16,7 @@ if model then
       parameters:copy(p2)
       gradParameters:copy(gp2)
    end
-   model:hc()
+   model:cuda()
    parameters,gradParameters = model:getParameters()
    collectgarbage()
 end
@@ -51,7 +51,7 @@ function train()
 
       -- create mini batch
       local inputs, _, targets = getBatch(batchSize)
-      inputs = inputs:hc()
+      inputs = inputs:cuda()
 
       -- create closure to evaluate f(X) and df/dX
       local feval = function(x)
@@ -84,7 +84,7 @@ function train()
 	    tMSE = tMSE + err
 	    f = f + err
 	 end
-	 model:backward(inputs, df_do:hc())
+	 model:backward(inputs, df_do:cuda())
 	 -- normalize gradients and f(X)
 	 gradParameters:div(batchSize)
 	 -- fgradParameters:mul(#branch)

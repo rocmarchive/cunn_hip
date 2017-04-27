@@ -39,7 +39,7 @@ torch.setdefaulttensortype('torch.FloatTensor')
 -- type:
 if opt.type == 'hc' then
    print(sys.COLORS.red ..  '==> switching to CUDA')
-   require 'hcnn'
+   require 'cunn'
    hctorch.setDevice(opt.devid)
    print(sys.COLORS.red ..  '==> using Hc #' .. hctorch.getDevice())
 end

@@ -1,7 +1,7 @@
 require 'torch'
 require 'nn'
 require 'nnx'
-require 'hcnn'
+require 'cunn'
 
 print '==> 2_model.lua'
 print '==> defining CNN model'

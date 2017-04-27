@@ -28,8 +28,8 @@ local inputs = torch.Tensor(opt.batchSize,testData.data:size(2),
          testData.data:size(3), testData.data:size(4)) -- get size from data
 local targets = torch.Tensor(opt.batchSize)
 if opt.type == 'hc' then 
-   inputs = inputs:hc()
-   targets = targets:hc()
+   inputs = inputs:cuda()
+   targets = targets:cuda()
 end
 
 ----------------------------------------------------------------------

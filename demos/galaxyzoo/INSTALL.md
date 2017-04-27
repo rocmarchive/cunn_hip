@@ -7,8 +7,8 @@ Install on Ubuntu or OSX
 
 * Then install the rest of the needed packages:
 ```
-luarocks install hctorch
-luarocks install hcnn
+luarocks install cutorch
+luarocks install cunn
 luarocks install csvigo
 luarocks install nnx
 luarocks install torchffi
