@@ -102,9 +102,9 @@ void THNN_CudaMarginCriterion_updateGradInput(THCState *state, THCudaTensor *inp
 
   thrust::transform(input_data, input_data+size, target_data, gradInput_data, margin_updateGradInput_functor(margin, norm));
 #else
-  auto input_data = THCudaTensor_data(state, input);
-  auto target_data = THCudaTensor_data(state, target);
-  auto gradInput_data = THCudaTensor_data(state, gradInput);
+  auto input_data = bolt::amp::make_ubiquitous_iterator(THCudaTensor_data(state, input));
+  auto target_data = bolt::amp::make_ubiquitous_iterator(THCudaTensor_data(state, target));
+  auto gradInput_data = bolt::amp::make_ubiquitous_iterator(THCudaTensor_data(state, gradInput));
 
   bolt::amp::transform(input_data,
                        input_data + size,
