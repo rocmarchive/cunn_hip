@@ -2,6 +2,8 @@
 
 #ifdef __NVCC__
   #include <cusparse.h>
+#else
+  #include <hipsparse.h>
 #endif
 #ifdef THRUST_PATH
   #include <thrust/device_vector.h>
@@ -9,6 +11,8 @@
 
 #ifdef __NVCC__
 static cusparseHandle_t cusparse_handle = 0;
+#else
+static hipsparseHandle_t cusparse_handle = 0;
 #endif
 
 static void init_cusparse() {
@@ -17,6 +21,13 @@ static void init_cusparse() {
     cusparseStatus_t status = cusparseCreate(&cusparse_handle);
     if (status != CUSPARSE_STATUS_SUCCESS) {
       THError("CUSPARSE Library initialization failed");
+    }
+  }
+#else
+  if (cusparse_handle == 0) {
+    hipsparseStatus_t status = hipsparseCreate(&cusparse_handle);
+    if (status != HIPSPARSE_STATUS_SUCCESS) {
+      THError("HIPSPARSE Library initialization failed");
     }
   }
 #endif
@@ -84,6 +95,12 @@ void THNN_CudaSparseLinear_updateOutput(THCState *state,
   cusparseXcoo2csr(cusparse_handle,
       THCudaIntTensor_data(state, rowbuf), nnz, batchnum,
       THCudaIntTensor_data(state, csrPtrs), CUSPARSE_INDEX_BASE_ONE);
+#else
+  std::cout << "THNN_CudaSparseLinear_updateOutput: before hipsparseXcoo2csr\n";
+  hipsparseXcoo2csr(cusparse_handle,
+      THCudaIntTensor_data(state, rowbuf), nnz, batchnum,
+      THCudaIntTensor_data(state, csrPtrs), HCSPARSE_INDEX_BASE_ONE);
+  std::cout << "THNN_CudaSparseLinear_updateOutput: after hipsparseXcoo2csr\n";
 #endif
   // output = bias
   THCudaTensor_resize2d(state, buffer, outDim, batchnum);
@@ -111,6 +128,33 @@ void THNN_CudaSparseLinear_updateOutput(THCState *state,
       THCudaTensor_data(state, weight), inDim,
       &one, THCudaTensor_data(state, buffer), batchnum
   );
+#else
+  float one = 1;
+  hipsparseMatDescr_t descr;
+  memset(&descr, 0, sizeof(hipsparseMatDescr_t));
+  hipsparseCreateMatDescr(&descr);
+  descr.MatrixType = HCSPARSE_MATRIX_TYPE_GENERAL;
+  descr.IndexBase = HCSPARSE_INDEX_BASE_ONE;
+  std::cout << "THNN_CudaSparseLinear_updateOutput: before hipsparseScsrmm\n";
+
+  std::cout << "values: " << THCudaTensor_data(state, values) << "\n";
+  std::cout << "csrPtrs: " << THCudaIntTensor_data(state, csrPtrs) << "\n";
+  std::cout << "colInds: " << THCudaIntTensor_data(state, colInds) << "\n";
+  std::cout << "weight: " << THCudaTensor_data(state, weight) << "\n";
+  std::cout << "buffer: " << THCudaTensor_data(state, buffer) << "\n";
+
+  hipsparseScsrmm(cusparse_handle,
+      HCSPARSE_OPERATION_NON_TRANSPOSE,
+      batchnum, outDim, inDim, nnz,
+      &one,
+      descr,
+      THCudaTensor_data(state, values),
+      THCudaIntTensor_data(state, csrPtrs),
+      THCudaIntTensor_data(state, colInds),
+      THCudaTensor_data(state, weight), inDim,
+      &one, THCudaTensor_data(state, buffer), batchnum
+  );
+  std::cout << "THNN_CudaSparseLinear_updateOutput: after hipsparseScsrmm\n";
 #endif
   THCudaTensor_transpose(state, buffer, NULL, 0, 1);
 
@@ -120,6 +164,9 @@ void THNN_CudaSparseLinear_updateOutput(THCState *state,
 #ifdef __NVCC__
   cusparseDestroyMatDescr(descr);
   descr = 0;
+#else
+  hipsparseDestroyMatDescr(descr);
+  memset(&descr, 0, sizeof(hipsparseMatDescr_t));
 #endif
   THCudaTensor_free(state, buffer);
   THCudaTensor_free(state, sel);
@@ -186,6 +233,12 @@ void THNN_CudaSparseLinear_accGradParameters(
   cusparseXcoo2csr(cusparse_handle,
       THCudaIntTensor_data(state, colbuf), nnz, inDim,
       THCudaIntTensor_data(state, colPtrs), CUSPARSE_INDEX_BASE_ONE);
+#else
+  std::cout << "THNN_CudaSparseLinear_accGradParameters: before hipsparseXcoo2csr\n";
+  hipsparseXcoo2csr(cusparse_handle,
+      THCudaIntTensor_data(state, colbuf), nnz, inDim,
+      THCudaIntTensor_data(state, colPtrs), HCSPARSE_INDEX_BASE_ONE);
+  std::cout << "THNN_CudaSparseLinear_accGradParameters: after hipsparseXcoo2csr\n";
 #endif
   // FORTRAN expects contiguous col-major matricies
   THCudaTensor_transpose(state, gradOutput, NULL, 0, 1);
@@ -210,6 +263,26 @@ void THNN_CudaSparseLinear_accGradParameters(
       THCudaTensor_data(state, buf), batchnum,
       &one, THCudaTensor_data(state, gradWeight), inDim
   );
+#else
+  float one = 1;
+  hipsparseMatDescr_t descr;
+  memset(&descr, 0, sizeof(hipsparseMatDescr_t));
+  hipsparseCreateMatDescr(&descr);
+  descr.MatrixType = HCSPARSE_MATRIX_TYPE_GENERAL;
+  descr.IndexBase = HCSPARSE_INDEX_BASE_ONE;
+  std::cout << "THNN_CudaSparseLinear_accGradParameters: before hipsparseScsrmm\n";
+  hipsparseScsrmm(cusparse_handle,
+      HCSPARSE_OPERATION_NON_TRANSPOSE,
+      inDim, outDim, batchnum, nnz,
+      &one,
+      descr,
+      THCudaTensor_data(state, values),
+      THCudaIntTensor_data(state, colPtrs),
+      THCudaIntTensor_data(state, rowInds),
+      THCudaTensor_data(state, buf), batchnum,
+      &one, THCudaTensor_data(state, gradWeight), inDim
+  );
+  std::cout << "THNN_CudaSparseLinear_accGradParameters: after hipsparseScsrmm\n";
 #endif
 
   THCudaTensor_sum(state, buf, gradOutput, 0);
