@@ -1,3 +1,4 @@
+#if 0
 #ifndef THC_GENERIC_FILE
 #define THC_GENERIC_FILE "generic/Threshold.cu"
 #else
@@ -66,4 +67,5 @@ void THNN_(Threshold_updateGradInput)(
   THCudaCheck(hipGetLastError());
 }
 
+#endif
 #endif

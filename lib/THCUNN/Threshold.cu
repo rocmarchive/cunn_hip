@@ -1,3 +1,4 @@
+#if 0
 #include "THCUNN.h"
 #include "THCHalf.h"
 #include "THCHalfAutoNumerics.cuh"
@@ -73,3 +74,4 @@ struct ThresholdUpdateGradInputIP
 
 #include "generic/Threshold.cu"
 #include "THCGenerateFloatTypes.h"
+#endif

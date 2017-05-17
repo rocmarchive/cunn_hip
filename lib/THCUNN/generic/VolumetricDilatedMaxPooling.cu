@@ -4,8 +4,8 @@
 #else
 
 #define UPDATE_OUTPUT_KERNEL_WIDTH(KW) case KW:                         \
-  cuda_VolumetricDilatedMaxPooling_updateOutput<KW><<<grid, block,             \
-    0, THCState_getCurrentStream(state)>>>(                             \
+  hipLaunchKerneGGL((cuda_VolumetricDilatedMaxPooling_updateOutput<KW>),grid, block,      \
+    0, THCState_getCurrentStream(state),                             \
     cudaInput, cudaIndices, cudaOutput, kT, kH, dT, dH, dW, padT, padH, padW,\
     dilationT, dilationH, dilationW, offsetZ); \
     break

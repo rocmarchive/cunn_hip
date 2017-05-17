@@ -465,29 +465,29 @@ __global__ void
     break;                                      \
   }
 
-#define LSTM_FORWARD(ITYPE, DIM) THNN_(LSTMForward)             \
-  <DATATYPE, ITYPE, DIM>                                        \
-  <<<grid, block, 0, THCState_getCurrentStream(state)>>>        \
-  (inputI, hiddenI,                                             \
+#define LSTM_FORWARD(ITYPE, DIM) hipLaunchKernelGGL((THNN_(LSTMForward)             \
+  <DATATYPE, ITYPE, DIM>),                                        \
+  grid, block, 0, THCState_getCurrentStream(state),         \
+   inputI, hiddenI,                                             \
    bias1I, bias2I, cxI, hyI, cyI,                               \
    hid_size, totalElements);
 
-#define LSTM_BACKWARD(ITYPE, DIM) THNN_(LSTMBackward)           \
-  <DATATYPE, ITYPE, DIM>                                        \
-  <<<grid, block, 0, THCState_getCurrentStream(state)>>>        \
-  (inputI, hiddenI, cxI, cyI,                                   \
+#define LSTM_BACKWARD(ITYPE, DIM) hipLaunchKernelGGL((THNN_(LSTMBackward)           \
+  <DATATYPE, ITYPE, DIM>),                                        \
+  grid, block, 0, THCState_getCurrentStream(state),        \
+  inputI, hiddenI, cxI, cyI,                                   \
    gradoutI, gradoutcI, gradinI,                                \
    hid_size, totalElements);
 
-#define GRU_FORWARD(ITYPE, DIM) THNN_(GRUForward)<DATATYPE, ITYPE, DIM> \
-  <<<grid, block, 0, THCState_getCurrentStream(state)>>>                \
-  (inputI, hiddenI, bias1I, bias2I, hxI, hyI,                           \
+#define GRU_FORWARD(ITYPE, DIM) hipLaunchKernelGGL((THNN_(GRUForward)<DATATYPE, ITYPE, DIM>), \
+  grid, block, 0, THCState_getCurrentStream(state),                \
+  inputI, hiddenI, bias1I, bias2I, hxI, hyI,                           \
    hid_size, totalElements);
 
-#define GRU_BACKWARD(ITYPE, DIM) THNN_(GRUBackward)                     \
-  <DATATYPE, ITYPE, DIM>                                                \
-  <<<grid, block, 0, THCState_getCurrentStream(state)>>>                \
-  (inputI, hiddenI, gradoutI, gradinI, hid_size, totalElements);
+#define GRU_BACKWARD(ITYPE, DIM) hipLaunchKernelGGL((THNN_(GRUBackward)                     \
+  <DATATYPE, ITYPE, DIM>),                                                \
+  grid, block, 0, THCState_getCurrentStream(state),                \
+  inputI, hiddenI, gradoutI, gradinI, hid_size, totalElements);
 
 // ************ END Create actual function calls ************ //
 
