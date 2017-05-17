@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 #ifndef THC_GENERIC_FILE
 #define THC_GENERIC_FILE "generic/ClassNLLCriterion.cu"
 #else
@@ -39,9 +40,10 @@ void THNN_(ClassNLLCriterion_updateOutput)(
       batch_size, num_targets);
 
   if (weights && THCTensor_(nElement)(state, weights) != n_classes) {
-    THCDescBuff s1 = THCTensor_(sizeDesc)(state, weights);
-    THError("weight tensor should be defined either for all %d classes or no classes"
-            " but got weight tensor of shape: %s", n_classes, s1.str);
+    // WSTHORNTON
+    // THCDescBuff s1 = THCTensor_(sizeDesc)(state, weights);
+    // THError("weight tensor should be defined either for all %d classes or no classes"
+    //         " but got weight tensor of shape: %s", n_classes, s1.str);
   }
 
   input = THCTensor_(newContiguous)(state, input);
@@ -55,8 +57,7 @@ void THNN_(ClassNLLCriterion_updateOutput)(
   real *total_weight_data = THCTensor_(data)(state, total_weight);
 
   if (THCTensor_(nDimension)(state, input) == 1) {
-    cunn_ClassNLLCriterion_updateOutput_kernel1<real>
-      <<<1, 1, 0, THCState_getCurrentStream(state)>>>(
+    hipLaunchKernelGGL((cunn_ClassNLLCriterion_updateOutput_kernel1<real>), dim3(1), dim3(1), 0, THCState_getCurrentStream(state), 
         output_data,
         total_weight_data,
         input_data,
@@ -67,8 +68,7 @@ void THNN_(ClassNLLCriterion_updateOutput)(
     );
 
   } else if (THCTensor_(nDimension)(state, input) == 2) {
-    cunn_ClassNLLCriterion_updateOutput_kernel<real, accreal>
-      <<<1, NTHREADS, 0, THCState_getCurrentStream(state)>>>(
+    hipLaunchKernelGGL((cunn_ClassNLLCriterion_updateOutput_kernel<real, accreal>), dim3(1), dim3(NTHREADS), 0, THCState_getCurrentStream(state), 
         output_data,
         total_weight_data,
         input_data,
@@ -80,7 +80,7 @@ void THNN_(ClassNLLCriterion_updateOutput)(
         n_classes
     );
   }
-  THCudaCheck(cudaGetLastError());
+  THCudaCheck(hipGetLastError());
 
   if (weights) {
     THCTensor_(free)(state, weights);
@@ -138,8 +138,7 @@ void THNN_(ClassNLLCriterion_updateGradInput)(
   real *total_weight_data = THCTensor_(data)(state, total_weight);
 
   if (THCTensor_(nDimension)(state, input) == 1) {
-    cunn_ClassNLLCriterion_updateGradInput_kernel1<real>
-      <<<1, 1, 0, THCState_getCurrentStream(state)>>>(
+    hipLaunchKernelGGL((cunn_ClassNLLCriterion_updateGradInput_kernel1<real>), dim3(1), dim3(1), 0, THCState_getCurrentStream(state), 
         gradInput_data,
         weights_data,
         target_data,
@@ -148,8 +147,7 @@ void THNN_(ClassNLLCriterion_updateGradInput)(
         n_classes
     );
   } else {
-    cunn_ClassNLLCriterion_updateGradInput_kernel<real>
-      <<<1, NTHREADS, 0, THCState_getCurrentStream(state)>>>(
+    hipLaunchKernelGGL((cunn_ClassNLLCriterion_updateGradInput_kernel<real>), dim3(1), dim3(NTHREADS), 0, THCState_getCurrentStream(state), 
         gradInput_data,
         target_data,
         weights_data,
@@ -160,7 +158,7 @@ void THNN_(ClassNLLCriterion_updateGradInput)(
         n_classes
     );
   }
-  THCudaCheck(cudaGetLastError());
+  THCudaCheck(hipGetLastError());
 
   if (weights) {
     THCTensor_(free)(state, weights);

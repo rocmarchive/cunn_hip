@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 #ifndef THC_GENERIC_FILE
 #define THC_GENERIC_FILE "generic/FusedRNNKernel.cu"
 #else
@@ -94,9 +95,9 @@ __global__ void
             IndexType hsz,
             IndexType totalElements)
 {
-  for (IndexType linearIndex = blockIdx.x * blockDim.x + threadIdx.x;
+  for (IndexType linearIndex = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x;
        linearIndex < totalElements;
-       linearIndex += gridDim.x * blockDim.x)
+       linearIndex += hipGridDim_x * hipBlockDim_x)
     {
 
       IndexType offset = (linearIndex/hsz)*3*hsz+linearIndex%hsz;
@@ -191,9 +192,9 @@ THNN_(GRUBackward)(TensorInfo<T, IndexType> input,
              IndexType hsz,
              IndexType totalElements)
 {
-  for (IndexType linearIndex = blockIdx.x * blockDim.x + threadIdx.x;
+  for (IndexType linearIndex = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x;
        linearIndex < totalElements;
-       linearIndex += gridDim.x * blockDim.x) {
+       linearIndex += hipGridDim_x * hipBlockDim_x) {
     IndexType offset = (linearIndex/hsz)*3*hsz+linearIndex%hsz;;
 
     //will return input grads here
@@ -261,9 +262,9 @@ __global__ void
             IndexType totalElements)
 {
 
-    for (IndexType linearIndex = blockIdx.x * blockDim.x + threadIdx.x;
+    for (IndexType linearIndex = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x;
        linearIndex < totalElements;
-       linearIndex += gridDim.x * blockDim.x)
+       linearIndex += hipGridDim_x * hipBlockDim_x)
     {
 
       IndexType offset = (linearIndex/hsz)*4*hsz+linearIndex%hsz;
@@ -374,9 +375,9 @@ __global__ void
               IndexType hsz,
               IndexType totalElements)
 {
-  for (IndexType linearIndex = blockIdx.x * blockDim.x + threadIdx.x;
+  for (IndexType linearIndex = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x;
        linearIndex < totalElements;
-       linearIndex += gridDim.x * blockDim.x) {
+       linearIndex += hipGridDim_x * hipBlockDim_x) {
     IndexType offset = (linearIndex/hsz)*4*hsz+linearIndex%hsz;
 
     T ig = DEVICE_LINEAR_GET(input, offset+0*hsz);
@@ -596,7 +597,7 @@ void THNN_(LSTMFused_updateOutput)(
     THNN_(LSTM_forw_ind_wrap)<unsigned long>
       (state, input, hidden, bias1, bias2, cx, hy, cy);
   }
-    THCudaCheck(cudaGetLastError());
+    THCudaCheck(hipGetLastError());
 }
 
 template<typename INDTYPE>
@@ -680,7 +681,7 @@ void THNN_(LSTMFused_updateGradInput)(
       (state, input, hidden, cx, cy,
        gradOutput, gradOutputCell, gradInput);
   }
-  THCudaCheck(cudaGetLastError());
+  THCudaCheck(hipGetLastError());
 }
 
 template<typename INDTYPE>
@@ -787,7 +788,7 @@ void THNN_(GRUFused_updateOutput)(
       (state, input, hidden, bias1, bias2, hx, hy);
   }
 
-  THCudaCheck(cudaGetLastError());
+  THCudaCheck(hipGetLastError());
 }
 
 template<typename INDTYPE>
@@ -845,7 +846,7 @@ void THNN_(GRUFused_updateGradInput)(
       (state, input, hidden, gradOutput, gradInput);
   }
 
-  THCudaCheck(cudaGetLastError());
+  THCudaCheck(hipGetLastError());
 }
 
 //Clean up compiler namespace

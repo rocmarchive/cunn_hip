@@ -2,8 +2,9 @@
 #include "common.h"
 #include "THCHalf.h"
 #include "THCHalfAutoNumerics.cuh"
-#include "THCThrustAllocator.cuh"
 
+#if THRUST_PATH
+#include "THCThrustAllocator.cuh"
 #include <thrust/fill.h>
 #include <thrust/functional.h>
 #include <thrust/device_ptr.h>
@@ -11,6 +12,11 @@
 #include <thrust/inner_product.h>
 #if CUDA_VERSION >= 7000
 #include <thrust/system/cuda/execution_policy.h>
+#endif
+#else
+  #include <bolt/amp/functional.h>
+  #include <bolt/amp/inner_product.h>
+  #include <bolt/amp/iterator/ubiquitous_iterator.h>
 #endif
 
 template <typename Dtype, typename Acctype>

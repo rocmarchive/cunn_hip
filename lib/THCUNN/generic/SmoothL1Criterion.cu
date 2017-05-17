@@ -22,6 +22,7 @@ void THNN_(SmoothL1Criterion_updateOutput)(
   input = THCTensor_(newContiguous)(state, input);
   target = THCTensor_(newContiguous)(state, target);
 
+#if THRUST_PATH
   THCThrustAllocator thrustAlloc(state);
   thrust::device_ptr<real> input_data(THCTensor_(data)(state, input));
   thrust::device_ptr<real> target_data(THCTensor_(data)(state, target));
@@ -32,6 +33,14 @@ void THNN_(SmoothL1Criterion_updateOutput)(
     input_data, input_data+size, target_data, (accreal) 0,
     thrust::plus<accreal>(), smoothl1_functor<real, accreal>()
   );
+#else
+  auto input_data = make_ubiquitous_iterator(THCTensor_(data)(state, input));
+  auto target_data = make_ubiquitous_iterator(THCTensor_(data)(state, target));
+  accreal sum = bolt::amp::inner_product(
+    input_data, input_data+size, target_data, (accreal) 0,
+    bolt::amp::plus<accreal>(), smoothl1_functor<real, accreal>()
+  );
+#endif
 
   if (sizeAverage)
     sum /= size;
@@ -64,6 +73,7 @@ void THNN_(SmoothL1Criterion_updateGradInput)(
 
   THCTensor_(resizeAs)(state, gradInput, input);
 
+#if THRUST_PATH
   THCThrustAllocator thrustAlloc(state);
   thrust::device_ptr<real> input_data(THCTensor_(data)(state, input));
   thrust::device_ptr<real> target_data(THCTensor_(data)(state, target));
@@ -76,6 +86,16 @@ void THNN_(SmoothL1Criterion_updateGradInput)(
     input_data, input_data+size, target_data, gradInput_data,
     smoothl1_updateGradInput_functor<real>(norm)
   );
+#else
+  auto input_data = make_ubiquitous_iterator(THCTensor_(data)(state, input));
+  auto target_data = make_ubiquitous_iterator(THCTensor_(data)(state, target));
+  auto gradInput_data = make_ubiquitous_iterator(THCTensor_(data)(state, gradInput));
+
+  bolt::amp::transform(
+    input_data, input_data+size, target_data, gradInput_data,
+    smoothl1_updateGradInput_functor<real>(norm)
+  );
+#endif
 
   THCTensor_(free)(state, input);
   THCTensor_(free)(state, target);

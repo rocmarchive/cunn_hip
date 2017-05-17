@@ -20,6 +20,7 @@ void THNN_(BCECriterion_updateOutput)(
   input = THCTensor_(newContiguous)(state, input);
   target = THCTensor_(newContiguous)(state, target);
 
+#ifdef THRUST_PATH
   thrust::device_ptr<real> input_data(THCTensor_(data)(state, input));
   thrust::device_ptr<real> target_data(THCTensor_(data)(state, target));
 
@@ -52,6 +53,7 @@ void THNN_(BCECriterion_updateOutput)(
   THCTensor_(free)(state, target);
 
   THCTensor_(set1d)(state, output, 0, ScalarConvert<accreal, real>::to(sum));
+#endif
 }
 
 void THNN_(BCECriterion_updateGradInput)(
@@ -74,6 +76,7 @@ void THNN_(BCECriterion_updateGradInput)(
 
   THCTensor_(resizeAs)(state, gradInput, input);
 
+#ifdef THRUST_PATH
   thrust::device_ptr<real> input_data(THCTensor_(data)(state, input));
   thrust::device_ptr<real> target_data(THCTensor_(data)(state, target));
   thrust::device_ptr<real> gradInput_data(THCTensor_(data)(state, gradInput));
@@ -99,6 +102,7 @@ void THNN_(BCECriterion_updateGradInput)(
 
   THCTensor_(free)(state, input);
   THCTensor_(free)(state, target);
+#endif
 }
 
 #endif

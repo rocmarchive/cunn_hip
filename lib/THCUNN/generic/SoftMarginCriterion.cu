@@ -19,9 +19,15 @@ void THNN_(SoftMarginCriterion_updateOutput)(
   input = THCTensor_(newContiguous)(state, input);
   target = THCTensor_(newContiguous)(state, target);
 
+#if THRUST_PATH
   thrust::device_ptr<real> input_data(THCTensor_(data)(state, input));
   thrust::device_ptr<real> target_data(THCTensor_(data)(state, target));
   sum = thrust::inner_product(input_data, input_data+size, target_data, (accreal) 0, thrust::plus<accreal>(), softmargin_functor<real, accreal>());
+#else
+  auto input_data = make_ubiquitous_iterator(THCTensor_(data)(state, input));
+  auto target_data = make_ubiquitous_iterator(THCTensor_(data)(state, target));
+  sum = bolt::amp::inner_product(input_data, input_data+size, target_data, (accreal) 0, bolt::amp::plus<accreal>(), softmargin_functor<real, accreal>());
+#endif
 
   if(sizeAverage)
     sum /= size;
@@ -50,12 +56,19 @@ void THNN_(SoftMarginCriterion_updateGradInput)(
 
   THCTensor_(resizeAs)(state, gradInput, input);
 
+#if THRUST_PATH
   thrust::device_ptr<real> input_data(THCTensor_(data)(state, input));
   thrust::device_ptr<real> target_data(THCTensor_(data)(state, target));
   thrust::device_ptr<real> gradInput_data(THCTensor_(data)(state, gradInput));
 
   thrust::transform(input_data, input_data+size, target_data, gradInput_data, softmargin_updateGradInput_functor<real, accreal>(norm));
+#else
+  auto input_data = make_ubiquitous_iterator(THCTensor_(data)(state, input));
+  auto target_data = make_ubiquitous_iterator(THCTensor_(data)(state, target));
+  auto gradInput_data = make_ubiquitous_iterator(THCTensor_(data)(state, gradInput));
 
+  bolt::amp::transform(input_data, input_data+size, target_data, gradInput_data, softmargin_updateGradInput_functor<real, accreal>(norm));
+#endif
   THCTensor_(free)(state, input);
   THCTensor_(free)(state, target);
 }

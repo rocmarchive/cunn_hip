@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 #ifndef THC_GENERIC_FILE
 #define THC_GENERIC_FILE "generic/SpatialClassNLLCriterion.cu"
 #else
@@ -18,10 +19,11 @@ void THNN_(SpatialClassNLLCriterion_shapeCheck)(
   if (THCTensor_(size)(state, input, 0) != THCIndexTensor_(size)(state, target, 0) ||
       THCTensor_(size)(state, input, 2) != THCIndexTensor_(size)(state, target, 1) ||
       THCTensor_(size)(state, input, 3) != THCIndexTensor_(size)(state, target, 2)) {
-    THCDescBuff input_size = THCTensor_(sizeDesc)(state, input);
-    THCDescBuff target_size = THCIndexTensor_(sizeDesc)(state, target);
-    THError("input and target batch or spatial sizes don't match: target %s, input %s",
-            target_size.str, input_size.str);
+    // WSTHORNTON
+    // THCDescBuff input_size = THCTensor_(sizeDesc)(state, input);
+    // THCDescBuff target_size = THCIndexTensor_(sizeDesc)(state, target);
+    // THError("input and target batch or spatial sizes don't match: target %s, input %s",
+    //         target_size.str, input_size.str);
   }
 
   if (weights && THCTensor_(nElement)(state, weights) != THCTensor_(size)(state, input, 1)) {
@@ -64,8 +66,7 @@ void THNN_(SpatialClassNLLCriterion_updateOutput)(
   THCTensor_(fill)(state, output, ScalarConvert<int, real>::to(0));
   THCTensor_(fill)(state, total_weight, ScalarConvert<int, real>::to(0));
 
-  cunn_SpatialClassNLLCriterion_updateOutput_kernel<real, accreal>
-    <<<total_blocks, CUDA_NUM_THREADS, 0, THCState_getCurrentStream(state)>>>(
+  hipLaunchKernelGGL((cunn_SpatialClassNLLCriterion_updateOutput_kernel<real, accreal>), dim3(total_blocks), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state), 
       output_data,
       total_weight_data,
       input_data,
@@ -77,12 +78,12 @@ void THNN_(SpatialClassNLLCriterion_updateOutput)(
       THCTensor_(size)(state, input, 2) * THCTensor_(size)(state, input, 3),
       blocks_per_sample
   );
-  THCudaCheck(cudaGetLastError());
+  THCudaCheck(hipGetLastError());
   if (sizeAverage) {
-    cunn_SpatialClassNLLCriterion_sizeAverage_kernel<<<1, 1, 0, THCState_getCurrentStream(state)>>>(
+    hipLaunchKernelGGL((cunn_SpatialClassNLLCriterion_sizeAverage_kernel), dim3(1), dim3(1), 0, THCState_getCurrentStream(state), 
       output_data, total_weight_data
     );
-    THCudaCheck(cudaGetLastError());
+    THCudaCheck(hipGetLastError());
   }
 
   if (weights)
@@ -124,8 +125,7 @@ void THNN_(SpatialClassNLLCriterion_updateGradInput)(
   blocks_per_sample = (blocks_per_sample == 0) ? 1 : blocks_per_sample;
   int total_blocks = blocks_per_sample * batch_size;
 
-  cunn_SpatialClassNLLCriterion_updateGradInput_kernel
-    <<<total_blocks, CUDA_NUM_THREADS, 0, THCState_getCurrentStream(state)>>>(
+  hipLaunchKernelGGL((cunn_SpatialClassNLLCriterion_updateGradInput_kernel), dim3(total_blocks), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state), 
       gradInput_data,
       target_data,
       weights_data,
@@ -136,7 +136,7 @@ void THNN_(SpatialClassNLLCriterion_updateGradInput)(
       THCTensor_(size)(state, input, 2) *THCTensor_(size)(state, input, 3),
       blocks_per_sample
   );
-  THCudaCheck(cudaGetLastError());
+  THCudaCheck(hipGetLastError());
 
   if (weights)
     THCTensor_(free)(state, weights);

@@ -1,18 +1,21 @@
+#include "hip/hip_runtime.h"
 #include "THCUNN.h"
 #include "common.h"
 
-#include "THCThrustAllocator.cuh"
-#include <thrust/device_ptr.h>
-#include <thrust/execution_policy.h>
-#include <thrust/iterator/constant_iterator.h>
-#include <thrust/transform_reduce.h>
-#if CUDA_VERSION >= 7000
-#include <thrust/system/cuda/execution_policy.h>
+#if THRUST_PATH
+  #include "THCThrustAllocator.cuh"
+  #include <thrust/device_ptr.h>
+  #include <thrust/execution_policy.h>
+  #include <thrust/iterator/constant_iterator.h>
+  #include <thrust/transform_reduce.h>
+  #if CUDA_VERSION >= 7000
+    #include <thrust/system/cuda/execution_policy.h>
+  #endif
+  #include <thrust/unique.h>
+  #include "THCHalf.h"
+  #include "THCHalfAutoNumerics.cuh"
+  #include "THCTensorSort.cuh"
 #endif
-#include <thrust/unique.h>
-#include "THCHalf.h"
-#include "THCHalfAutoNumerics.cuh"
-#include "THCTensorSort.cuh"
 
 const int WARP_SIZE = 32;
 
@@ -22,7 +25,7 @@ __device__ __forceinline__ bool warpHasCollision(int val)
   // wrapping around at 32. If any pair of values is the same than
   // there is a collision in the warp.
   bool dup = 0;
-  const int laneId = threadIdx.x % 32;
+  const int laneId = hipThreadIdx_x % 32;
 
 #if __CUDA_ARCH__ >= 300
 
@@ -35,8 +38,8 @@ __device__ __forceinline__ bool warpHasCollision(int val)
 #else
 
   volatile __shared__ int values[128];
-  values[threadIdx.x] = val;
-  const int offset = threadIdx.x - laneId;
+  values[hipThreadIdx_x] = val;
+  const int offset = hipThreadIdx_x - laneId;
 
   #pragma unroll
   for (int i = 1; i <= 16; i++)
@@ -54,7 +57,7 @@ __global__ void cunn_LookupTable_accGradParametersKernelByFeature(
   long *input, Dtype *gradOutput, Dtype *gradWeight, Dtype scale, ptrdiff_t numel,
   long stride, int paddingValue) {
 
-  const int featureDim = blockIdx.x * 4 + threadIdx.x / 32;
+  const int featureDim = hipBlockIdx_x * 4 + hipThreadIdx_x / 32;
   if (featureDim >= stride) {
     return;
   }
@@ -72,7 +75,7 @@ __global__ void cunn_LookupTable_accGradParametersKernelByFeature(
   // non-colliding updates separately from colliding ones. Colliding
   // updates are serialized in their order of execution by using the
   // warp-wide collision detector `warpHasCollision`.
-  const int laneId = threadIdx.x % 32;
+  const int laneId = hipThreadIdx_x % 32;
   for (ptrdiff_t i = laneId; i < numel; i += WARP_SIZE) {
     const int weightIndex = (int) (input[i] - TH_INDEX_BASE);
     if (weightIndex == paddingValue - TH_INDEX_BASE) {
@@ -102,7 +105,7 @@ __global__ void cunn_LookupTable_accGradParametersKernel(
   long *input, long *indices, Dtype *gradOutput, Dtype *gradWeight,
   long *count, Dtype defaultScale, ptrdiff_t numel, long stride, int paddingValue) {
 
-  int idx = blockIdx.x * 4 + threadIdx.y;
+  int idx = hipBlockIdx_x * 4 + hipThreadIdx_y;
 
   // Each warp is responsible for an input into the LookupTable.
   // If the preceeding input has the same as this input, then the warp
@@ -122,7 +125,7 @@ __global__ void cunn_LookupTable_accGradParametersKernel(
       && (idx == 0 || input[idx] != input[idx - 1])
       && input[idx] != paddingValue) {
     do {
-      const int startFeature = threadIdx.x + blockIdx.y * blockDim.x * SZ;
+      const int startFeature = hipThreadIdx_x + hipBlockIdx_y * hipBlockDim_x * SZ;
       const int weightRow = ((int) input[idx] - TH_INDEX_BASE) * stride;
       const int gradOutputRow = ((int) indices[idx] - TH_INDEX_BASE) * stride;
       const Acctype scale = count ? ScalarConvert<Dtype, Acctype>::to(defaultScale) / count[idx] : ScalarConvert<Dtype, Acctype>::to(defaultScale);

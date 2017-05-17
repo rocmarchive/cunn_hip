@@ -2,17 +2,23 @@
 #include "THCHalf.h"
 #include "THCHalfAutoNumerics.cuh"
 
-#include <cusparse.h>
+#ifdef __NVCC__
+  #include <cusparse.h>
+#endif
 
+#ifdef __NVCC__
 static cusparseHandle_t cusparse_handle = 0;
+#endif
 
 static void init_cusparse() {
+#ifdef __NVCC__
   if (cusparse_handle == 0) {
     cusparseStatus_t status = cusparseCreate(&cusparse_handle);
     if (status != CUSPARSE_STATUS_SUCCESS) {
       THError("CUSPARSE Library initialization failed");
     }
   }
+#endif
 }
 
 #ifdef CUDA_HALF_TENSOR

@@ -73,9 +73,11 @@ void THNN_(SparseLinear_updateOutput)(
   THCTensor_(copyCuda)(state, values, sel);
 
   init_cusparse();
+#ifdef __NVCC__
   cusparseXcoo2csr(cusparse_handle,
       THCudaIntTensor_data(state, rowbuf), nnz, batchnum,
       THCudaIntTensor_data(state, csrPtrs), CUSPARSE_INDEX_BASE_ONE);
+#endif
 
   // output = bias
   THCTensor_(resize2d)(state, buffer, outDim, batchnum);
@@ -86,6 +88,7 @@ void THNN_(SparseLinear_updateOutput)(
   }
 
   // output = W * x
+#ifdef __NVCC__
   real one = ScalarConvert<int, real>::to(1);
   cusparseMatDescr_t descr = 0;
   cusparseCreateMatDescr(&descr);
@@ -106,13 +109,17 @@ void THNN_(SparseLinear_updateOutput)(
       THCTensor_(data)(state, weight), inDim,
       &one, THCTensor_(data)(state, buffer), batchnum
   );
+#endif
   THCTensor_(transpose)(state, buffer, NULL, 0, 1);
 
   // We do work in the buffer to keep the output contiguous
   THCTensor_(copy)(state, output, buffer);
 
+#ifdef __NVCC__
   cusparseDestroyMatDescr(descr);
+
   descr = 0;
+#endif
   THCTensor_(free)(state, buffer);
   THCTensor_(free)(state, sel);
   THCTensor_(free)(state, values);
@@ -174,9 +181,11 @@ void THNN_(SparseLinear_accGradParameters)(
 
   init_cusparse();
   // Secretly coo2csc
+#ifdef __NVCC__
   cusparseXcoo2csr(cusparse_handle,
       THCudaIntTensor_data(state, colbuf), nnz, inDim,
       THCudaIntTensor_data(state, colPtrs), CUSPARSE_INDEX_BASE_ONE);
+#endif
 
   // FORTRAN expects contiguous col-major matricies
   THCTensor *tgradOutput = THCTensor_(new)(state);
@@ -185,6 +194,7 @@ void THNN_(SparseLinear_accGradParameters)(
   THCTensor_(copy)(state, buf, tgradOutput);
   THCTensor_(free)(state, tgradOutput);
 
+#ifdef __NVCC__
   real one = ScalarConvert<int, real>::to(1);
   cusparseMatDescr_t descr = 0;
   cusparseCreateMatDescr(&descr);
@@ -205,8 +215,10 @@ void THNN_(SparseLinear_accGradParameters)(
       THCTensor_(data)(state, buf), batchnum,
       &one, THCTensor_(data)(state, gradWeight), inDim
   );
+#endif
 
-  THCTensor_(sum)(state, buf, gradOutput, 0, 1);
+  // WSTHORNTON
+  // THCTensor_(sum)(state, buf, gradOutput, 0, 1);
   THCTensor_(resize1d)(state, buf, outDim);
   THCTensor_(cadd)(state, gradBias, gradBias, scale, buf);
 

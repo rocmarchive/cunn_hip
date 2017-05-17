@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 #ifndef THC_GENERIC_FILE
 #define THC_GENERIC_FILE "generic/LookupTable.cu"
 #else
@@ -24,20 +25,21 @@ void THNN_(LookupTable_accGradParameters)(
 
   int nDim = THCIndexTensor_(nDimension)(state, input);
   if (THCIndexTensor_(nDimension)(state, input) != 1 && THCIndexTensor_(nDimension)(state, input) != 2) {
-    THCDescBuff s1 = THCIndexTensor_(sizeDesc)(state, input);
-    THError("input must be a vector or matrix, but is of shape: %s", s1.str);
+    // WSTHORNTON
+    // THCDescBuff s1 = THCIndexTensor_(sizeDesc)(state, input);
+    // THError("input must be a vector or matrix, but is of shape: %s", s1.str);
   }
 
   ptrdiff_t numel = THCIndexTensor_(nElement)(state, input);
   long stride = THCTensor_(stride)(state, gradWeight, 0);
 
-  cudaStream_t stream = THCState_getCurrentStream(state);
+  hipStream_t stream = THCState_getCurrentStream(state);
 
   if (numel <= 768 && !scaleGradByFreq) {
     dim3 grid(THCCeilDiv(stride, (long) 4));
     dim3 block(128);
 
-    cunn_LookupTable_accGradParametersKernelByFeature<<<grid, block, 0, stream>>>(
+    hipLaunchKernelGGL((cunn_LookupTable_accGradParametersKernelByFeature), dim3(grid), dim3(block), 0, stream, 
       THCIndexTensor_(data)(state, input),
       THCTensor_(data)(state, gradOutput),
       THCTensor_(data)(state, gradWeight),
@@ -46,7 +48,7 @@ void THNN_(LookupTable_accGradParameters)(
       stride,
       paddingValue);
     THCTensor_(free)(state, gradOutput);
-    THCudaCheck(cudaGetLastError());
+    THCudaCheck(hipGetLastError());
     return;
   }
 
@@ -61,6 +63,7 @@ void THNN_(LookupTable_accGradParameters)(
   {
     THCIndexTensor_(copy)(state, sortedIndices, input);
 
+#if THRUST_PATH
     THCThrustAllocator thrustAlloc(state);
 
     thrust::device_ptr<THCIndex_t>
@@ -84,6 +87,7 @@ void THNN_(LookupTable_accGradParameters)(
 #endif
       sortedIndicesIter, sortedIndicesIter + numel,
       origIndicesIter, ThrustLTOp<long>());
+#endif // THRUST_PATH
   }
 
   THCIndex_t *sortedIndices_data = THCIndexTensor_(data)(state, sortedIndices);
@@ -94,6 +98,7 @@ void THNN_(LookupTable_accGradParameters)(
     THCIndexTensor_(resizeAs)(state, count, input);
     count_data = THCIndexTensor_(data)(state, count);
 
+#if THRUST_PATH
     THCThrustAllocator thrustAlloc(state);
     thrust::device_ptr<THCIndex_t> sortedIndices_ptr(sortedIndices_data);
     thrust::device_ptr<THCIndex_t> count_ptr(count_data);
@@ -125,11 +130,12 @@ void THNN_(LookupTable_accGradParameters)(
       thrust::equal_to<long>(),
       thrust::maximum<long>()
     );
+#endif // THRUST_PATH
   }
 
   dim3 grid(THCCeilDiv(numel, (ptrdiff_t) 4), THCCeilDiv(stride, (long) 128));
   dim3 block(32, 4);
-  cunn_LookupTable_accGradParametersKernel<real, accreal><<<grid, block, 0, stream>>>(
+  hipLaunchKernelGGL((cunn_LookupTable_accGradParametersKernel<real, accreal>), dim3(grid), dim3(block), 0, stream, 
     sortedIndices_data,
     origIndices_data,
     THCTensor_(data)(state, gradOutput),
@@ -142,7 +148,7 @@ void THNN_(LookupTable_accGradParameters)(
   );
 
   THCTensor_(free)(state, gradOutput);
-  THCudaCheck(cudaGetLastError());
+  THCudaCheck(hipGetLastError());
 }
 
 void THNN_(LookupTable_renorm)(
@@ -172,6 +178,7 @@ void THNN_(LookupTable_renorm)(
   long stride = THCTensor_(stride)(state, weight, 0);
 
   // get the unique indices
+#if THRUST_PATH
   thrust::device_ptr<real> weight_ptr(THCTensor_(data)(state, weight));
   thrust::device_ptr<THCIndex_t> idx_ptr(THCIndexTensor_(data)(state, idx));
   thrust::device_ptr<THCIndex_t> end_ptr(thrust::unique(idx_ptr, idx_ptr+numel));
@@ -193,6 +200,7 @@ void THNN_(LookupTable_renorm)(
       thrust::transform(row_ptr, row_ptr + stride, row_ptr, unary_mul);
     }
   }
+#endif
 }
 
 #endif

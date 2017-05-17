@@ -3,9 +3,16 @@
 #include "THCHalf.h"
 #include "THCHalfAutoNumerics.cuh"
 
-#include <thrust/device_ptr.h>
-#include <thrust/reduce.h>
-#include <thrust/transform_reduce.h>
+#if THRUST_PATH
+  #include <thrust/device_ptr.h>
+  #include <thrust/reduce.h>
+  #include <thrust/transform_reduce.h>
+#else
+  #include <bolt/amp/functional.h>
+  #include <bolt/amp/iterator/ubiquitous_iterator.h>
+  #include <bolt/amp/reduce.h>
+  #include <bolt/amp/transform.h>
+#endif
 
 template <typename Dtype, typename Acctype>
 struct l1cost_functor

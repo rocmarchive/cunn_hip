@@ -3,11 +3,13 @@
 #include "THCHalf.h"
 #include "THCHalfAutoNumerics.cuh"
 
-#include <thrust/functional.h>
-#include <thrust/device_ptr.h>
-#include <thrust/iterator/zip_iterator.h>
-#include <thrust/transform.h>
-#include <thrust/transform_reduce.h>
+#if THRUST_PATH
+  #include <thrust/functional.h>
+  #include <thrust/device_ptr.h>
+  #include <thrust/iterator/zip_iterator.h>
+  #include <thrust/transform.h>
+  #include <thrust/transform_reduce.h>
+#endif
 
 template <typename T>
 inline __device__ T eps();
@@ -25,9 +27,13 @@ struct bce_functor
   __host__ __device__
   Acctype operator()(Tuple x)
   {
+#if THRUST_PATH
     Dtype o = thrust::get<0>(x);
     Dtype t = thrust::get<1>(x);
     return - (t * THCNumerics<Acctype>::log(o + eps<Acctype>()) + (Acctype(1)- t) * THCNumerics<Acctype>::log(Acctype(1) - o + eps<Acctype>()));
+#else
+    return Acctype(0);
+#endif
   }
 };
 
@@ -38,10 +44,14 @@ struct bce_functor_weights
   __host__ __device__
   Acctype operator()(Tuple x)
   {
+#if THRUST_PATH
     Dtype o = thrust::get<0>(x);
     Dtype t = thrust::get<1>(x);
     Dtype w = thrust::get<2>(x);
     return - w * (t * THCNumerics<Acctype>::log(o + eps<Acctype>()) + (Acctype(1) - t) * THCNumerics<Acctype>::log(Acctype(1) - o + eps<Acctype>()));
+#else
+    return Acctype(0);
+#endif
   }
 };
 
@@ -58,9 +68,13 @@ struct bce_updateGradInput_functor
   __host__ __device__
   Dtype operator()(Tuple x)
   {
+#if THRUST_PATH
     Dtype o = thrust::get<0>(x);
     Dtype t = thrust::get<1>(x);
     return ScalarConvert<Acctype,Dtype>::to(- (t - o) / ((Acctype(1) - o + eps<Acctype>()) * (o + eps<Acctype>())) * norm);
+#else
+    return Acctype(0);
+#endif
   }
 };
 
@@ -77,10 +91,14 @@ struct bce_updateGradInput_functor_weights
   __host__ __device__
   Dtype operator()(Tuple x)
   {
+#if THRUST_PATH
     Dtype o = thrust::get<0>(x);
     Dtype t = thrust::get<1>(x);
     Dtype w = thrust::get<2>(x);
     return ScalarConvert<Acctype, Dtype>::to(- (t - o) / ((Acctype(1) - o + eps<Acctype>()) * (o + eps<Acctype>())) * norm * w);
+#else
+    return Dtype(0);
+#endif
   }
 };
 

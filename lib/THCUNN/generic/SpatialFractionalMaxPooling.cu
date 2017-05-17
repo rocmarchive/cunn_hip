@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 #ifndef THC_GENERIC_FILE
 #define THC_GENERIC_FILE "generic/SpatialFractionalMaxPooling.cu"
 #else
@@ -91,7 +92,7 @@ void THNN_(SpatialFractionalMaxPooling_updateOutput)(
       // dynamic pool width
       SFMP_UPDATE_OUTPUT_CASE(-1);
   }
-  THCudaCheck(cudaGetLastError());
+  THCudaCheck(hipGetLastError());
 }
 
 void THNN_(SpatialFractionalMaxPooling_updateGradInput)(
@@ -148,10 +149,9 @@ void THNN_(SpatialFractionalMaxPooling_updateGradInput)(
             devGradInput.getSize(0));
   dim3 block(outputPlaneSize > 128 ? 128 : outputPlaneSize);
 
-  SpatialFractionalMaxPooling_updateGradInput
-    <<<grid, block, 0, THCState_getCurrentStream(state)>>>(
+  hipLaunchKernelGGL((SpatialFractionalMaxPooling_updateGradInput), dim3(grid), dim3(block), 0, THCState_getCurrentStream(state), 
       devGradInput, devGradOutput, devIndices);
-  THCudaCheck(cudaGetLastError());
+  THCudaCheck(hipGetLastError());
 }
 
 #endif
