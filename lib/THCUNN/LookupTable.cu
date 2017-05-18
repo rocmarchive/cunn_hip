@@ -12,10 +12,11 @@
     #include <thrust/system/cuda/execution_policy.h>
   #endif
   #include <thrust/unique.h>
-  #include "THCHalf.h"
-  #include "THCHalfAutoNumerics.cuh"
-  #include "THCTensorSort.cuh"
 #endif
+
+#include "THCHalf.h"
+#include "THCHalfAutoNumerics.cuh"
+#include "THCTensorSort.cuh"
 
 const int WARP_SIZE = 32;
 

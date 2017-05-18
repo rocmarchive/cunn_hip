@@ -25,7 +25,7 @@ void THNN_(LookupTable_accGradParameters)(
 
   int nDim = THCIndexTensor_(nDimension)(state, input);
   if (THCIndexTensor_(nDimension)(state, input) != 1 && THCIndexTensor_(nDimension)(state, input) != 2) {
-    // WSTHORNTON
+    // WSTHORNTON -- not implemented
     // THCDescBuff s1 = THCIndexTensor_(sizeDesc)(state, input);
     // THError("input must be a vector or matrix, but is of shape: %s", s1.str);
   }

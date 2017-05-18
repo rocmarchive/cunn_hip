@@ -22,8 +22,8 @@ void THNN_(AbsCriterion_updateOutput)(
   thrust::device_ptr<real> target_data(THCTensor_(data)(state, target));
   accreal sum = thrust::inner_product(input_data, input_data+size, target_data, (accreal)0, thrust::plus<accreal>(), abs_functor<real, accreal>());
 #else
-  auto input_data = make_ubiquitous_iterator(THCTensor_(data)(state, input));
-  auto target_data = make_ubiquitous_iterator(THCTensor_(data)(state, target));
+  auto input_data = bolt::amp::make_ubiquitous_iterator(THCTensor_(data)(state, input));
+  auto target_data = bolt::amp::make_ubiquitous_iterator(THCTensor_(data)(state, target));
   accreal sum = bolt::amp::inner_product(input_data, input_data+size, target_data, (accreal)0, bolt::amp::plus<accreal>(), abs_functor<real, accreal>());
 #endif
 
@@ -61,9 +61,9 @@ void THNN_(AbsCriterion_updateGradInput)(
 
   thrust::transform(input_data, input_data+size, target_data, gradInput_data, abs_updateGradInput_functor<real>(norm));
 #else
-  auto input_data = make_ubiquitous_iterator(THCTensor_(data)(state, input));
-  auto target_data = make_ubiquitous_iterator(THCTensor_(data)(state, target));
-  auto gradInput_data = make_ubiquitous_iterator(THCTensor_(data)(state, gradInput));
+  auto input_data = bolt::amp::make_ubiquitous_iterator(THCTensor_(data)(state, input));
+  auto target_data = bolt::amp::make_ubiquitous_iterator(THCTensor_(data)(state, target));
+  auto gradInput_data = bolt::amp::make_ubiquitous_iterator(THCTensor_(data)(state, gradInput));
 
   bolt::amp::transform(input_data, input_data+size, target_data, gradInput_data, abs_updateGradInput_functor<real>(norm));
 #endif

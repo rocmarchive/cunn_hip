@@ -16,7 +16,7 @@ void THNN_(L1Cost_updateOutput)(
   thrust::device_ptr<real> input_data(THCTensor_(data)(state, input));
   sum = thrust::transform_reduce(input_data, input_data+size, l1cost_functor<real, accreal>(), accreal(0), thrust::plus<accreal>());
 #else
-  // auto input_data = make_ubiquitous_iterator(THCTensor_(data)(state, input));
+  // auto input_data = bolt::amp::make_ubiquitous_iterator(THCTensor_(data)(state, input));
   // sum = bolt::amp::transform_reduce(input_data, input_data+size, l1cost_functor<real, accreal>(), accreal(0), bolt::amp::plus<accreal>());
 #endif
   THCTensor_(free)(state, input);
@@ -43,8 +43,8 @@ void THNN_(L1Cost_updateGradInput)(
 
   thrust::transform(input_data, input_data+size, gradInput_data, l1cost_updateGradInput_functor<real>());
 #else
-  auto input_data = make_ubiquitous_iterator(THCTensor_(data)(state, input));
-  auto gradInput_data = make_ubiquitous_iterator(THCTensor_(data)(state, gradInput));
+  auto input_data = bolt::amp::make_ubiquitous_iterator(THCTensor_(data)(state, input));
+  auto gradInput_data = bolt::amp::make_ubiquitous_iterator(THCTensor_(data)(state, gradInput));
 
   bolt::amp::transform(input_data, input_data+size, gradInput_data, l1cost_updateGradInput_functor<real>());
 

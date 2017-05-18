@@ -217,7 +217,7 @@ void THNN_(SparseLinear_accGradParameters)(
   );
 #endif
 
-  // WSTHORNTON
+  // WSTHORNTON -- not implemented 
   // THCTensor_(sum)(state, buf, gradOutput, 0, 1);
   THCTensor_(resize1d)(state, buf, outDim);
   THCTensor_(cadd)(state, gradBias, gradBias, scale, buf);
