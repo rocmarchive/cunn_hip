@@ -18,9 +18,16 @@
 template <typename Dtype, typename Acctype>
 struct margin_functor
 {
+  __host__ __device__
+  margin_functor() = default;
+
+  __host__ __device__
   margin_functor(Acctype margin)
     : margin(margin)
   {}
+
+  __host__ __device__
+  margin_functor(const margin_functor& f) = default;
 
   __host__ __device__ Acctype operator()(const Dtype &x, const Dtype &y) const
   {
@@ -28,23 +35,36 @@ struct margin_functor
     return z >= 0 ? z : 0;
   }
 
+  __host__ __device__
+  ~margin_functor() {}
+
   const Acctype margin;
 };
 
 template <typename Dtype, typename Acctype>
 struct margin_updateGradInput_functor
 {
-  const Acctype margin, norm;
+  Acctype margin, norm;
 
+  __host__ __device__
+  margin_updateGradInput_functor() = default;
+
+  __host__ __device__
   margin_updateGradInput_functor(Acctype margin_, Acctype norm_)
     : margin(margin_)
     , norm(norm_)
   {}
 
+  __host__ __device__
+  margin_updateGradInput_functor(const margin_updateGradInput_functor& f) = default;
+
   __host__ __device__ Dtype operator()(const Dtype &x, const Dtype &y) const
   {
     return ScalarConvert<Acctype, Dtype>::to((ScalarConvert<Dtype, Acctype>::to(x) * y) < margin ? -norm * y : 0);
   }
+
+  __host__ __device__
+  ~margin_updateGradInput_functor() {}
 };
 
 #include "generic/MarginCriterion.cu"

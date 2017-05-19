@@ -93,14 +93,24 @@ struct PReLUAccGradParameters
 {
   T scale;
 
+  __host__ __device__
+  PReLUAccGradParameters() = default;
+
+  __host__ __device__
   PReLUAccGradParameters(T scale)
     : scale(scale)
   {}
+
+  __host__ __device__
+  PReLUAccGradParameters(const PReLUAccGradParameters& f) = default;
 
   __device__ __forceinline__ void operator()(T *gradInput, T *input, T *gradOutput)
   {
     *gradInput = (*input) * (*gradOutput) * scale * (*input <= 0);
   }
+
+  __host__ __device__
+  ~PReLUAccGradParameters() {}
 };
 
 template <typename T>
@@ -108,14 +118,24 @@ struct PReLUAccGradParameters1to1
 {
   T scale;
 
+  __host__ __device__
+  PReLUAccGradParameters1to1() = default;
+
+  __host__ __device__
   PReLUAccGradParameters1to1(T scale)
     : scale(scale)
   {}
+
+  __host__ __device__
+  PReLUAccGradParameters1to1(const PReLUAccGradParameters1to1& f) = default;
 
   __device__ __forceinline__ void operator()(T *gradWeight, T *input, T *gradOutput)
   {
     *gradWeight += (*input) * (*gradOutput) * scale * (*input <= 0);
   }
+
+  __host__ __device__
+  ~PReLUAccGradParameters1to1() {}
 };
 
 #include "generic/PReLU.cu"

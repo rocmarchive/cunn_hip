@@ -27,16 +27,27 @@ struct softmargin_functor
 template <typename Dtype, typename Acctype>
 struct softmargin_updateGradInput_functor
 {
-  const Acctype norm;
+  Acctype norm;
 
+  __host__ __device__
+  softmargin_updateGradInput_functor() = default;
+
+  __host__ __device__
   softmargin_updateGradInput_functor(Acctype norm_) :
     norm(norm_) {}
+
+  __host__ __device__
+  softmargin_updateGradInput_functor(const softmargin_updateGradInput_functor& f) = default;
 
   __host__ __device__ Dtype operator()(const Dtype& x, const Dtype& y) const
     {
       Acctype temp = exp(ScalarConvert<Dtype, Acctype>::to(-x)*y);
       return ScalarConvert<Acctype, Dtype>::to(-y*temp*norm/(ScalarConvert<int, Acctype>::to(1) + temp));
     }
+
+  __host__ __device__
+  ~softmargin_updateGradInput_functor() {}
+
 };
 
 #include "generic/SoftMarginCriterion.cu"

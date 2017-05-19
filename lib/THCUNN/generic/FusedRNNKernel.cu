@@ -567,9 +567,9 @@ void THNN_(LSTM_forw_ind_wrap)(
     cyI.collapseDims();
   }
 
-  INDTYPE zero[1] = {0};
-  TensorInfo<DATATYPE, INDTYPE> nullinfo =
-    TensorInfo<DATATYPE, INDTYPE>(NULL, 1, zero, zero);
+  INDTYPE zero[MAX_CUTORCH_DIMS] = {0};
+   TensorInfo<DATATYPE, INDTYPE> nullinfo =
+     TensorInfo<DATATYPE, INDTYPE>(NULL, 1, zero, zero);
   TensorInfo<DATATYPE, INDTYPE> bias1I = nullinfo;
   TensorInfo<DATATYPE, INDTYPE> bias2I = nullinfo;
 
@@ -757,7 +757,7 @@ void THNN_(GRU_forw_ind_wrap)(
     hyI.collapseDims();
     hxI.collapseDims();
   }
-  INDTYPE zero[1] = {0};
+  INDTYPE zero[MAX_CUTORCH_DIMS] = {0};
   TensorInfo<DATATYPE, INDTYPE> nullinfo =
     TensorInfo<DATATYPE, INDTYPE>(NULL, 1, zero, zero);
   TensorInfo<DATATYPE, INDTYPE> bias1I = nullinfo;

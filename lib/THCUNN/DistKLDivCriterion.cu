@@ -28,16 +28,26 @@ struct kl_functor
 template <typename Dtype>
 struct kl_updateGradInput_functor
 {
-  const Dtype norm;
+  Dtype norm;
 
+  __host__ __device__
+  kl_updateGradInput_functor() = default;
+
+  __host__ __device__
   kl_updateGradInput_functor(Dtype norm_)
     : norm(norm_)
   {}
+
+  __host__ __device__
+  kl_updateGradInput_functor(const kl_updateGradInput_functor& f) = default;
 
   __host__ __device__ Dtype operator()(const Dtype& x, const Dtype& y) const
   {
       return y > 0 ? norm * (-y) : ScalarConvert<int, Dtype>::to(0);
   }
+
+  __host__ __device__
+  ~kl_updateGradInput_functor() {}
 };
 
 #include "generic/DistKLDivCriterion.cu"
