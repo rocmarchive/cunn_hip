@@ -55,6 +55,20 @@ namespace bolt
                 return x.p_ - y.p_;
             }
 
+            friend
+            inline
+            bool operator==(const Ubiquitous_iterator& x, const Ubiquitous_iterator& y) [[cpu]][[hc]]
+            {
+                return x.p_ == y.p_;
+            }
+
+            friend
+            inline
+            bool operator!=(const Ubiquitous_iterator& x, const Ubiquitous_iterator& y) [[cpu]][[hc]]
+            {
+                return x.p_ != y.p_;
+            }
+
             T* p_;
         public:
             Ubiquitous_iterator() [[cpu]][[hc]] = default;
@@ -71,6 +85,27 @@ namespace bolt
             {
                 p_ += dx;
                 return *this;
+            }
+
+            Ubiquitous_iterator& operator++() [[cpu]][[hc]]
+            {
+                p_ += 1;
+                return *this;
+            }
+
+            Ubiquitous_iterator& operator++(int) [[cpu]][[hc]]
+            {
+                Ubiquitous_iterator tmp(*this);
+                ++(*this);
+                return tmp;
+            }
+
+            T& operator *() {
+                return *p_;
+            }
+
+            T const & operator*() const {
+                return *p_;
             }
 
             // Bolt glue.

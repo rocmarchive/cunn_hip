@@ -6,13 +6,20 @@
 template <typename T>
 struct hardtanhupdateOutput_functor
 {
-  const T max_val_;
-  const T min_val_;
+  T max_val_;
+  T min_val_;
 
+  __host__ __device__
+  hardtanhupdateOutput_functor() = default;
+
+  __host__ __device__
   hardtanhupdateOutput_functor(T min_val, T max_val)
     : min_val_(min_val)
     , max_val_(max_val)
   {}
+
+  __host__ __device__
+  hardtanhupdateOutput_functor(const hardtanhupdateOutput_functor& f) = default;
 
   __device__ void operator()(T *output, const T *input) const
   {
@@ -31,18 +38,28 @@ struct hardtanhupdateOutput_functor
     else if (*input > max_val_)
       *input = max_val_;
   }
+
+  __host__ __device__
+  ~hardtanhupdateOutput_functor() {}
 };
 
 template <typename T>
 struct hardtanhupdateGradInput_functor
 {
-  const T max_val_;
-  const T min_val_;
+  T max_val_;
+  T min_val_;
 
+  __host__ __device__
+  hardtanhupdateGradInput_functor() = default;
+
+  __host__ __device__
   hardtanhupdateGradInput_functor(T min_val, T max_val)
     : min_val_(min_val)
     , max_val_(max_val)
   {}
+
+  __host__ __device__
+  hardtanhupdateGradInput_functor(const hardtanhupdateGradInput_functor& f) = default;
 
   __device__ void operator()(T *gradInput, const T *input, const T *gradOutput) const
   {
@@ -57,6 +74,10 @@ struct hardtanhupdateGradInput_functor
     if (*input <= min_val_ || *input >= max_val_)
       *gradInput = ScalarConvert<int, T>::to(0);
   }
+
+  __host__ __device__
+  ~hardtanhupdateGradInput_functor() {}
+
 };
 
 #include "generic/HardTanh.cu"

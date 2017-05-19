@@ -44,7 +44,9 @@ ATOMIC_REAL_MINMAX(min)
 #endif
 
 template<typename Ty, bool train>
-__global__ static
+// WSTHORNTON -- global static
+//__global__ static
+__global__ 
 void updateOutput(
     Ty *output,
     Ty *normalizedValues,
@@ -161,7 +163,9 @@ void updateOutput(
 // to generate gradWeight of size [keysSize x outDim]
 // nth block along y dimension computes on the non zero elements from the nth batch.
 template<typename Ty>
-__global__ static
+// WSTHORNTON -- global static
+//__global__ static
+__global__ 
 void accGradWeight(
     Ty *gradWeight,
     const Ty *gradOutput,
@@ -233,7 +237,9 @@ void accGradWeight(
 // The gradBias is just a reduction of gradOutput along the batches.
 // There is only one block along y dimension performing the reduction.
 template<typename Ty, bool update>
-__global__ static
+// WSTHORNTON -- global static
+//__global__ static
+__global__ 
 void accGradBias(
     Ty *buffer,
     const Ty *gradOutput,
@@ -287,7 +293,9 @@ void accGradBias(
 // This kernel is launched batchSize number of times.
 // At each step in the iteration, the weights are updated in a sparse manner.
 template<typename Ty>
-__global__ static
+// WSTHORNTON -- global static
+//__global__ static
+__global__ 
 void updateWeight(
     Ty *weight,
     const Ty *gradWeight,
@@ -356,7 +364,9 @@ void updateWeight(
 // This kernel is launched batchSize number of times.
 // At each step in the iteration, the weights are updated in place in a sparse manner.
 template<typename Ty>
-__global__ static
+// WSTHORNTON -- global static
+//__global__ static
+__global__ 
 void accUpdateWeight(
     Ty *weight,
     const long weightStride,

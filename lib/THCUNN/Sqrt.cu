@@ -6,16 +6,27 @@
 template <typename T>
 struct sqrtupdateOutput_functor
 {
-  const T bias;
+  T bias;
 
+  __host__ __device__
+  sqrtupdateOutput_functor() = default;
+
+  __host__ __device__
   sqrtupdateOutput_functor(T bias_)
     : bias(bias_)
   {}
+
+  __host__ __device__
+  sqrtupdateOutput_functor(const sqrtupdateOutput_functor& f) = default;
 
   __device__ void operator()(T *output, const T *input) const
   {
     *output = sqrt(*input + bias);
   }
+
+  __host__ __device__
+  ~sqrtupdateOutput_functor() {}
+
 };
 
 template <typename T>

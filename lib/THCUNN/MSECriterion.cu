@@ -34,16 +34,26 @@ struct mse_functor
 template <typename Dtype, typename Acctype>
 struct mse_updateGradInput_functor
 {
-  const Acctype norm;
+  Acctype norm;
 
+  __host__ __device__
+  mse_updateGradInput_functor() = default;
+
+  __host__ __device__
   mse_updateGradInput_functor(Acctype norm_)
     : norm(norm_)
   {}
+
+  __host__ __device__
+  mse_updateGradInput_functor(const mse_updateGradInput_functor& f) = default;
 
   __host__ __device__ Dtype operator()(const Dtype &x, const Dtype &y) const
   {
     return ScalarConvert<Acctype, Dtype>::to(norm * (ScalarConvert<Dtype, Acctype>::to(x) - y));
   }
+
+  __host__ __device__
+  ~mse_updateGradInput_functor() {}
 };
 
 #include "generic/MSECriterion.cu"

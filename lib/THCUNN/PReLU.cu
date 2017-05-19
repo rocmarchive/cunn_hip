@@ -11,6 +11,10 @@ struct PReLUUpdateOutput
 {
   T* weight_;
 
+  __host__ __device__
+  PReLUUpdateOutput() {}
+
+  __host__ __device__
   PReLUUpdateOutput(T* weight)
     : weight_(weight)
   {}
@@ -20,6 +24,9 @@ struct PReLUUpdateOutput
     T x = *in;
     *out = (x > 0) ? x : weight_[0] * x;
   }
+
+  __host__ __device__
+  ~PReLUUpdateOutput() {}
 };
 
 template <typename T>
@@ -38,6 +45,10 @@ struct PReLUUpdateGradInput
 {
   T *weight_;
 
+  __host__ __device__
+  PReLUUpdateGradInput() {}
+
+  __host__ __device__
   PReLUUpdateGradInput(T *weight)
     : weight_(weight)
   {}
@@ -46,6 +57,10 @@ struct PReLUUpdateGradInput
   {
     *gradInput = *input > 0 ? *gradOutput : *gradOutput * *weight_;
   }
+
+  __host__ __device__
+  ~PReLUUpdateGradInput() {}
+
 };
 
 template <typename T>

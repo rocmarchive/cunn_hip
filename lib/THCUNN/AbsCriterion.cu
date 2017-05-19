@@ -28,16 +28,26 @@ struct abs_functor
 template <typename Dtype>
 struct abs_updateGradInput_functor
 {
-  const Dtype norm;
+  Dtype norm;
 
+  __host__ __device__
+  abs_updateGradInput_functor() = default;
+
+  __host__ __device__
   abs_updateGradInput_functor(Dtype norm_)
     : norm(norm_)
   {}
+
+  __host__ __device__
+  abs_updateGradInput_functor(const abs_updateGradInput_functor& f) = default;
 
   __host__ __device__ Dtype operator()(const Dtype& x, const Dtype& y) const
   {
     return (x - y) >= 0 ? norm : -norm;
   }
+
+  __host__ __device__
+  ~abs_updateGradInput_functor() {}
 };
 
 #include "generic/AbsCriterion.cu"

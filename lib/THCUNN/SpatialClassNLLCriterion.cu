@@ -48,8 +48,13 @@ __global__ void cunn_SpatialClassNLLCriterion_updateOutput_kernel(
 
   __syncthreads();
 
+#if THRUST_PATH
   input_sum = reduceBlock(partial_sums, hipBlockDim_x, input_sum, thrust::plus<AccumT>(), AccumT(0));
   acc_weight = reduceBlock(partial_sums, hipBlockDim_x, acc_weight, thrust::plus<AccumT>(), AccumT(0));
+#else
+  input_sum = reduceBlock(partial_sums, hipBlockDim_x, input_sum, bolt::amp::plus<AccumT>(), AccumT(0));
+  acc_weight = reduceBlock(partial_sums, hipBlockDim_x, acc_weight, bolt::amp::plus<AccumT>(), AccumT(0));
+#endif
 
   if (hipThreadIdx_x == 0) {
     atomicAdd(total_weight, ScalarConvert<AccumT, T>::to(acc_weight));

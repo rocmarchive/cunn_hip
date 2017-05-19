@@ -31,14 +31,24 @@ __global__ void SpatialReflectionPadding_updateOutput(
   int oStartX = max(0, padL);
   int oStartY = max(0, padT);
 
+#ifdef __HIP_PLATFORM_HCC__
+  int inputPointX = fabsf(outputPointX - padL)
+                  - fabsf(outputPointX - (input.getSize(3) + padL - 1))
+#else
   int inputPointX = abs(outputPointX - padL)
                   - abs(outputPointX - (input.getSize(3) + padL - 1))
+#endif
                   - outputPointX
                   + 2 * padL + input.getSize(3) - 1
                   - oStartX + iStartX;
 
+#ifdef __HIP_PLATFORM_HCC__
+  int inputPointY = fabsf(outputPointY - padT)
+                  - fabsf(outputPointY - (input.getSize(2) + padT - 1))
+#else
   int inputPointY = abs(outputPointY - padT)
                   - abs(outputPointY - (input.getSize(2) + padT - 1))
+#endif
                   - outputPointY
                   + 2 * padT + input.getSize(2) - 1
                   - oStartY + iStartY;
@@ -67,14 +77,24 @@ __global__ void SpatialReflectionPadding_updateGradInput(
   int oStartX = max(0, padL);
   int oStartY = max(0, padT);
 
+#ifdef __HIP_PLATFORM_HCC__
+  int inputPointX = fabsf(outputPointX - padL)
+                  - fabsf(outputPointX - (gradInput.getSize(3) + padL - 1))
+#else
   int inputPointX = abs(outputPointX - padL)
                   - abs(outputPointX - (gradInput.getSize(3) + padL - 1))
+#endif
                   - outputPointX
                   + 2 * padL + gradInput.getSize(3) - 1
                   - oStartX + iStartX;
 
+#ifdef __HIP_PLATFORM_HCC__
+  int inputPointY = fabsf(outputPointY - padT)
+                  - fabsf(outputPointY - (gradInput.getSize(2) + padT - 1))
+#else
   int inputPointY = abs(outputPointY - padT)
                   - abs(outputPointY - (gradInput.getSize(2) + padT - 1))
+#endif
                   - outputPointY
                   + 2 * padT + gradInput.getSize(2) - 1
                   - oStartY + iStartY;

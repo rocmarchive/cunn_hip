@@ -177,6 +177,8 @@ __global__ void BatchNormalizationUpdateOutput_kernel(
     DeviceTensor1 saveMean,
     DeviceTensor1 saveStd) {
 
+// WSTHORNTON -- ambiguous use of '*' operator
+#if 0
   int plane = hipBlockIdx_x;
   int N = input.getSize(0) * input.getSize(2);
 
@@ -210,6 +212,7 @@ __global__ void BatchNormalizationUpdateOutput_kernel(
       output[batch][plane][x] = ScalarConvert<Acctype, Dtype>::to(gamma * (inp - mean) * invStd + beta);
     }
   }
+#endif
 }
 
 template <typename Dtype, typename Acctype, typename DeviceTensor1, typename DeviceTensor3>
@@ -228,6 +231,8 @@ __global__ void BatchNormalizationBackward_kernel(
     Acctype scale,
     double eps) {
 
+// WSTHORNTON -- ambiguous use of '*' operator
+#if 0
   int plane = hipBlockIdx_x;
   int N = gradOutput.getSize(0) * gradOutput.getSize(2);
 
@@ -281,6 +286,7 @@ __global__ void BatchNormalizationBackward_kernel(
       gradBias[plane] += ScalarConvert<Acctype, Dtype>::to(scale * gradOutputSum);
     }
   }
+#endif
 }
 
 #include "generic/BatchNormalization.cu"

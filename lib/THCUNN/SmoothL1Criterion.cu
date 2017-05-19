@@ -34,11 +34,18 @@ struct smoothl1_functor
 template <typename Dtype>
 struct smoothl1_updateGradInput_functor
 {
-  const Dtype norm;
+  Dtype norm;
 
+  __host__ __device__
+  smoothl1_updateGradInput_functor() = default;
+
+  __host__ __device__
   smoothl1_updateGradInput_functor(Dtype norm_)
     : norm(norm_)
   {}
+
+  __host__ __device__
+  smoothl1_updateGradInput_functor(const smoothl1_updateGradInput_functor& f) = default;
 
   __host__ __device__ Dtype operator()(const Dtype &x, const Dtype &y) const
   {
@@ -50,6 +57,10 @@ struct smoothl1_updateGradInput_functor
     else
       return norm * z;
   }
+
+  __host__ __device__
+  ~smoothl1_updateGradInput_functor() {}
+
 };
 
 #include "generic/SmoothL1Criterion.cu"

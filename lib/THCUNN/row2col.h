@@ -81,8 +81,8 @@ void col2row(hipStream_t stream, const Dtype *data_col, const int channels,
   int num_kernels = channels * width;
   // To avoid involving atomic operations, we will launch one kernel per
   // bottom dimension, and then in the kernel add up the top dimensions.
-  col2row_kernel<
-      Dtype, Acctype><<<GET_BLOCKS(num_kernels), CUDA_NUM_THREADS, 0, stream>>>(
+  hipLaunchKernelGGL((col2row_kernel<
+      Dtype, Acctype>), GET_BLOCKS(num_kernels), CUDA_NUM_THREADS, 0, stream, 
       num_kernels, data_col, width, channels, patch_w, pad_w, stride_w,
       dilation_w, width_col, data_row);
 

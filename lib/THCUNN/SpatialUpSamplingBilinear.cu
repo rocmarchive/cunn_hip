@@ -14,6 +14,8 @@ template<typename Dtype, typename Acctype>
 __global__ void caffe_gpu_interp2_kernel(const int n,
     const Acctype rheight, const Acctype rwidth,
     const THCDeviceTensor<Dtype, 4> data1, THCDeviceTensor<Dtype, 4> data2) {
+// WSTHORNTON -- ambiguous use of '*' operator
+#if 0
   int index = hipThreadIdx_x + hipBlockIdx_x * hipBlockDim_x;
   const int batchsize = data1.getSize(0);
   const int channels = data1.getSize(1);
@@ -60,6 +62,7 @@ __global__ void caffe_gpu_interp2_kernel(const int n,
       }
     }
   }
+#endif
 }
 
 // Backward (adjoint) operation 1 <- 2 (accumulates)
@@ -67,6 +70,8 @@ template <typename Dtype, typename Acctype>
 __global__ void caffe_gpu_interp2_kernel_backward(const int n,
     const Acctype rheight, const Acctype rwidth,
     THCDeviceTensor<Dtype, 4> data1, const THCDeviceTensor<Dtype, 4> data2){
+// WSTHORNTON -- no overload for "+="
+#if 0
   int index = hipThreadIdx_x + hipBlockIdx_x * hipBlockDim_x;
   const int batchsize = data1.getSize(0);
   const int channels = data1.getSize(1);
@@ -116,6 +121,7 @@ __global__ void caffe_gpu_interp2_kernel_backward(const int n,
       }
     }
   }
+#endif
 }
 
 

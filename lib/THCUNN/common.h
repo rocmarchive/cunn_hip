@@ -26,7 +26,7 @@ inline int GET_BLOCKS(const int N)
   } \
   THLongStorage_free(size2);
 
-// WSTHORNTON
+// WSTHORNTON -- not implemented
 // #define THCUNN_check_shape(STATE, I1, I2)                 \
 //   if (I1 != NULL && I2 != NULL && !THCTensor_(isSameSizeAs)(STATE, I1, I2))	\
 //   { \
@@ -38,7 +38,7 @@ inline int GET_BLOCKS(const int N)
 #define THCUNN_check_shape(...) /* whitespace */
 
 
-// WSTHORNTON
+// WSTHORNTON -- not implemented
 // #define THCUNN_check_shape_indices(STATE, I1, I2)              \
 //   THLongStorage *size2 = THCTensor_(newSizeOf)(STATE, I2);     \
 //   if (!THCIndexTensor_(isSize)(STATE, I1, size2))              \
@@ -51,7 +51,7 @@ inline int GET_BLOCKS(const int N)
 //   THLongStorage_free(size2);
 #define THCUNN_check_shape_indices(...) /* whitespace */
 
-// WSTHORNTON
+// WSTHORNTON -- not implemented
 // #define THCUNN_check_nElement(STATE, I1, I2)                \
 //   if (I1 != NULL && I2 != NULL ) {                          \
 //     ptrdiff_t n1 = THCTensor_(nElement)(STATE, I1);              \
@@ -67,7 +67,7 @@ inline int GET_BLOCKS(const int N)
 //   }
 #define THCUNN_check_nElement(...) /* whitespace */
 
-// WSTHORNTON
+// WSTHORNTON -- not implemented
 // #define THCUNN_check_dim_size(STATE, T, DIM, DIM_SIZE, SIZE) \
 //   if (THCTensor_(nDimension)(STATE, T) != DIM ||             \
 //       THCTensor_(size)(STATE, T, DIM_SIZE) != SIZE) {        \
@@ -77,7 +77,7 @@ inline int GET_BLOCKS(const int N)
 //   }
 #define THCUNN_check_dim_size(...) /* whitespace */
 
-// WSTHORNTON
+// WSTHORNTON -- not implemented
 // #define THCUNN_check_dim_size_indices(STATE, T, DIM, DIM_SIZE, SIZE)  \
 //   if (THCIndexTensor_(nDimension)(STATE, T) != DIM ||                 \
 //       THCIndexTensor_(size)(STATE, T, DIM_SIZE) != SIZE) {            \
@@ -87,7 +87,7 @@ inline int GET_BLOCKS(const int N)
 //   }
 #define THCUNN_check_dim_size_indices(...) /* whitespace */
 
-// WSTHORNTON
+// WSTHORNTON -- not implemented
 // #define THCUNN_argCheck(STATE, COND, ARG, T, FORMAT) \
 //   if (!(COND)) { \
 //     THCDescBuff s1 = THCTensor_(sizeDesc)(state, T); \
