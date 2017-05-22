@@ -1,5 +1,5 @@
 // WSTHORNTON -- ifdef
-#if 0
+#if 1
 #include "hip/hip_runtime.h"
 #include "THCUNN.h"
 #include "THCHalf.h"
@@ -100,11 +100,18 @@ __global__ void rreluUpdateOutputTrain( int n, HipRandStateMtgp32 *state,
 template <typename T>
 struct RReLUUpdateOutputEval_functor
 {
-  const T negSlope_;
+  T negSlope_;
 
+  __host__ __device__ 
+  RReLUUpdateOutputEval_functor() = default;
+
+  __host__ __device__ 
   RReLUUpdateOutputEval_functor(T negSlope)
     : negSlope_(negSlope)
   {}
+
+  __host__ __device__ 
+  RReLUUpdateOutputEval_functor(const RReLUUpdateOutputEval_functor& f) = default;
 
   __device__ __forceinline__ void operator()(T *out, T *in)
   {
@@ -112,16 +119,26 @@ struct RReLUUpdateOutputEval_functor
     const T r = x <= 0 ? negSlope_ : ScalarConvert<int, T>::to(1);
     *out = x * r;
   }
+
+  __host__ __device__ 
+  ~RReLUUpdateOutputEval_functor() {}
 };
 
 template <typename T>
 struct RReLUUpdateOutputEvalIP_functor
 {
-  const T negSlope_;
+  T negSlope_;
 
+  __host__ __device__
+  RReLUUpdateOutputEvalIP_functor() = default;
+
+  __host__ __device__
   RReLUUpdateOutputEvalIP_functor(T negSlope)
     : negSlope_(negSlope)
   {}
+
+  __host__ __device__
+  RReLUUpdateOutputEvalIP_functor(const RReLUUpdateOutputEvalIP_functor& f) = default;
 
   __device__ __forceinline__ void operator()(T *x)
   {
@@ -130,31 +147,51 @@ struct RReLUUpdateOutputEvalIP_functor
       *x = *x * negSlope_;
     }
   }
+  __host__ __device__
+  ~RReLUUpdateOutputEvalIP_functor() {}
 };
 
 template <typename T>
 struct RReLUupdateGradInputEval_functor
 {
-  const T negSlope_;
+  T negSlope_;
 
+  __host__ __device__
+  RReLUupdateGradInputEval_functor() = default;
+
+  __host__ __device__
   RReLUupdateGradInputEval_functor(T negSlope)
     : negSlope_(negSlope)
   {}
+
+  __host__ __device__
+  RReLUupdateGradInputEval_functor(const RReLUupdateGradInputEval_functor& f) = default;
 
   __device__ __forceinline__ void operator()(T *gradIn, T *gradOut, T *in)
   {
     *gradIn = (*in) <= 0 ? (*gradOut) * negSlope_ : (*gradOut);
   }
+
+  __host__ __device__
+  ~RReLUupdateGradInputEval_functor() {}
+
 };
 
 template <typename T>
 struct RReLUupdateGradInputEvalIP_functor
 {
-  const T negSlope_;
+  T negSlope_;
 
+  __host__ __device__
+  RReLUupdateGradInputEvalIP_functor() = default;
+
+  __host__ __device__
   RReLUupdateGradInputEvalIP_functor(T negSlope)
     : negSlope_(negSlope)
   {}
+
+  __host__ __device__
+  RReLUupdateGradInputEvalIP_functor(const RReLUupdateGradInputEvalIP_functor& f) = default;
 
   __device__ __forceinline__ void operator()(T *gradOut, T *in)
   {
@@ -163,6 +200,9 @@ struct RReLUupdateGradInputEvalIP_functor
       *gradOut = (*gradOut) * negSlope_;
     }
   }
+
+  __host__ __device__
+  ~RReLUupdateGradInputEvalIP_functor() {}
 };
 
 #include "generic/RReLU.cu"

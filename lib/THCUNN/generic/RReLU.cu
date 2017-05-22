@@ -1,5 +1,5 @@
 // WSTHORNTON -- ifdef
-#if 0
+#if 1
 #include "hip/hip_runtime.h"
 #ifndef THC_GENERIC_FILE
 #define THC_GENERIC_FILE "generic/RReLU.cu"
