@@ -102,33 +102,27 @@ namespace bolt
          */
 
 
-        template<
-			typename InputIterator,
-			typename OutputIterator,
-			typename UnaryFunction>
-		static
-		inline
-        void transform(
-			control &ctl,
-            InputIterator first,
-            InputIterator last,
-            OutputIterator result,
-            UnaryFunction op);
+        template<typename InputIterator, typename OutputIterator, typename UnaryFunction>
+	static
+	inline
+        void transform(control &ctl,
+                       InputIterator first,
+                       InputIterator last,
+                       OutputIterator result,
+                       UnaryFunction op);
 
-		template<
-			typename InputIterator,
-			typename OutputIterator,
-			typename UnaryFunction,
-			void*>
-		static
-		inline
-		void transform(
-			InputIterator first,
-			InputIterator last,
-			OutputIterator result,
-			UnaryFunction op);
+        template<typename InputIterator, typename OutputIterator, typename UnaryFunction, void*>
+	static
+	inline
+        void transform(InputIterator first,
+                       InputIterator last,
+                       OutputIterator result,
+                       UnaryFunction op);
 
-        /*! \brief This version of \p transform applies a binary function to each pair
+
+
+
+        /*! \breif This version of \p transform applies a binary function to each pair
          *  of elements from two input sequences and stores the result in the
          *  corresponding position in an output sequence.
          *  The input and output sequences can coincide, resulting in an
@@ -179,35 +173,29 @@ namespace bolt
          *  \sa http://www.sgi.com/tech/stl/BinaryFunction.html
          */
 
-        template<
-			typename InputIterator1,
-			typename InputIterator2,
-			typename OutputIterator,
-			typename BinaryFunction>
-		static
-		inline
-		void transform(
-			control &ctl,
-			InputIterator1 first1,
-			InputIterator1 last1,
-			InputIterator2 first2,
-			OutputIterator result,
-			BinaryFunction op);
+        template<typename InputIterator1, typename InputIterator2, typename OutputIterator, typename BinaryFunction>
+	static
+	inline
+        void transform(control &ctl,
+					   InputIterator1 first1,
+					   InputIterator1 last1,
+					   InputIterator2 first2,
+					   OutputIterator result,
+					   BinaryFunction op);
 
-        template<
-			typename InputIterator1,
-			typename InputIterator2,
-			typename OutputIterator,
-			typename BinaryFunction,
-			void*>
-		static
-		inline
-        void transform(
-			InputIterator1 first1,
-            InputIterator1 last1,
-            InputIterator2 first2,
-            OutputIterator result,
-            BinaryFunction op);
+        template<typename InputIterator1, typename InputIterator2, typename OutputIterator, typename BinaryFunction, void*>
+	static
+	inline
+        void transform(InputIterator1 first1,
+                       InputIterator1 last1,
+                       InputIterator2 first2,
+                       OutputIterator result,
+                       BinaryFunction op);
+
+
+
+
+
 
 		//Transform If Variants...
 
@@ -266,34 +254,24 @@ namespace bolt
          */
 
 
-		template<
-			typename InputIterator,
-			typename OutputIterator,
-			typename UnaryFunction,
-			typename Predicate>
-		static
-		inline
-        OutputIterator transform_if(
-			control &ctl,
-            InputIterator first,
-            InputIterator last,
-            OutputIterator result,
-            UnaryFunction op,
-			Predicate pred);
+	template<typename InputIterator, typename OutputIterator, typename UnaryFunction, typename Predicate>
+	static
+	inline
+        OutputIterator transform_if(control &ctl,
+                       InputIterator first,
+                       InputIterator last,
+                       OutputIterator result,
+                       UnaryFunction op,
+					   Predicate  	pred );
 
-        template<
-			typename InputIterator,
-			typename OutputIterator,
-			typename UnaryFunction,
-			typename Predicate>
-		static
-		inline
-		OutputIterator transform_if(
-			InputIterator first,
-            InputIterator last,
-            OutputIterator result,
-            UnaryFunction op,
-			Predicate pred);
+        template<typename InputIterator, typename OutputIterator, typename UnaryFunction, typename Predicate>
+	static
+	inline
+        OutputIterator transform_if(InputIterator first,
+                       InputIterator last,
+                       OutputIterator result,
+                       UnaryFunction op,
+					   Predicate  	pred);
 
 
 		 /*! \breif This version of transform_if conditionally applies a unary function to each element of an input sequence
@@ -346,39 +324,16 @@ namespace bolt
          *
          */
 
-		template<
-			typename InputIterator1,
-			typename InputIterator2,
-			typename OutputIterator,
-			typename UnaryFunction,
-			typename Predicate>
+		template<typename InputIterator1, typename InputIterator2, typename OutputIterator, typename UnaryFunction, typename Predicate>
 		static
 		inline
-		OutputIterator transform_if(
-			InputIterator1 first,
-			InputIterator1 last,
-			InputIterator2 stencil,
-			OutputIterator result,
-			UnaryFunction op,
-			Predicate pred);
+		OutputIterator  transform_if (InputIterator1 first, InputIterator1 last, InputIterator2 stencil, OutputIterator result, UnaryFunction op, Predicate pred);
 
 
-		template<
-			typename InputIterator1,
-			typename InputIterator2,
-			typename OutputIterator,
-			typename UnaryFunction,
-			typename Predicate>
+		template<typename InputIterator1, typename InputIterator2, typename OutputIterator, typename UnaryFunction, typename Predicate>
 		static
 		inline
-		OutputIterator transform_if(
-			control &ctl,
-			InputIterator1 first,
-			InputIterator1 last,
-			InputIterator2 stencil,
-			OutputIterator result,
-			UnaryFunction op,
-			Predicate pred);
+		OutputIterator  transform_if (control &ctl, InputIterator1 first, InputIterator1 last, InputIterator2 stencil, OutputIterator result, UnaryFunction op, Predicate pred);
 
 
 		/*! \brief This version of transform_if conditionally applies a binary function to each pair of elements from two input sequences
@@ -437,42 +392,19 @@ namespace bolt
          */
 
 
-		template<
-			typename InputIterator1,
-			typename InputIterator2,
-			typename InputIterator3,
-			typename OutputIterator,
-			typename BinaryFunction,
-			typename Predicate>
+		template<typename InputIterator1, typename InputIterator2, typename InputIterator3, typename OutputIterator, typename BinaryFunction, typename Predicate>
 		static
 		inline
-		OutputIterator transform_if(
-			InputIterator1 first1,
-			InputIterator1 last1,
-			InputIterator2 first2,
-			InputIterator3 stencil,
-			OutputIterator result,
-			BinaryFunction op,
-			Predicate pred);
+		OutputIterator  transform_if (InputIterator1 first1, InputIterator1 last1, InputIterator2 first2,
+                       InputIterator3 stencil, OutputIterator result, BinaryFunction op, Predicate pred);
 
-		template<
-			typename InputIterator1,
-			typename InputIterator2,
-			typename InputIterator3,
-			typename OutputIterator,
-			typename BinaryFunction,
-			typename Predicate>
+		template<typename InputIterator1, typename InputIterator2, typename InputIterator3, typename OutputIterator, typename BinaryFunction, typename Predicate>
 		static
 		inline
-		OutputIterator transform_if(
-			control &ctl,
-			InputIterator1 first1,
-			InputIterator1 last1,
-			InputIterator2 first2,
-			InputIterator3 stencil,
-			OutputIterator result,
-			BinaryFunction op,
-			Predicate pred);
+		OutputIterator  transform_if (control &ctl, InputIterator1 first1, InputIterator1 last1, InputIterator2 first2,
+                       InputIterator3 stencil, OutputIterator result, BinaryFunction op, Predicate pred);
+
+
 
      /*!   \}  */
 

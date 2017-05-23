@@ -69,8 +69,8 @@ namespace detail
         }
     };
 
-    //The serial CPU implementation of stable_sort_by_key routine. This routines
-    //zips the key value pair and then sorts using the std::stable_sort routine.
+    //The serial CPU implementation of stable_sort_by_key routine. This routines zips the key value pair and then sorts
+    //using the std::stable_sort routine.
     template< typename RandomAccessIterator1, typename RandomAccessIterator2, typename StrictWeakOrdering >
     static
     inline
@@ -274,8 +274,10 @@ namespace detail
 			unsigned int tile_index = i*tile_limit;
 				try
 				{
-				  concurrency::parallel_for_each( av, tileK0,
-				  [=](const concurrency::tiled_index<localRange>& t_idx) restrict(amp)
+				  concurrency::parallel_for_each(
+                      av,
+                      tileK0,
+				      [=](const concurrency::tiled_index<localRange>& t_idx) restrict(amp)
 				  {
 					   int gloId = t_idx.global[ 0 ] + index;
 					   int groId = t_idx.tile[ 0 ] + tile_index;
@@ -406,19 +408,11 @@ namespace detail
 
              try
              {
-                concurrency::parallel_for_each( av, globalSizeK1,
-                [
-                  values_first,
-				  keys_first,
-                  &tmpKeyBuffer,
-				  &tmpValueBuffer,
-                  vecSize,
-                  comp,
-                  localRange,
-                  srcLogicalBlockSize,
-			      pass
-                ] ( concurrency::index< 1 > idx ) restrict(amp)
-             {
+                concurrency::parallel_for_each(
+                    av,
+                    globalSizeK1,
+                    [=, &tmpKeyBuffer, &tmpValueBuffer](
+                        concurrency::index<1> idx) restrict(amp) {
                   int gloID = idx[ 0 ];
 
                   //  Abort threads that are passed the end of the input vector
@@ -502,9 +496,9 @@ namespace detail
          //  the results back into the input array
 		if( numMerges & 1 )
 	    {
-		   concurrency::extent< 1 > modified_ext( vecSize );
-		   tmpValueBuffer.section( modified_ext ).copy_to( values_first.getContainer().getBuffer(values_first, vecSize) );
-		   tmpKeyBuffer.section( modified_ext ).copy_to( keys_first.getContainer().getBuffer(keys_first, vecSize) );
+		   concurrency::extent<1> modified_ext(vecSize);
+		   tmpValueBuffer.section(modified_ext).copy_to(values_first.getContainer().getBuffer(values_first, vecSize) );
+		   tmpKeyBuffer.section(modified_ext).copy_to(keys_first.getContainer().getBuffer(keys_first, vecSize) );
 		}
 
         return;
@@ -512,10 +506,8 @@ namespace detail
 
 
     //Non Device Vector specialization.
-    //This implementation creates a Buffer and passes the buffer to the sort
-    //specialization which takes the AMP buffer as a parameter.
-    //In the future, Each input buffer should be mapped to the device_vector and
-    //the specialization specific to device_vector should be called.
+    //This implementation creates a Buffer and passes the buffer to the sort specialization whichtakes the AMP buffer as a parameter.
+    //In the future, Each input buffer should be mapped to the device_vector and the specialization specific to device_vector should be called.
     template< typename RandomAccessIterator1, typename RandomAccessIterator2, typename StrictWeakOrdering >
     static
     inline

@@ -90,7 +90,6 @@ void THNN_(SmoothL1Criterion_updateGradInput)(
   auto input_data = bolt::amp::make_ubiquitous_iterator(THCTensor_(data)(state, input));
   auto target_data = bolt::amp::make_ubiquitous_iterator(THCTensor_(data)(state, target));
   auto gradInput_data = bolt::amp::make_ubiquitous_iterator(THCTensor_(data)(state, gradInput));
-
   bolt::amp::transform(
     input_data, input_data+size, target_data, gradInput_data,
     smoothl1_updateGradInput_functor<real>(norm)

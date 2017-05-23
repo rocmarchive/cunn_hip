@@ -40,7 +40,9 @@ __global__ void cunn_SpatialClassNLLCriterion_updateOutput_kernel(
        i < map_nelem;
        i += step) {
     t = target[toffset + i] - TH_INDEX_BASE;
+#if defined(__HIP_PLATFORM_NVCC__)
     assert(t >= 0 && t < n_classes);
+#endif
     cur_weight = weights ? weights[t] : ScalarConvert<int, T>::to(1);
     input_sum -= input[ioffset + i + map_nelem * t] * cur_weight;
     acc_weight += cur_weight;
@@ -97,7 +99,9 @@ __global__ void cunn_SpatialClassNLLCriterion_updateGradInput_kernel(
        i < map_nelem;
        i += step) {
     t = (int)target[toffset + i] - TH_INDEX_BASE;
+#if defined(__HIP_PLATFORM_NVCC__)
     assert(t >= 0 && t < n_classes);
+#endif
     gradInput[ioffset + i + map_nelem * t] = -(weights ? weights[t] : ScalarConvert<int, T>::to(1)) * norm;
   }
 }

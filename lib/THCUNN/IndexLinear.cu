@@ -62,6 +62,8 @@ void updateOutput(
     const int maxNormalize,
     const int nnzPerBlock)
 {
+// WSTHORNTON -- temporary comment kernel
+#if 0
     /*******************************************************
      * Adapted from the following file in arrayfire
      * https://github.com/arrayfire/arrayfire/blob/v3.4.1/src/backend/opencl/kernel/csrmm.cl
@@ -156,6 +158,7 @@ void updateOutput(
             atomicAdd(output + rowId * outDim, val);
         }
     }
+#endif
 }
 
 // This kernel takes in the following inputs:
@@ -177,6 +180,8 @@ void accGradWeight(
     const Ty weightDecay,
     const int maxNormalize)
 {
+// WSTHORNTON -- temporary comment kernel
+#if 0
     const long bidy = hipBlockIdx_y;
     const long tidx = hipThreadIdx_x;
     const long tidy = hipThreadIdx_y;
@@ -232,6 +237,7 @@ void accGradWeight(
         }
         __syncthreads();
     }
+#endif
 }
 
 // The gradBias is just a reduction of gradOutput along the batches.
@@ -248,6 +254,8 @@ void accGradBias(
     const Ty scale,
     const Ty weightDecay)
 {
+// WSTHORNTON -- temporary comment kernel
+#if 0
     const int tidx = hipThreadIdx_x;
     const int tidy = hipThreadIdx_y;
     const int tid = tidy * hipBlockDim_x + tidx;
@@ -287,6 +295,7 @@ void accGradBias(
             gradBias[idx] = s_gradBiasVals[tid];
         }
     }
+#endif
 }
 
 // Use gradWeight from accGradWeight to update the weight.
@@ -310,6 +319,8 @@ void updateWeight(
     const int maxNormalize,
     const long batchId)
 {
+// WSTHORNTON -- temporary comment kernel
+#if 0
     long gidx = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x;
     long gidy = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
 
@@ -359,6 +370,7 @@ void updateWeight(
             weight[weightOffset] = weightVal * (1 - wd) - gradWeightVal;
         }
     }
+#endif
 }
 
 // This kernel is launched batchSize number of times.
@@ -381,6 +393,8 @@ void accUpdateWeight(
     const int maxNormalize,
     const long batchId)
 {
+// WSTHORNTON -- temporary comment kernel
+#if 0
     // Parallel along outDim.
     long gidx = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x;
     // Parallel along the sparse input size for current batch.
@@ -428,6 +442,7 @@ void accUpdateWeight(
             weight[weightOffset] = weightVal * (1 - wd) - gradWeightVal;
         }
     }
+#endif
 }
 
 

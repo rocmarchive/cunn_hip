@@ -22,12 +22,14 @@
 template <typename Dtype, typename Acctype>
 struct smoothl1_functor
 {
+  __host__ __device__
   smoothl1_functor() {}
 
   __host__ __device__ Acctype operator()(const Dtype &x, const Dtype &y) const
   {
-    Acctype z = ScalarConvert<Dtype, Acctype>::to(THCNumerics<Dtype>::abs(x-y));
-    return z < Acctype(1) ? 0.5f*z*z : z - 0.5f;
+     Acctype z = ScalarConvert<Dtype, Acctype>::to(THCNumerics<Dtype>::abs(x-y));
+     return z < Acctype(1) ? 0.5f*z*z : z - 0.5f;
+    return Acctype(0.0);
   }
 };
 

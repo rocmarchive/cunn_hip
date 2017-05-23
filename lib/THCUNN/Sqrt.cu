@@ -21,7 +21,9 @@ struct sqrtupdateOutput_functor
 
   __device__ void operator()(T *output, const T *input) const
   {
-    *output = sqrt(*input + bias);
+// WSTHORNTON -- temporary comment kernel
+    //*output = sqrt(*input + bias);
+    *output = T(0.0);
   }
 
   __host__ __device__
@@ -32,6 +34,7 @@ struct sqrtupdateOutput_functor
 template <typename T>
 struct sqrtupdateGradInput_functor
 {
+  __host__ __device__
   sqrtupdateGradInput_functor() {}
 
   __device__ void operator()(T *gradInput, const T *output, const T *gradOutput) const
