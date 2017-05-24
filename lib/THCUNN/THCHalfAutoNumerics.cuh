@@ -31,8 +31,7 @@ inline __host__ __device__ double fmaxType(double x, double y) {
 
 // arithmetic functions
 
-// WSTHORNTON -- commented operator overloads relating to (half,half) and (half,*) and (*,half)
-#if 0
+#if defined(__HIP_PLATFORM_NVCC__)
 inline __host__ __device__ half operator+(half a, half b) {
   return THCNumerics<half>::add(a, b);
 }

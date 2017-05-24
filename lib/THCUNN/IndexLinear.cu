@@ -62,8 +62,6 @@ void updateOutput(
     const int maxNormalize,
     const int nnzPerBlock)
 {
-// WSTHORNTON -- temporary comment kernel
-#if 0
     /*******************************************************
      * Adapted from the following file in arrayfire
      * https://github.com/arrayfire/arrayfire/blob/v3.4.1/src/backend/opencl/kernel/csrmm.cl
@@ -104,6 +102,8 @@ void updateOutput(
     const long batchStride = hipBlockDim_x * hipBlockDim_y;
 
     Ty outVal = 0;
+// WSTHORNTON -- temporary comment kernel
+#if 0
     // Since the number of nonzero elements might be greater than local memory available,
     // Load only part of the row into local memory, perform partial dot, repeat until done.
     for (long id = batchStart; id < batchEnd; id += batchStride) {
@@ -141,6 +141,7 @@ void updateOutput(
         }
         __syncthreads();
     }
+#endif
 
     // s_values is no longer used at this point. Reuse it for reducing outVal.
     // A reduction along the y dimension now gives a single output value along x.
@@ -158,7 +159,6 @@ void updateOutput(
             atomicAdd(output + rowId * outDim, val);
         }
     }
-#endif
 }
 
 // This kernel takes in the following inputs:
@@ -180,8 +180,6 @@ void accGradWeight(
     const Ty weightDecay,
     const int maxNormalize)
 {
-// WSTHORNTON -- temporary comment kernel
-#if 0
     const long bidy = hipBlockIdx_y;
     const long tidx = hipThreadIdx_x;
     const long tidy = hipThreadIdx_y;
@@ -237,7 +235,6 @@ void accGradWeight(
         }
         __syncthreads();
     }
-#endif
 }
 
 // The gradBias is just a reduction of gradOutput along the batches.
@@ -254,8 +251,6 @@ void accGradBias(
     const Ty scale,
     const Ty weightDecay)
 {
-// WSTHORNTON -- temporary comment kernel
-#if 0
     const int tidx = hipThreadIdx_x;
     const int tidy = hipThreadIdx_y;
     const int tid = tidy * hipBlockDim_x + tidx;
@@ -295,7 +290,6 @@ void accGradBias(
             gradBias[idx] = s_gradBiasVals[tid];
         }
     }
-#endif
 }
 
 // Use gradWeight from accGradWeight to update the weight.
@@ -319,8 +313,6 @@ void updateWeight(
     const int maxNormalize,
     const long batchId)
 {
-// WSTHORNTON -- temporary comment kernel
-#if 0
     long gidx = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x;
     long gidy = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
 
@@ -370,7 +362,6 @@ void updateWeight(
             weight[weightOffset] = weightVal * (1 - wd) - gradWeightVal;
         }
     }
-#endif
 }
 
 // This kernel is launched batchSize number of times.
@@ -393,8 +384,6 @@ void accUpdateWeight(
     const int maxNormalize,
     const long batchId)
 {
-// WSTHORNTON -- temporary comment kernel
-#if 0
     // Parallel along outDim.
     long gidx = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x;
     // Parallel along the sparse input size for current batch.
@@ -442,7 +431,6 @@ void accUpdateWeight(
             weight[weightOffset] = weightVal * (1 - wd) - gradWeightVal;
         }
     }
-#endif
 }
 
 

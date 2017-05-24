@@ -68,7 +68,11 @@ struct GradOp {
     : mean(m), input(i), gradOutput(g) {}
   __device__ __forceinline__ Float2<Dtype, Acctype> operator()(int batch, int plane, int n) {
     Dtype g = gradOutput[batch][plane][n];
+#if defined(__HIP_PLATFORM_NVCC__)
     Dtype c = ScalarConvert<Acctype, Dtype>::to(input[batch][plane][n] - mean);
+#else
+    Dtype c = ScalarConvert<Acctype, Dtype>::to((input[batch][plane][n]).template as<Acctype>() - mean);
+#endif
     return Float2<Dtype, Acctype>(g, g * c);
   }
   const Acctype mean;
@@ -177,8 +181,6 @@ __global__ void BatchNormalizationUpdateOutput_kernel(
     DeviceTensor1 saveMean,
     DeviceTensor1 saveStd) {
 
-// WSTHORNTON -- ambiguous use of '*' operator
-#if 0
   int plane = hipBlockIdx_x;
   int N = input.getSize(0) * input.getSize(2);
 
@@ -199,8 +201,13 @@ __global__ void BatchNormalizationUpdateOutput_kernel(
     Acctype unbiasedVar = varN / (N - 1);
     saveMean[plane] = ScalarConvert<Acctype, Dtype>::to(mean);
     saveStd[plane] = ScalarConvert<Acctype, Dtype>::to(invStd);
+#if defined(__HIP_PLATFORM_NVCC__)
     runningMean[plane] = ScalarConvert<Acctype, Dtype>::to((1 - momentum) * runningMean[plane] + momentum * mean);
     runningVar[plane] = ScalarConvert<Acctype, Dtype>::to((1 - momentum) * runningVar[plane] + momentum * unbiasedVar);
+#else
+    runningMean[plane] = ScalarConvert<Acctype, Dtype>::to((1 - momentum) * (runningMean[plane]).template as<Dtype>() + momentum * mean);
+    runningVar[plane] = ScalarConvert<Acctype, Dtype>::to((1 - momentum) * (runningVar[plane]).template as<Dtype>() + momentum * unbiasedVar);
+#endif
   }
 
   // Write normalized and update the output
@@ -212,7 +219,6 @@ __global__ void BatchNormalizationUpdateOutput_kernel(
       output[batch][plane][x] = ScalarConvert<Acctype, Dtype>::to(gamma * (inp - mean) * invStd + beta);
     }
   }
-#endif
 }
 
 template <typename Dtype, typename Acctype, typename DeviceTensor1, typename DeviceTensor3>
@@ -231,8 +237,6 @@ __global__ void BatchNormalizationBackward_kernel(
     Acctype scale,
     double eps) {
 
-// WSTHORNTON -- ambiguous use of '*' operator
-#if 0
   int plane = hipBlockIdx_x;
   int N = gradOutput.getSize(0) * gradOutput.getSize(2);
 
@@ -242,7 +246,11 @@ __global__ void BatchNormalizationBackward_kernel(
     stdVal = ScalarConvert<Dtype, Acctype>::to(saveStd[plane]);
   } else {
     mean = ScalarConvert<Dtype, Acctype>::to(runningMean[plane]);
+#if defined(__HIP_PLATFORM_NVCC__)
     stdVal = 1 / sqrt(runningVar[plane] + eps);
+#else
+    stdVal = 1 / sqrt((runningVar[plane]).template as<double>() + eps);
+#endif
   }
 
   Acctype weightVal = weight.numElements() > 0 ? ScalarConvert<Dtype, Acctype>::to(weight[plane]) : Acctype(1);
@@ -277,16 +285,23 @@ __global__ void BatchNormalizationBackward_kernel(
 
   if (gradWeight.numElements() > 0) {
     if (hipThreadIdx_x == 0) {
+#if defined(__HIP_PLATFORM_NVCC__)
       gradWeight[plane] += ScalarConvert<Acctype, Dtype>::to(scale * dotP * stdVal);
+#else
+      (gradWeight[plane]).template as<Dtype>() += ScalarConvert<Acctype, Dtype>::to(scale * dotP * stdVal);
+#endif
     }
   }
 
   if (gradBias.numElements() > 0) {
     if (hipThreadIdx_x == 0) {
+#if defined(__HIP_PLATFORM_NVCC__)
       gradBias[plane] += ScalarConvert<Acctype, Dtype>::to(scale * gradOutputSum);
+#else
+      (gradBias[plane]).template as<Dtype>() += ScalarConvert<Acctype, Dtype>::to(scale * gradOutputSum);
+#endif
     }
   }
-#endif
 }
 
 #include "generic/BatchNormalization.cu"

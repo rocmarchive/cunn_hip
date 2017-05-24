@@ -21,9 +21,7 @@ struct sqrtupdateOutput_functor
 
   __device__ void operator()(T *output, const T *input) const
   {
-// WSTHORNTON -- temporary comment kernel
-    //*output = sqrt(*input + bias);
-    *output = T(0.0);
+    *output = sqrt(*input + bias);
   }
 
   __host__ __device__

@@ -14,8 +14,6 @@ template<typename Dtype, typename Acctype>
 __global__ void caffe_gpu_interp2_kernel(const int n,
     const Acctype rheight, const Acctype rwidth,
     const THCDeviceTensor<Dtype, 4> data1, THCDeviceTensor<Dtype, 4> data2) {
-// WSTHORNTON -- ambiguous use of '*' operator
-#if 0
   int index = hipThreadIdx_x + hipBlockIdx_x * hipBlockDim_x;
   const int batchsize = data1.getSize(0);
   const int channels = data1.getSize(1);
@@ -54,15 +52,22 @@ __global__ void caffe_gpu_interp2_kernel(const int n,
     //
     for (int n = 0; n < batchsize ; n++){
         for (int c = 0; c < channels; ++c) {
+#if defined(__HIP_PLATFORM_NVCC__)
         const Acctype val = h0lambda * (w0lambda * data1[n][c][h1][w1]
                             + w1lambda * data1[n][c][h1][w1+w1p])
                             + h1lambda * (w0lambda * data1[n][c][h1+h1p][w1]
                             + w1lambda * data1[n][c][h1+h1p][w1+w1p]);
         data2[n][c][h2][w2] = ScalarConvert<Acctype, Dtype>::to(val);
+#else
+        const Acctype val = h0lambda * (w0lambda * (data1[n][c][h1][w1]).template as<Acctype>()
+                            + w1lambda * (data1[n][c][h1][w1+w1p]).template as<Acctype>())
+                            + h1lambda * (w0lambda * (data1[n][c][h1+h1p][w1]).template as<Acctype>()
+                            + w1lambda * (data1[n][c][h1+h1p][w1+w1p]).template as<Acctype>());
+        data2[n][c][h2][w2] = ScalarConvert<Acctype, Dtype>::to(val);
+#endif
       }
     }
   }
-#endif
 }
 
 // Backward (adjoint) operation 1 <- 2 (accumulates)
@@ -70,8 +75,6 @@ template <typename Dtype, typename Acctype>
 __global__ void caffe_gpu_interp2_kernel_backward(const int n,
     const Acctype rheight, const Acctype rwidth,
     THCDeviceTensor<Dtype, 4> data1, const THCDeviceTensor<Dtype, 4> data2){
-// WSTHORNTON -- no overload for "+="
-#if 0
   int index = hipThreadIdx_x + hipBlockIdx_x * hipBlockDim_x;
   const int batchsize = data1.getSize(0);
   const int channels = data1.getSize(1);
@@ -89,7 +92,11 @@ __global__ void caffe_gpu_interp2_kernel_backward(const int n,
       for (int n = 0; n < batchsize ; n++){
         for (int c = 0; c < channels; ++c) {
           const Dtype val = data2[n][c][h1][w1];
+#if defined(__HIP_PLATFORM_NVCC__)
           data1[n][c][h2][w2] += val;
+#else
+          (data1[n][c][h2][w2]).template as<Dtype>() += val;
+#endif
         }
       }
       return;
@@ -121,7 +128,6 @@ __global__ void caffe_gpu_interp2_kernel_backward(const int n,
       }
     }
   }
-#endif
 }
 
 
