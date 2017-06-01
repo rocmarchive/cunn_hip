@@ -6,8 +6,8 @@
 template <typename T>
 struct hardtanhupdateOutput_functor
 {
-  T max_val_;
   T min_val_;
+  T max_val_;
 
   __host__ __device__
   hardtanhupdateOutput_functor() = default;
@@ -46,8 +46,8 @@ struct hardtanhupdateOutput_functor
 template <typename T>
 struct hardtanhupdateGradInput_functor
 {
-  T max_val_;
   T min_val_;
+  T max_val_;
 
   __host__ __device__
   hardtanhupdateGradInput_functor() = default;
