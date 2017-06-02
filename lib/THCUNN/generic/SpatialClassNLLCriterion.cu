@@ -19,11 +19,10 @@ void THNN_(SpatialClassNLLCriterion_shapeCheck)(
   if (THCTensor_(size)(state, input, 0) != THCIndexTensor_(size)(state, target, 0) ||
       THCTensor_(size)(state, input, 2) != THCIndexTensor_(size)(state, target, 1) ||
       THCTensor_(size)(state, input, 3) != THCIndexTensor_(size)(state, target, 2)) {
-    // WSTHORNTON -- not implemented
-    // THCDescBuff input_size = THCTensor_(sizeDesc)(state, input);
-    // THCDescBuff target_size = THCIndexTensor_(sizeDesc)(state, target);
-    // THError("input and target batch or spatial sizes don't match: target %s, input %s",
-    //         target_size.str, input_size.str);
+    THCDescBuff input_size = THCTensor_(sizeDesc)(state, input);
+    THCDescBuff target_size = THCIndexTensor_(sizeDesc)(state, target);
+    THError("input and target batch or spatial sizes don't match: target %s, input %s",
+            target_size.str, input_size.str);
   }
 
   if (weights && THCTensor_(nElement)(state, weights) != THCTensor_(size)(state, input, 1)) {

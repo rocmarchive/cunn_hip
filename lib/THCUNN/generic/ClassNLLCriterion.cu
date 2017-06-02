@@ -40,10 +40,9 @@ void THNN_(ClassNLLCriterion_updateOutput)(
       batch_size, num_targets);
 
   if (weights && THCTensor_(nElement)(state, weights) != n_classes) {
-    // WSTHORNTON -- not implemented
-    // THCDescBuff s1 = THCTensor_(sizeDesc)(state, weights);
-    // THError("weight tensor should be defined either for all %d classes or no classes"
-    //         " but got weight tensor of shape: %s", n_classes, s1.str);
+    THCDescBuff s1 = THCTensor_(sizeDesc)(state, weights);
+    THError("weight tensor should be defined either for all %d classes or no classes"
+            " but got weight tensor of shape: %s", n_classes, s1.str);
   }
 
   input = THCTensor_(newContiguous)(state, input);
