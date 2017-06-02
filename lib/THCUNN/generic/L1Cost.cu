@@ -16,8 +16,9 @@ void THNN_(L1Cost_updateOutput)(
   thrust::device_ptr<real> input_data(THCTensor_(data)(state, input));
   sum = thrust::transform_reduce(input_data, input_data+size, l1cost_functor<real, accreal>(), accreal(0), thrust::plus<accreal>());
 #else
-  // auto input_data = bolt::amp::make_ubiquitous_iterator(THCTensor_(data)(state, input));
-  // sum = bolt::amp::transform_reduce(input_data, input_data+size, l1cost_functor<real, accreal>(), accreal(0), bolt::amp::plus<accreal>());
+// WSTHORNTON -- transform_reduce has problem with fp16 (Bolt)
+//  auto input_data = bolt::amp::make_ubiquitous_iterator(THCTensor_(data)(state, input));
+//  sum = bolt::amp::transform_reduce(input_data, input_data+size, l1cost_functor<real, accreal>(), accreal(0), bolt::amp::plus<accreal>());
 #endif
   THCTensor_(free)(state, input);
 
