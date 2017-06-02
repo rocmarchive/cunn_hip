@@ -11,6 +11,7 @@
   #include <bolt/amp/functional.h>
   #include <bolt/amp/iterator/ubiquitous_iterator.h>
   #include <bolt/amp/reduce.h>
+  #include <bolt/amp/transform_reduce.h>
   #include <bolt/amp/transform.h>
 #endif
 
