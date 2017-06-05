@@ -9,8 +9,6 @@ struct sigmoid_updateGradInput_functor {
     *gradInput = *gradOutput * (1.f - *output) * (*output);
   }
 
-  __device__ __host__
-  ~sigmoidupdateOutput_functor() {}
 };
 
 #ifdef CUDA_HALF_TENSOR
@@ -26,9 +24,6 @@ struct sigmoid_updateGradInput_functor<half> {
     *gradInput = __float2half(go * (1.f - out) * out);
 #endif
   }
-
-  __device__ __host__
-  ~sigmoidupdateGradInput_functor() {}
 };
 #endif
 

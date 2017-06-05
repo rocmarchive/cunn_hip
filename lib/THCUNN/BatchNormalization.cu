@@ -120,7 +120,7 @@ __device__ T reduce(Op op, DeviceTensor3 tensor, int plane) {
   sum = warpSum(sum);
 
   // 'transpose', and reduce within warp again
-  __shared__ T sharedv[32];
+  __shared__ T shared[32];
   __syncthreads();
   if (hipThreadIdx_x % WARP_SIZE == 0) {
     shared[hipThreadIdx_x / WARP_SIZE] = sum;
@@ -139,7 +139,7 @@ __device__ T reduce(Op op, DeviceTensor3 tensor, int plane) {
   __syncthreads();
 
   // Everyone picks it up, should be broadcast into the whole gradInput
-  return sharedv[0];
+  return shared[0];
 }
 
 template <typename Dtype, typename Acctype, typename DeviceTensor1, typename DeviceTensor3>
