@@ -47,6 +47,7 @@ function DataParallelTable:__init(dimension, flattenParams, usenccl)
       error "must specify a dimension!"
    end
 
+   self.typeStr = 'torch.CudaTensor'
    self.dimension = dimension
    self.modules = {}
    self.gpuAssignments = {}  -- Which gpuid each module sits on
@@ -84,12 +85,12 @@ function DataParallelTable:add(module, gpus)
    return self
 end
 
-function DataParallelTable:threads(initFunc)
+function DataParallelTable:threads(initFunc, syncCopies)
    require 'threads'
    self.impl:close()
-   self.impl = Impls.Threads(self, initFunc)
+   self.impl = Impls.Threads(self, initFunc, syncCopies)
    return self
-end
+end  -- NOTE: Setting syncCopies will copy model to GPUs synchronously.
 
 function DataParallelTable:__tostring()
    return 'DataParallelTable: ' .. #self.gpuAssignments .. ' x ' .. tostring(self.modules[1])
@@ -101,6 +102,7 @@ end
 
 -- this flattens parameters, so that syncParameters and accGradParameters can be much more efficient
 function DataParallelTable:flattenParameters()
+   local typeStr = self.typeStr
    self.flattenedParams = self.impl:exec(function(module)
       local p, dp = module:parameters()
       local flattened = true
@@ -112,9 +114,9 @@ function DataParallelTable:flattenParameters()
          end
       end
       if flattened then
-         local pp = torch.CudaTensor(p[1]:storage(), p[1]:storageOffset(),
+         local pp = torch[typeStr:match('torch.(%a+)')](p[1]:storage(), p[1]:storageOffset(),
                     p[#p]:storageOffset()+p[#p]:numel()-p[1]:storageOffset())
-         local dpp = torch.CudaTensor(dp[1]:storage(), dp[1]:storageOffset(),
+         local dpp = torch[typeStr:match('torch.(%a+)')](dp[1]:storage(), dp[1]:storageOffset(),
                      dp[#dp]:storageOffset()+dp[#dp]:numel()
                       - dp[1]:storageOffset())
          return {pp, dpp}
@@ -188,17 +190,13 @@ function DataParallelTable:updateOutput(input)
    local prevGpuid = cutorch.getDevice()
 
    -- distribute the input to GPUs
-   self:_distribute(self.inputGpu, input)
+   self.maxUsedGpu = self:_distribute(self.inputGpu, input)
 
    -- update output for each module
    local inputGpu = self.inputGpu
    self.outputGpu = self.impl:exec(function(m, i)
-      if _hasData(inputGpu[i]) then
-         return m:updateOutput(inputGpu[i])
-      else
-         return inputGpu[i]
-      end
-   end)
+      return m:updateOutput(inputGpu[i])
+   end, self.maxUsedGpu)
 
    -- concatenate the outputs to the base GPU
    self.output = self:_concat(self.output, self.outputGpu)
@@ -231,12 +229,8 @@ function DataParallelTable:__backward(method, input, gradOutput, scale)
       self:_distribute(self.gradOutputGpu, gradOutput)
 
       self.gradInputGpu = self.impl:exec(function(m, i)
-         if torch.isTensor(inputGpu[i]) and inputGpu[i]:numel() == 0 then
-            return torch.CudaTensor()
-         else
-            return m[method](m, inputGpu[i], gradOutputGpu[i], scale)
-         end
-      end)
+         return m[method](m, inputGpu[i], gradOutputGpu[i], scale)
+      end, self.maxUsedGpu)
 
       if self.gradInput then
          -- concatenate the gradInput to the base GPU
@@ -246,12 +240,8 @@ function DataParallelTable:__backward(method, input, gradOutput, scale)
 
    if method == 'accGradParameters' then
       self.impl:exec(function(m, i)
-         if torch.isTensor(inputGpu[i]) and inputGpu[i]:numel() == 0 then
-            return torch.CudaTensor()
-         else
-            return m:accGradParameters(inputGpu[i], gradOutputGpu[i], scale)
-         end
-      end)
+         return m:accGradParameters(inputGpu[i], gradOutputGpu[i], scale)
+      end, self.maxUsedGpu)
    end
 
    if method == 'backward' or method == 'accGradParameters' then
@@ -352,10 +342,12 @@ function DataParallelTable:reset(stdv)
 end
 
 function DataParallelTable:type(typeStr)
-   assert(typeStr == 'torch.CudaTensor', 'DataParallelTable supports only torch.CudaTensor type')
+   assert(typeStr == 'torch.CudaHalfTensor' or typeStr == 'torch.CudaTensor' or typeStr == 'torch.CudaDoubleTensor',
+          'DataParallelTable supports only torch.CudaHalfTensor or torch.CudaDoubleTensor or torch.CudaTensor types')
    for i, m in ipairs(self.modules) do
       m:type(typeStr)
    end
+   self.typeStr = typeStr
    return self
 end
 
@@ -475,12 +467,14 @@ function DataParallelTable:apply(callback)
 end
 
 local function sliceRange(nElem, idx, splits)
-   local eltsPerMod = nElem / splits
-   local rangeStart = math.ceil((idx - 1) * eltsPerMod) + 1
-   if idx == splits then
-      return rangeStart, nElem - rangeStart + 1
+   local eltsPerMod = math.floor(nElem / splits)
+   local numExtra = nElem - eltsPerMod * splits
+   if idx <= numExtra then
+     rangeStart = (idx - 1) * (eltsPerMod + 1) + 1
+     return rangeStart, eltsPerMod + 1
    else
-      return rangeStart, math.ceil(idx * eltsPerMod) - rangeStart + 1
+     rangeStart = numExtra * (eltsPerMod + 1) + (idx - 1 - numExtra) * eltsPerMod + 1
+     return rangeStart, eltsPerMod
    end
 end
 
@@ -513,7 +507,7 @@ function DataParallelTable:_reduce(gradParams)
    local dstGpuid = self.gpuAssignments[1]
    cutorch.setDevice(dstGpuid)
 
-   self.buffer = self.buffer or torch.CudaTensor()
+   self.buffer = self.buffer or torch[self.typeStr:match('torch.(%a+)')]()
    for moduleIdx = 2, #gradParams do
       for paramIdx = 1, #gradParams[moduleIdx] do
          local dst = gradParams[1][paramIdx]
@@ -534,6 +528,7 @@ function DataParallelTable:_distribute(dst, src)
    for i = 1, #self.gpuAssignments do
       cutorch.setDevice(self.gpuAssignments[i])
       dst[i] = self:_distributeTensorRecursive(dst[i], src, i, #self.gpuAssignments)
+      if not _hasData(dst[i]) then return i-1 end
    end
 end
 
@@ -554,10 +549,18 @@ function DataParallelTable:_distributeTensorRecursive(dst, src, idx, n)
    end
 
    assert(torch.isTensor(src), 'input must be a tensor or table of tensors')
-   assert(src:type() == 'torch.CudaTensor' or src:type() == 'torch.FloatTensor',
-      'input must be a CUDA or Float tensor')
+   if self.typeStr == 'torch.CudaHalfTensor' then
+      assert(src:type() == self.typeStr or src:type() == 'torch.HalfTensor',
+             'input must be a CudaHalf or Half tensor')
+   elseif self.typeStr == 'torch.CudaDoubleTensor' then
+      assert(src:type() == self.typeStr or src:type() == 'torch.DoubleTensor',
+             'input must be a CudaDouble or Double tensor')
+   else
+      assert(src:type() == 'torch.CudaTensor' or src:type() == 'torch.FloatTensor',
+             'input must be a CUDA or Float tensor')
+   end
 
-   dst = torch.type(dst) == 'torch.CudaTensor' and dst or torch.CudaTensor()
+   dst = torch.type(dst) == self.typeStr and dst or torch[self.typeStr:match('torch.(%a+)')]()
 
    local srcsize = src:dim() > 0 and src:size(self.dimension) or 0
    local index, size = sliceRange(srcsize, idx, n)
@@ -599,7 +602,7 @@ function DataParallelTable:_concatTensorRecursive(dst, src)
    assert(torch.isTensor(src[1]), 'input must be a tensor or table of tensors')
 
    cutorch.setDevice(self.gpuAssignments[1])
-   dst = torch.type(dst) == 'torch.CudaTensor' and dst or torch.CudaTensor()
+   dst = torch.type(dst) == self.typeStr and dst or torch[self.typeStr:match('torch.(%a+)')]()
 
    local cumsum = sumSizes(src, self.dimension)
 
@@ -647,11 +650,12 @@ function BasicImpl:setup()
 end
 
 -- Applies a function to each replica, combining the results into a table
-function BasicImpl:exec(closure)
+function BasicImpl:exec(closure, maxGpuIdx)
    local prevGpuid = cutorch.getDevice()
    self:setup()
    local res = {}
    for i, gpu in ipairs(self.dpt.gpuAssignments) do
+      if maxGpuIdx and i > maxGpuIdx then break end
       cutorch.setDevice(gpu)
       res[i] = closure(self.modules[i], i)
    end
@@ -674,12 +678,15 @@ function BasicImpl:close()
 end
 
 -- Multi-threaded dispatch
-function ThreadsImpl:__init(dpt, initFunc)
+function ThreadsImpl:__init(dpt, initFunc, syncCopies)
    self.dpt = dpt
    self.initFunc = initFunc
+   self.syncCopies = syncCopies
+      -- This makes initial copy of models to GPUs synchronous. Set this option
+      -- in case your model serialization code is not thread-safe.
 end
 
-function ThreadsImpl:applyChanges()
+function ThreadsImpl:applyChanges(sync)
    if self.__threads then
       local module = self.dpt.modules[1]
       for i, gpu in ipairs(self.dpt.gpuAssignments) do
@@ -693,6 +700,9 @@ function ThreadsImpl:applyChanges()
                _G.module = module:clone()
             end
          end)
+         if sync then
+            self.__threads:synchronize()
+         end  -- if sync is set, changes are applied synchronously
       end
       self.__threads:synchronize()
    end
@@ -707,14 +717,15 @@ function ThreadsImpl:setup()
          function() require 'cunn' end,
          self.initFunc)
       self.__threads:specific(true)
-      self:applyChanges()
+      self:applyChanges(self.syncCopies)
    end
 end
 
-function ThreadsImpl:exec(closure)
+function ThreadsImpl:exec(closure, maxGpuIdx)
    self:setup()
    local res = {}
    for i=1,#self.dpt.gpuAssignments do
+      if maxGpuIdx and i > maxGpuIdx then break end
       self.__threads:addjob(i,
          function()
             return closure(_G.module, i)

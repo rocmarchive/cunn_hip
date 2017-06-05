@@ -1,9 +1,11 @@
 #include "hip/hip_runtime.h"
 #include "THCUNN.h"
+#include "THCHalf.h"
+#include "THCHalfAutoNumerics.cuh"
 #include "common.h"
 
-template <typename Dtype, bool COUNT_INCLUDE_PAD>
-__global__ void AvePoolForward( const int nthreads,
+template <typename Dtype, typename Acctype, bool COUNT_INCLUDE_PAD>
+__global__ void AvePoolForward(const int nthreads,
     const Dtype* const bottom_data, const int num, const int channels,
     const int height, const int width, const int pooled_height,
     const int pooled_width, const int kernel_h, const int kernel_w,
@@ -23,7 +25,7 @@ __global__ void AvePoolForward( const int nthreads,
     wstart = max(wstart, 0);
     hend = min(hend, height);
     wend = min(wend, width);
-    Dtype aveval = 0;
+    Acctype aveval = Acctype(0);
     const Dtype* const bottom_slice = bottom_data + (n * channels + c) * height * width;
     for (int h = hstart; h < hend; ++h) {
       for (int w = wstart; w < wend; ++w) {
@@ -31,87 +33,14 @@ __global__ void AvePoolForward( const int nthreads,
       }
     }
     if(COUNT_INCLUDE_PAD)
-      top_data[index] = aveval / pool_size;
+      top_data[index] = ScalarConvert<Acctype, Dtype>::to(aveval / pool_size);
     else
-      top_data[index] = aveval / ((hend - hstart) * (wend - wstart));
+      top_data[index] = ScalarConvert<Acctype, Dtype>::to(aveval / ((hend - hstart) * (wend - wstart)));
   }
 }
 
-
-void THNN_CudaSpatialAveragePooling_updateOutput(THCState *state, THCudaTensor *input, THCudaTensor *output, int kW, int kH, int dW, int dH, int padW, int padH, bool ceil_mode, bool count_include_pad)
-{
-  THCUNN_assertSameGPU(state, 2, input, output);
-  THArgCheck(input->nDimension == 3 || input->nDimension == 4, 2, "3D or 4D (batch) tensor expected");
-
-  long nInputCols, nInputRows, nInputPlane, batchSize;
-  long nOutputCols, nOutputRows;
-
-  if (input->nDimension == 3) {
-    nInputCols = input->size[2];
-    nInputRows = input->size[1];
-    nInputPlane = input->size[0];
-    batchSize = 1;
-  }
-  else
-  {
-    nInputCols = input->size[3];
-    nInputRows = input->size[2];
-    nInputPlane = input->size[1];
-    batchSize = input->size[0];
-  }
-
-  THArgCheck(nInputCols >= kW - 2*padW && nInputRows >= kH - 2*padH, 2, "input image smaller than kernel size");
-  THArgCheck(kW/2 >= padW && kH/2 >= padH, 2, "pad should be smaller than half of kernel size");
-
-  if(ceil_mode) {
-    nOutputCols = ceil(float(nInputCols - kW + 2*padW) / float(dW)) + 1;
-    nOutputRows = ceil(float(nInputRows - kH + 2*padH) / float(dH)) + 1;
-  }
-  else {
-    nOutputCols = floor(float(nInputCols - kW + 2*padW) / float(dW)) + 1;
-    nOutputRows = floor(float(nInputRows - kH + 2*padH) / float(dH)) + 1;
-  }
-  if (padW || padH)
-  {
-    // ensure that the last pooling starts inside the image
-    // needed to avoid problems in ceil mode
-    if ((nOutputRows - 1)*dH >= nInputRows + padH)
-      --nOutputRows;
-    if ((nOutputCols  - 1)*dW >= nInputCols  + padW)
-      --nOutputCols;
-  }
-
-  input = THCudaTensor_newContiguous(state, input);
-  float* input_data = THCudaTensor_data(state, input);
-
-  THCudaTensor_resize4d(state, output, batchSize, nInputPlane, nOutputRows, nOutputCols);
-
-  float* output_data = THCudaTensor_data(state, output);
-
-  int count = THCudaTensor_nElement(state, output);
-
-  if(count_include_pad) {
-    hipLaunchKernelGGL((AvePoolForward<float, true>), dim3(GET_BLOCKS(count)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state) , 
-        count, input_data,
-        batchSize, nInputPlane, nInputRows, nInputCols, nOutputRows, nOutputCols,
-        kH, kW, dH, dW, padH, padW, output_data);
-  } else {
-    hipLaunchKernelGGL((AvePoolForward<float, false>), dim3(GET_BLOCKS(count)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state) , 
-        count, input_data,
-        batchSize, nInputPlane, nInputRows, nInputCols, nOutputRows, nOutputCols,
-        kH, kW, dH, dW, padH, padW, output_data);
-  }
-  THCudaCheck(hipGetLastError());
-
-  if(input->nDimension == 3)
-    THCudaTensor_resize3d(state, output, nInputPlane, nOutputRows, nOutputCols);
-
-  THCudaTensor_free(state, input);
-
-}
-
-template <typename Dtype, bool COUNT_INCLUDE_PAD>
-__global__ void AvePoolBackward( const int nthreads, const Dtype* const top_diff,
+template <typename Dtype, typename Acctype, bool COUNT_INCLUDE_PAD>
+__global__ void AvePoolBackward(const int nthreads, const Dtype* const top_diff,
     const int num, const int channels, const int height,
     const int width, const int pooled_height, const int pooled_width,
     const int kernel_h, const int kernel_w, const int stride_h,
@@ -128,7 +57,7 @@ __global__ void AvePoolBackward( const int nthreads, const Dtype* const top_diff
     const int phend = min(h / stride_h + 1, pooled_height);
     const int pwstart = (w < kernel_w) ? 0 : (w - kernel_w) / stride_w + 1;
     const int pwend = min(w / stride_w + 1, pooled_width);
-    Dtype gradient = 0;
+    Acctype gradient = Acctype(0);
     const Dtype* const top_diff_slice =
         top_diff + (n * channels + c) * pooled_height * pooled_width;
     for (int ph = phstart; ph < phend; ++ph) {
@@ -149,73 +78,9 @@ __global__ void AvePoolBackward( const int nthreads, const Dtype* const top_diff
           gradient += top_diff_slice[ph * pooled_width + pw] / ((hend - hstart) * (wend - wstart));
       }
     }
-    bottom_diff[index] = gradient;
+    bottom_diff[index] = ScalarConvert<Acctype, Dtype>::to(gradient);
   }
 }
 
-void THNN_CudaSpatialAveragePooling_updateGradInput(THCState *state, THCudaTensor *input, THCudaTensor *gradOutput, THCudaTensor *gradInput, int kW, int kH, int dW, int dH, int padW, int padH, bool ceil_mode, bool count_include_pad)
-{
-  THCUNN_assertSameGPU(state, 3, input, gradOutput, gradInput);
-
-  input = THCudaTensor_newContiguous(state, input);
-  gradOutput = THCudaTensor_newContiguous(state, gradOutput);
-
-  long nInputCols, nInputRows, nInputPlane, batchSize;
-  long nOutputCols, nOutputRows;
-
-  if (input->nDimension == 3) {
-    nInputCols = input->size[2];
-    nInputRows = input->size[1];
-    nInputPlane = input->size[0];
-    batchSize = 1;
-  }
-  else
-  {
-    nInputCols = input->size[3];
-    nInputRows = input->size[2];
-    nInputPlane = input->size[1];
-    batchSize = input->size[0];
-  }
-
-  if(ceil_mode) {
-    nOutputCols = ceil(float(nInputCols - kW + 2*padW) / float(dW)) + 1;
-    nOutputRows = ceil(float(nInputRows - kH + 2*padH) / float(dH)) + 1;
-  }
-  else {
-    nOutputCols = floor(float(nInputCols - kW + 2*padW) / float(dW)) + 1;
-    nOutputRows = floor(float(nInputRows - kH + 2*padH) / float(dH)) + 1;
-  }
-  if (padW || padH)
-  {
-    // ensure that the last pooling starts inside the image
-    // needed to avoid problems in ceil mode
-    if ((nOutputRows - 1)*dH >= nInputRows + padH)
-      --nOutputRows;
-    if ((nOutputCols  - 1)*dW >= nInputCols  + padW)
-      --nOutputCols;
-  }
-
-  THCudaTensor_resizeAs(state, gradInput, input);
-
-  int count = THCudaTensor_nElement(state, input);
-
-  if(count_include_pad) {
-    hipLaunchKernelGGL((AvePoolBackward<float, true>), dim3(GET_BLOCKS(count)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state) , count,
-        THCudaTensor_data(state, gradOutput),
-        batchSize, nInputPlane, nInputRows, nInputCols, nOutputRows, nOutputCols,
-        kH, kW, dH, dW, padH, padW,
-        THCudaTensor_data(state, gradInput));
-  } else {
-    hipLaunchKernelGGL((AvePoolBackward<float, false>), dim3(GET_BLOCKS(count)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state) , count,
-        THCudaTensor_data(state, gradOutput),
-        batchSize, nInputPlane, nInputRows, nInputCols, nOutputRows, nOutputCols,
-        kH, kW, dH, dW, padH, padW,
-        THCudaTensor_data(state, gradInput));
-  }
-  THCudaCheck(hipGetLastError());
-
-  // clean
-  THCudaTensor_free(state, input);
-  THCudaTensor_free(state, gradOutput);
-}
-
+#include "generic/SpatialAveragePooling.cu"
+#include "THCGenerateFloatTypes.h"

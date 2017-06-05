@@ -1,20 +1,28 @@
 #include "THCUNN.h"
-#include "common.h"
+#include "THCHalf.h"
+#include "THCHalfAutoNumerics.cuh"
+#include <THC/THCApply.cuh>
 
+template <typename T>
 struct softPlusupdateOutput_functor
 {
-  float threshold;
-  float beta;
+  T threshold;
+  T beta;
 
   __host__ __device__
-  softPlusupdateOutput_functor(float threshold_, float beta_)
+  softPlusupdateOutput_functor() = default;
+
+  __host__ __device__
+  softPlusupdateOutput_functor(T threshold_, T beta_)
     : threshold(threshold_)
     , beta(beta_)
   {}
 
-  __device__ void operator()(float *output, const float *input) const
-  {
-    float betain = beta * (*input);
+  __host__ __device__
+  softPlusupdateOutput_functor(const softPlusupdateOutput_functor& f) = default;
+
+  __device__ void operator()(T *output, const T *input) const {
+    T betain = beta * (*input);
     *output = ((betain) > threshold) ? *input : (1/beta) * log1p(exp(betain));
   }
 
@@ -22,28 +30,28 @@ struct softPlusupdateOutput_functor
   ~softPlusupdateOutput_functor() {}
 };
 
-void THNN_CudaSoftPlus_updateOutput(THCState *state, THCudaTensor *input, THCudaTensor *output, float beta, float threshold)
-{
-  THCUNN_assertSameGPU(state, 2, input, output);
-  THCudaTensor_resizeAs(state, output, input);
-  THC_pointwiseApply2(state, output, input, softPlusupdateOutput_functor(threshold, beta));
-}
-
+template <typename T>
 struct softPlusupdateGradInput_functor
 {
-  float threshold;
-  float beta;
+  T threshold;
+  T beta;
 
   __host__ __device__
-  softPlusupdateGradInput_functor(float threshold_, float beta_)
+  softPlusupdateGradInput_functor() = default;
+
+  __host__ __device__
+  softPlusupdateGradInput_functor(T threshold_, T beta_)
     : threshold(threshold_)
     , beta(beta_)
   {}
 
-  __device__ void operator()(float *gradInput, const float *output, const float *gradOutput) const
+  __host__ __device__
+  softPlusupdateGradInput_functor(const softPlusupdateGradInput_functor& f) = default;
+
+  __device__ void operator()(T *gradInput, const T *output, const T *gradOutput) const
   {
-    float betaout = beta * (*output);
-    float exp_bo = exp(betaout);
+    T betaout = beta * (*output);
+    T exp_bo = exp(betaout);
     *gradInput = ((betaout) > threshold) ? *gradOutput : *gradOutput * (exp_bo - 1) / exp_bo;
   }
 
@@ -51,10 +59,5 @@ struct softPlusupdateGradInput_functor
   ~softPlusupdateGradInput_functor() {}
 };
 
-void THNN_CudaSoftPlus_updateGradInput(THCState *state, THCudaTensor *input, THCudaTensor *gradOutput, THCudaTensor *gradInput,
-  THCudaTensor *output, float beta, float threshold)
-{
-  THCUNN_assertSameGPU(state, 4, input, output, gradOutput, gradInput);
-  THCudaTensor_resizeAs(state, gradInput, output);
-  THC_pointwiseApply3(state, gradInput, output, gradOutput, softPlusupdateGradInput_functor(threshold, beta));
-}
+#include "generic/SoftPlus.cu"
+#include "THCGenerateFloatTypes.h"

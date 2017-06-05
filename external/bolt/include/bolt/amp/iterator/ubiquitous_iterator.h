@@ -55,6 +55,20 @@ namespace bolt
                 return x.p_ - y.p_;
             }
 
+            friend
+            inline
+            bool operator==(const Ubiquitous_iterator& x, const Ubiquitous_iterator& y) [[cpu]][[hc]]
+            {
+                return x.p_ == y.p_;
+            }
+
+            friend
+            inline
+            bool operator!=(const Ubiquitous_iterator& x, const Ubiquitous_iterator& y) [[cpu]][[hc]]
+            {
+                return x.p_ != y.p_;
+            }
+
             T* p_;
         public:
             Ubiquitous_iterator() [[cpu]][[hc]] = default;
@@ -73,13 +87,34 @@ namespace bolt
                 return *this;
             }
 
+            Ubiquitous_iterator& operator++() [[cpu]][[hc]]
+            {
+                p_ += 1;
+                return *this;
+            }
+
+            Ubiquitous_iterator& operator++(int) [[cpu]][[hc]]
+            {
+                Ubiquitous_iterator tmp(*this);
+                ++(*this);
+                return tmp;
+            }
+
+            T& operator *() [[cpu]][[hc]] {
+                return *p_;
+            }
+
+            T const & operator*() const [[cpu]][[hc]] {
+                return *p_;
+            }
+
             // Bolt glue.
             std::ptrdiff_t m_Index = 0;
-            const Ubiquitous_iterator& getContainer() const { return *this; }
-            Ubiquitous_iterator& getContainer() { return *this; }
+            const Ubiquitous_iterator& getContainer() const [[cpu]][[hc]]{ return *this; }
+            Ubiquitous_iterator& getContainer() [[cpu]][[hc]]{ return *this; }
 
-            T* data() const { return p_; }
-            T* data() { return p_; }
+            T* data() const [[cpu]][[hc]] { return p_; }
+            T* data() [[cpu]][[hc]] { return p_; }
             // Bolt glue.
         };
         template<typename T>

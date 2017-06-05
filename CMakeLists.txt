@@ -66,6 +66,11 @@ FILE(WRITE THCUNN_h.lua "return [[")
 FILE(APPEND THCUNN_h.lua ${THCUNN_headers})
 FILE(APPEND THCUNN_h.lua "]]")
 
+FILE(STRINGS lib/THCUNN/generic/THCUNN.h THCUNN_generic_headers NEWLINE_CONSUME)
+FILE(WRITE THCUNN_generic_h.lua "return [[")
+FILE(APPEND THCUNN_generic_h.lua ${THCUNN_generic_headers})
+FILE(APPEND THCUNN_generic_h.lua "]]")
+
 FILE(GLOB luasrc *.lua)
 
 ADD_SUBDIRECTORY(lib)
@@ -74,3 +79,35 @@ INSTALL(
   FILES
   ${luasrc}
   DESTINATION "${Torch_INSTALL_LUA_PATH_SUBDIR}/cunn")
+
+
+#######################################################################################
+# CMAKE_MINIMUM_REQUIRED(VERSION 2.8 FATAL_ERROR)
+# CMAKE_POLICY(VERSION 2.8)
+# 
+# SET(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" "${CMAKE_MODULE_PATH}")
+# 
+# FIND_PACKAGE(Torch REQUIRED)
+# FIND_PACKAGE(CUDA 6.5 REQUIRED)
+# 
+# INCLUDE_DIRECTORIES("${Torch_INSTALL_INCLUDE}/THC")
+# LINK_DIRECTORIES("${Torch_INSTALL_LIB}")
+# 
+# FILE(STRINGS lib/THCUNN/THCUNN.h THCUNN_headers NEWLINE_CONSUME)
+# FILE(WRITE THCUNN_h.lua "return [[")
+# FILE(APPEND THCUNN_h.lua ${THCUNN_headers})
+# FILE(APPEND THCUNN_h.lua "]]")
+# 
+# FILE(STRINGS lib/THCUNN/generic/THCUNN.h THCUNN_generic_headers NEWLINE_CONSUME)
+# FILE(WRITE THCUNN_generic_h.lua "return [[")
+# FILE(APPEND THCUNN_generic_h.lua ${THCUNN_generic_headers})
+# FILE(APPEND THCUNN_generic_h.lua "]]")
+# 
+# FILE(GLOB luasrc *.lua)
+# 
+# ADD_SUBDIRECTORY(lib)
+# 
+# INSTALL(
+#   FILES
+#   ${luasrc}
+#   DESTINATION "${Torch_INSTALL_LUA_PATH_SUBDIR}/cunn")

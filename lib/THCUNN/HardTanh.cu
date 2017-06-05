@@ -1,18 +1,27 @@
 #include "THCUNN.h"
-#include "common.h"
+#include "THCHalf.h"
+#include "THCHalfAutoNumerics.cuh"
+#include <THC/THCApply.cuh>
 
+template <typename T>
 struct hardtanhupdateOutput_functor
 {
-  float min_val_;
-  float max_val_;
+  T min_val_;
+  T max_val_;
 
   __host__ __device__
-  hardtanhupdateOutput_functor(float min_val, float max_val)
+  hardtanhupdateOutput_functor() = default;
+
+  __host__ __device__
+  hardtanhupdateOutput_functor(T min_val, T max_val)
     : min_val_(min_val)
     , max_val_(max_val)
   {}
 
-  __device__ void operator()(float *output, const float *input) const
+  __host__ __device__
+  hardtanhupdateOutput_functor(const hardtanhupdateOutput_functor& f) = default;
+
+  __device__ void operator()(T *output, const T *input) const
   {
     if (*input < min_val_)
       *output = min_val_;
@@ -22,7 +31,7 @@ struct hardtanhupdateOutput_functor
       *output = max_val_;
   }
 
-  __device__ void operator()(float *input) const
+  __device__ void operator()(T *input) const
   {
     if (*input < min_val_)
       *input = min_val_;
@@ -34,78 +43,42 @@ struct hardtanhupdateOutput_functor
   ~hardtanhupdateOutput_functor() {}
 };
 
-void THNN_CudaHardTanh_updateOutput(
-      THCState *state,
-      THCudaTensor *input,
-      THCudaTensor *output,
-      float min_val,
-      float max_val,
-      bool inplace)
-{
-  THCUNN_assertSameGPU(state, 2, input, output);
-  if(inplace)
-  {
-    THCudaTensor_set(state, output, input);
-    THC_pointwiseApply1(state, output, hardtanhupdateOutput_functor(min_val, max_val));
-  }
-  else
-  {
-    THCudaTensor_resizeAs(state, output, input);
-    THC_pointwiseApply2(state, output, input,
-                               hardtanhupdateOutput_functor(min_val, max_val));
-  }
-}
-
+template <typename T>
 struct hardtanhupdateGradInput_functor
 {
-  float min_val_;
-  float max_val_;
+  T min_val_;
+  T max_val_;
 
   __host__ __device__
-  hardtanhupdateGradInput_functor(float min_val, float max_val)
+  hardtanhupdateGradInput_functor() = default;
+
+  __host__ __device__
+  hardtanhupdateGradInput_functor(T min_val, T max_val)
     : min_val_(min_val)
     , max_val_(max_val)
   {}
 
-  __device__ void operator()(float *gradInput, const float *input, const float *gradOutput) const
+  __host__ __device__
+  hardtanhupdateGradInput_functor(const hardtanhupdateGradInput_functor& f) = default;
+
+  __device__ void operator()(T *gradInput, const T *input, const T *gradOutput) const
   {
-    if (*input < min_val_ || *input > max_val_)
-      *gradInput = 0;
+    if (*input <= min_val_ || *input >= max_val_)
+      *gradInput = ScalarConvert<int, T>::to(0);
     else
       *gradInput = *gradOutput;
   }
 
-  __device__ void operator()(float *gradInput, const float *input) const
+  __device__ void operator()(T *gradInput, const T *input) const
   {
     if (*input <= min_val_ || *input >= max_val_)
-      *gradInput = 0;
+      *gradInput = ScalarConvert<int, T>::to(0);
   }
 
   __host__ __device__
   ~hardtanhupdateGradInput_functor() {}
+
 };
 
-void THNN_CudaHardTanh_updateGradInput(
-    THCState *state,
-    THCudaTensor *input,
-    THCudaTensor *gradOutput,
-    THCudaTensor *gradInput,
-    float min_val,
-    float max_val,
-    bool inplace)
-{
-  THCUNN_assertSameGPU(state, 3, input, gradOutput, gradInput);
-
-  if (inplace)
-  {
-    THCudaTensor_set(state, gradInput, gradOutput);
-    THC_pointwiseApply2(state, gradInput, input,
-                                 hardtanhupdateGradInput_functor(min_val, max_val));
-  }
-  else
-  {
-    THCudaTensor_resizeAs(state, gradInput, input);
-    THC_pointwiseApply3(state, gradInput, input, gradOutput,
-                                 hardtanhupdateGradInput_functor(min_val, max_val));
-  }
-}
+#include "generic/HardTanh.cu"
+#include "THCGenerateFloatTypes.h"

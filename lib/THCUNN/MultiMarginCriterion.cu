@@ -1,18 +1,20 @@
 #include "hip/hip_runtime.h"
 #include "THCUNN.h"
 #include "common.h"
+#include "THCHalf.h"
+#include "THCHalfAutoNumerics.cuh"
 
 #define MULTIMARGIN_THREADS 128
 
-template <int P>
-__global__ void cunn_MultiMarginCriterion_updateOutput_kernel( float *output, float *input, float *target, float *weights, int nframe, int dim, bool sizeAverage, float margin)
+template <int P, typename Dtype, typename Acctype>
+__global__ void cunn_MultiMarginCriterion_updateOutput_kernel(Dtype *output, Dtype *input, THCIndex_t *target, Dtype *weights, int nframe, int dim, bool sizeAverage, Dtype margin)
 {
-  __shared__ float buffer[MULTIMARGIN_THREADS];
+  __shared__ Acctype buffer[MULTIMARGIN_THREADS];
   int k = hipBlockIdx_x;
-  float *input_k = input + k*dim;
-  float *output_k = output + k;
+  Dtype *input_k = input + k*dim;
+  Dtype *output_k = output + k;
   int target_k = ((int)target[k]) - TH_INDEX_BASE;
-  float input_target_k = input_k[target_k];
+  Dtype input_target_k = input_k[target_k];
 
   int i_start = hipThreadIdx_x;
   int i_end = dim;
@@ -21,12 +23,12 @@ __global__ void cunn_MultiMarginCriterion_updateOutput_kernel( float *output, fl
   buffer[hipThreadIdx_x] = 0;
   for (int i = i_start; i < i_end; i += i_step)
   {
-    float z = margin - input_target_k + input_k[i];
+    Dtype z = margin - input_target_k + input_k[i];
     if (i == target_k)
       continue;
 
     if (z > 0) {
-      float h = (P==1) ? z : z*z;
+      Dtype h = (P==1) ? z : z*z;
       if(weights)
         h *= weights[target_k];
       buffer[hipThreadIdx_x] += h;
@@ -37,26 +39,26 @@ __global__ void cunn_MultiMarginCriterion_updateOutput_kernel( float *output, fl
   // reduce
   if (hipThreadIdx_x == 0)
   {
-    float sum = 0;
+    Acctype sum = 0;
     for (int i=0; i < hipBlockDim_x; i++)
       sum += buffer[i];
 
-    *output_k = sum/dim;
+    *output_k = ScalarConvert<Acctype, Dtype>::to(sum/dim);
     if(sizeAverage)
       *output_k /= nframe;
   }
 }
 
-template <int P>
-__global__ void cunn_MultiMarginCriterion_updateGradInput_kernel( float *gradInput, float *input, float *target, float *weights, int nframe, int dim, bool sizeAverage, float margin)
+template <int P, typename Dtype, typename Acctype>
+__global__ void cunn_MultiMarginCriterion_updateGradInput_kernel(Dtype *gradInput, Dtype *input, THCIndex_t *target, Dtype *weights, int nframe, int dim, bool sizeAverage, Dtype margin)
 {
-  __shared__ float buffer[MULTIMARGIN_THREADS];
+  __shared__ Acctype buffer[MULTIMARGIN_THREADS];
   int k = hipBlockIdx_x;
-  float *input_k = input + k*dim;
-  float *gradInput_k = gradInput + k*dim;
+  Dtype *input_k = input + k*dim;
+  Dtype *gradInput_k = gradInput + k*dim;
   int target_k = ((int)target[k]) - TH_INDEX_BASE;
-  float input_target_k = input_k[target_k];
-  float g = (sizeAverage ? 1./((float)(nframe*dim)) : 1./((float)dim));
+  Dtype input_target_k = input_k[target_k];
+  Acctype g = (sizeAverage ? 1./((Acctype)(nframe*dim)) : 1./((Acctype)dim));
 
   int i_start = hipThreadIdx_x;
   int i_end = dim;
@@ -65,20 +67,20 @@ __global__ void cunn_MultiMarginCriterion_updateGradInput_kernel( float *gradInp
   buffer[hipThreadIdx_x] = 0;
   for (int i=i_start; i<i_end; i+=i_step)
   {
-    float z = margin - input_target_k + input_k[i];
+    Dtype z = margin - input_target_k + input_k[i];
     if (i == target_k)
       continue;
 
     if (z > 0)
     {
-      float h = (P == 1) ? g : 2*g*z;
+      Dtype h = ScalarConvert<Acctype, Dtype>::to((P == 1) ? g : 2*g*z);
       if(weights)
         h *= weights[target_k];
       buffer[hipThreadIdx_x] -= h;
       gradInput_k[i] = h;
     }
     else
-      gradInput_k[i] = 0;
+      gradInput_k[i] = ScalarConvert<int, Dtype>::to(0);
   }
 
   __syncthreads();
@@ -86,175 +88,14 @@ __global__ void cunn_MultiMarginCriterion_updateGradInput_kernel( float *gradInp
   // reduce
   if (hipThreadIdx_x == 0)
   {
-    float gradInput_target_k = 0;
+    Acctype gradInput_target_k = 0;
     for (int i=0; i<hipBlockDim_x; i++)
       gradInput_target_k += buffer[i];
-    gradInput_k[target_k] = gradInput_target_k;
+    gradInput_k[target_k] = ScalarConvert<Acctype, Dtype>::to(gradInput_target_k);
   }
 }
 
-void THNN_CudaMultiMarginCriterion_updateOutput(THCState *state, THCudaTensor *input,
-                                                THCudaTensor *target, THCudaTensor *output,
-                                                bool sizeAverage, int p, THCudaTensor *weights,
-                                                float margin)
-{
-  THCUNN_assertSameGPU(state, 2, input, target);
-  input = THCudaTensor_newContiguous(state, input);
-  if(weights)
-    weights = THCudaTensor_newContiguous(state, weights);
-  if (input->nDimension == 1)
-  {
-    dim3 blocks(1);
-    dim3 threads(MULTIMARGIN_THREADS);
-    if (p == 1)
-    {
-      hipLaunchKernelGGL((cunn_MultiMarginCriterion_updateOutput_kernel<1>), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), 
-        THCudaTensor_data(state, output),
-        THCudaTensor_data(state, input),
-        THCudaTensor_data(state, target),
-        weights ? THCudaTensor_data(state, weights) : NULL,
-        1, input->size[0],
-        sizeAverage,
-        margin
-      );
-    }
-    else if (p == 2)
-    {
-      hipLaunchKernelGGL((cunn_MultiMarginCriterion_updateOutput_kernel<2>), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), 
-        THCudaTensor_data(state, output),
-        THCudaTensor_data(state, input),
-        THCudaTensor_data(state, target),
-        weights ? THCudaTensor_data(state, weights) : NULL,
-        1, input->size[0],
-        sizeAverage,
-        margin
-      );
-    }
-    THCudaCheck(hipGetLastError());
-  }
-  else if (input->nDimension == 2)
-  {
-    THCudaTensor *output_ = THCudaTensor_newWithSize1d(state, input->size[0]);  // tmp outupt buffer
-    dim3 blocks(input->size[0]);
-    dim3 threads(MULTIMARGIN_THREADS);
-    if (p == 1)
-    {
-      hipLaunchKernelGGL((cunn_MultiMarginCriterion_updateOutput_kernel<1>), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), 
-        THCudaTensor_data(state, output_),
-        THCudaTensor_data(state, input),
-        THCudaTensor_data(state, target),
-        weights ? THCudaTensor_data(state, weights) : NULL,
-        input->size[0], input->size[1],
-        sizeAverage,
-        margin
-      );
-    }
-    else if (p == 2)
-    {
-      hipLaunchKernelGGL((cunn_MultiMarginCriterion_updateOutput_kernel<2>), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), 
-        THCudaTensor_data(state, output_),
-        THCudaTensor_data(state, input),
-        THCudaTensor_data(state, target),
-        weights ? THCudaTensor_data(state, weights) : NULL,
-        input->size[0], input->size[1],
-        sizeAverage,
-        margin
-      );
-    }
-    THCudaCheck(hipGetLastError());
-    float sum = THCudaTensor_sumall(state, output_);
-    THCudaTensor_set1d(state, output, 0, sum);
-    THCudaTensor_free(state, output_);
-  }
-  else
-  {
-    THError("vector or matrix expected");
-  }
+#include "generic/MultiMarginCriterion.cu"
+#include "THCGenerateFloatTypes.h"
 
-  THCudaTensor_free(state, input);
-  if(weights)
-    THCudaTensor_free(state, weights);
-}
-
-void THNN_CudaMultiMarginCriterion_updateGradInput(THCState *state, THCudaTensor *input,
-                                                   THCudaTensor *target, THCudaTensor *gradInput,
-                                                   bool sizeAverage, int p, THCudaTensor *weights,
-                                                   float margin)
-{
-  THCUNN_assertSameGPU(state, 3, input, gradInput, target);
-  input = THCudaTensor_newContiguous(state, input);
-  THCudaTensor_resizeAs(state, gradInput, input);
-  if(weights)
-    weights = THCudaTensor_newContiguous(state, weights);
-
-  if (input->nDimension == 1)
-  {
-    dim3 blocks(1);
-    dim3 threads(MULTIMARGIN_THREADS);
-
-    if (p == 1)
-    {
-      hipLaunchKernelGGL((cunn_MultiMarginCriterion_updateGradInput_kernel<1>), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), 
-        THCudaTensor_data(state, gradInput),
-        THCudaTensor_data(state, input),
-        THCudaTensor_data(state, target),
-        weights ? THCudaTensor_data(state, weights) : NULL,
-        1, gradInput->size[0],
-        sizeAverage,
-        margin
-      );
-    }
-    else if (p == 2)
-    {
-      hipLaunchKernelGGL((cunn_MultiMarginCriterion_updateGradInput_kernel<2>), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), 
-        THCudaTensor_data(state, gradInput),
-        THCudaTensor_data(state, input),
-        THCudaTensor_data(state, target),
-        weights ? THCudaTensor_data(state, weights) : NULL,
-        1, gradInput->size[0],
-        sizeAverage,
-        margin
-      );
-    }
-    THCudaCheck(hipGetLastError());
-  }
-  else if (input->nDimension == 2)
-  {
-    dim3 blocks(gradInput->size[0]);
-    dim3 threads(MULTIMARGIN_THREADS);
-
-    if (p == 1)
-    {
-      hipLaunchKernelGGL((cunn_MultiMarginCriterion_updateGradInput_kernel<1>), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), 
-        THCudaTensor_data(state, gradInput),
-        THCudaTensor_data(state, input),
-        THCudaTensor_data(state, target),
-        weights ? THCudaTensor_data(state, weights) : NULL,
-        gradInput->size[0], gradInput->size[1],
-        sizeAverage,
-        margin
-      );
-    }
-    else if (p == 2)
-    {
-      hipLaunchKernelGGL((cunn_MultiMarginCriterion_updateGradInput_kernel<2>), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), 
-        THCudaTensor_data(state, gradInput),
-        THCudaTensor_data(state, input),
-        THCudaTensor_data(state, target),
-        weights ? THCudaTensor_data(state, weights) : NULL,
-        gradInput->size[0], gradInput->size[1],
-        sizeAverage,
-        margin
-      );
-    }
-    THCudaCheck(hipGetLastError());
-  }
-  else
-  {
-    THError("vector or matrix expected");
-  }
-
-  THCudaTensor_free(state, input);
-  if(weights)
-    THCudaTensor_free(state, weights);
-}
+#undef MULTIMARGIN_THREADS

@@ -33,6 +33,7 @@
 
 namespace bolt {
     namespace amp {
+
         /*! \addtogroup algorithms
          */
 
@@ -77,21 +78,13 @@ namespace bolt {
 		template<typename InputIterator, typename OutputType>
         static
         inline
-        OutputType inner_product(
-            bolt::amp::control &ctl,
-            InputIterator first1,
-            InputIterator last1,
-            InputIterator first2,
-            OutputType init);
+        OutputType inner_product( bolt::amp::control &ctl,  InputIterator first1, InputIterator last1,
+            InputIterator first2, OutputType init);
 
 		template<typename InputIterator, typename OutputType>
         static
         inline
-        OutputType inner_product(
-            InputIterator first1,
-            InputIterator last1,
-            InputIterator first2,
-            OutputType init);
+        OutputType inner_product( InputIterator first1, InputIterator last1, InputIterator first2, OutputType init);
 
 
         /*! \brief Inner Product returns the inner product of two iterators using user specified binary functors
@@ -128,37 +121,19 @@ namespace bolt {
         * \sa http://www.sgi.com/tech/stl/inner_product.html
         */
 
-        template<
-            typename InputIterator,
-            typename OutputType,
-            typename BinaryFunction1,
-            typename BinaryFunction2>
+        template<typename InputIterator, typename OutputType, typename BinaryFunction1, typename BinaryFunction2>
         static
         inline
-        OutputType inner_product(
-            bolt::amp::control &ctl,
-            InputIterator first1,
-            InputIterator last1,
-            InputIterator first2,
-            OutputType init,
-            BinaryFunction1 f1,
-            BinaryFunction2 f2);
+        OutputType inner_product( bolt::amp::control &ctl,  InputIterator first1, InputIterator last1,
+            InputIterator first2, OutputType init,
+            BinaryFunction1 f1, BinaryFunction2 f2);
 
-        template<
-            typename InputIterator,
-            typename OutputType,
-            typename BinaryFunction1,
-            typename BinaryFunction2,
-            void*>
+        template<typename InputIterator, typename OutputType, typename BinaryFunction1, typename BinaryFunction2, void*>
         static
         inline
-        OutputType inner_product(
-            InputIterator first1,
-            InputIterator last1,
-            InputIterator first2,
-            OutputType init,
-            BinaryFunction1 f1,
-            BinaryFunction2 f2);
+        OutputType inner_product( InputIterator first1, InputIterator last1, InputIterator first2, OutputType init,
+            BinaryFunction1 f1, BinaryFunction2 f2);
+
         /*!   \}  */
     };
 };

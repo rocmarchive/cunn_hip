@@ -1,128 +1,115 @@
 #include "THCUNN.h"
-#include "common.h"
+#include "THCHalf.h"
+#include "THCHalfAutoNumerics.cuh"
+#include <THC/THCApply.cuh>
 
+template <typename T>
 struct ThresholdUpdateOutput
 {
-  float threshold_;
-  float val_;
+  T threshold_;
+  T val_;
 
   __host__ __device__
-  ThresholdUpdateOutput(float threshold, float val)
+  ThresholdUpdateOutput() = default;
+
+  __host__ __device__
+  ThresholdUpdateOutput(T threshold, T val)
     : threshold_(threshold)
     , val_(val)
   {}
 
-  __device__ __forceinline__ void operator()(float *out, float *in)
+  __host__ __device__
+  ThresholdUpdateOutput(const ThresholdUpdateOutput& t) = default;
+
+  __device__ __forceinline__ void operator()(T *out, T *in)
   {
-    float x = *in;
+    T x = *in;
     *out = (x > threshold_) ? x : val_;
   }
 
   __host__ __device__
-  ~ThresholdUpdateOutput () {}
+  ~ThresholdUpdateOutput() {}
 };
 
 // in-place variant
+template <typename T>
 struct ThresholdUpdateOutputIP
 {
-  float threshold_;
-  float val_;
+  T threshold_;
+  T val_;
 
   __host__ __device__
-  ThresholdUpdateOutputIP(float threshold, float val)
+  ThresholdUpdateOutputIP() = default;
+
+  __host__ __device__  
+  ThresholdUpdateOutputIP(T threshold, T val)
     : threshold_(threshold)
     , val_(val)
   {}
 
-  __device__ __forceinline__ void operator()(float *x)
+  __host__ __device__
+  ThresholdUpdateOutputIP(const ThresholdUpdateOutputIP& t) = default;
+
+  __device__ __forceinline__ void operator()(T *x)
   {
     *x = (*x > threshold_) ? *x : val_;
   }
 
-  __host__ __device__
+  __host__ __device__  
   ~ThresholdUpdateOutputIP() {}
 };
 
-void THNN_CudaThreshold_updateOutput(THCState *state, THCudaTensor *input, THCudaTensor *output,
-  double threshold, double val, bool inplace)
-{
-  THCUNN_assertSameGPU(state, 2, input, output);
-
-  if (inplace)
-  {
-    THC_pointwiseApply1(state, input,
-      ThresholdUpdateOutputIP(threshold, val)
-    );
-    THCudaTensor_set(state, output, input);
-  }
-  else
-  {
-    THCudaTensor_resizeAs(state, output, input);
-    THC_pointwiseApply2(state, output, input,
-      ThresholdUpdateOutput(threshold, val)
-    );
-  }
-
-  THCudaCheck(hipGetLastError());
-}
-
+template <typename T>
 struct ThresholdUpdateGradInput
 {
-  float threshold_;
+  T threshold_;
 
-  __host__ __device__
-  ThresholdUpdateGradInput(float threshold)
+  __host__ __device__  
+  ThresholdUpdateGradInput() = default;
+
+  __host__ __device__  
+  ThresholdUpdateGradInput(T threshold)
     : threshold_(threshold)
   {}
 
+  __host__ __device__  
+  ThresholdUpdateGradInput(const ThresholdUpdateGradInput& f) = default;
+
   __device__ __forceinline__ void operator()(
-    float *gradInput, float *input, float *gradOutput) const
+    T *gradInput, T *input, T *gradOutput) const
   {
-    *gradInput = (*input > threshold_) ? *gradOutput : 0;
+    *gradInput = (*input > threshold_) ? *gradOutput : ScalarConvert<int, T>::to(0);
   }
 
-  __host__ __device__
+  __host__ __device__  
   ~ThresholdUpdateGradInput() {}
 };
 
+template <typename T>
 struct ThresholdUpdateGradInputIP
 {
-  float threshold_;
+  T threshold_;
 
-  __host__ __device__
-  ThresholdUpdateGradInputIP(float threshold)
+  __host__ __device__  
+  ThresholdUpdateGradInputIP() = default;
+
+  __host__ __device__  
+  ThresholdUpdateGradInputIP(T threshold)
     : threshold_(threshold)
   {}
 
+  __host__ __device__  
+  ThresholdUpdateGradInputIP(const ThresholdUpdateGradInputIP& t) = default;
+
   __device__ __forceinline__ void operator()(
-    float *gradOutput, float *input) const
+    T *gradOutput, T *input) const
   {
-    *gradOutput = (*input > threshold_) ? *gradOutput : 0;
+    *gradOutput = (*input > threshold_) ? *gradOutput : ScalarConvert<int, T>::to(0);
   }
 
-  __host__ __device__
+  __host__ __device__  
   ~ThresholdUpdateGradInputIP() {}
 };
 
-void THNN_CudaThreshold_updateGradInput(THCState *state, THCudaTensor *input, THCudaTensor *gradOutput,
-  THCudaTensor *gradInput, double threshold, double val, bool inplace)
-{
-  THCUNN_assertSameGPU(state, 3, input, gradInput, gradOutput);
-
-  if (inplace)
-  {
-    THC_pointwiseApply2(state, gradOutput, input,
-      ThresholdUpdateGradInputIP(threshold)
-    );
-    THCudaTensor_set(state, gradInput, gradOutput);
-  }
-  else
-  {
-    THCudaTensor_resizeAs(state, gradInput, input);
-    THC_pointwiseApply3(state, gradInput, input, gradOutput,
-       ThresholdUpdateGradInput(threshold)
-    );
-  }
-
-  THCudaCheck(hipGetLastError());
-}
+#include "generic/Threshold.cu"
+#include "THCGenerateFloatTypes.h"

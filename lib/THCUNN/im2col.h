@@ -1,10 +1,10 @@
 #include "hip/hip_runtime.h"
-#include "hip/hip_runtime.h"
 #ifndef THCUNN_IM2COL_H
 #define THCUNN_IM2COL_H
 
 
 #include "common.h"
+#include "THCNumerics.cuh"
 
 // Kernel for fast unfold+copy
 // (borrowed from Caffe: https://github.com/BVLC/caffe/blob/master/src/caffe/layers/conv_layer.cu)
@@ -32,7 +32,7 @@ __global__ void im2col_kernel( const int n, const Dtype* data_im,
         int h = h_in + i * dilation_h;
         int w = w_in + j * dilation_w;
         *data_col = (h >= 0 && w >= 0 && h < height && w < width) ?
-          data_im[i * dilation_h * width + j * dilation_w] : 0;
+          data_im[i * dilation_h * width + j * dilation_w] : ScalarConvert<int, Dtype>::to(0);
         data_col += height_col * width_col;
       }
     }
@@ -62,8 +62,8 @@ void im2col(hipStream_t stream, const Dtype* data_im, const int channels,
   THCudaCheck(hipGetLastError());
 }
 
-template <typename Dtype>
-__global__ void col2im_kernel( const int n, const Dtype* data_col,
+template <typename Dtype, typename Acctype>
+__global__ void col2im_kernel(const int n, const Dtype* data_col,
                                   const int height, const int width, const int channels,
                                   const int kernel_h, const int kernel_w,
                                   const int pad_h, const int pad_w,
@@ -72,7 +72,7 @@ __global__ void col2im_kernel( const int n, const Dtype* data_col,
                                   const int height_col, const int width_col,
                                   Dtype* data_im) {
   CUDA_KERNEL_LOOP(index, n) {
-    Dtype val = 0;
+    Acctype val = Acctype(0);
     const int w_im = index % width + pad_w;
     const int h_im = (index / width) % height + pad_h;
     const int c_im = index / (width * height);
@@ -99,11 +99,11 @@ __global__ void col2im_kernel( const int n, const Dtype* data_col,
         }
       }
     }
-    data_im[index] = val;
+    data_im[index] = ScalarConvert<Acctype, Dtype>::to(val);
   }
 }
 
-template <typename Dtype>
+template <typename Dtype, typename Acctype>
 void col2im(hipStream_t stream, const Dtype* data_col, const int channels,
             const int height, const int width,
             const int patch_h, const int patch_w, const int pad_h,
@@ -116,7 +116,7 @@ void col2im(hipStream_t stream, const Dtype* data_col, const int channels,
   int num_kernels = channels * height * width;
   // To avoid involving atomic operations, we will launch one kernel per
   // bottom dimension, and then in the kernel add up the top dimensions.
-  hipLaunchKernelGGL((col2im_kernel), dim3(GET_BLOCKS(num_kernels)), dim3(CUDA_NUM_THREADS), 0, stream, 
+  hipLaunchKernelGGL((col2im_kernel<Dtype, Acctype>), dim3(GET_BLOCKS(num_kernels)), dim3(CUDA_NUM_THREADS), 0, stream, 
       num_kernels, data_col, height, width, channels,
       patch_h, patch_w, pad_h, pad_w, stride_h, stride_w,
       dilation_h, dilation_w,
