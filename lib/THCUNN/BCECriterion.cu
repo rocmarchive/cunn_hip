@@ -14,30 +14,65 @@
   #include <bolt/amp/transform.h>
   #include <bolt/amp/reduce.h>
 
-template <typename RealType, typename AccType, typename Op>
+template <typename RealType, typename AccType>
 __global__
-void hipTorch_apply3(RealType* in1, 
-                     RealType* in2, 
-                     AccType* out, 
-                     long numElements, 
-                     Op op) 
+void hipTorch_apply_bce(RealType* in1, 
+                        RealType* in2, 
+                        AccType* out, 
+                        long numElements) 
 {
+  RealType o = in1[index];
+  RealType t = in2[index];
   CUDA_KERNEL_LOOP(index, numElements) {
-    out[index] = op(in1[index], in2[index]);
+    out[index] =
+      - (t * THCNumerics<AccType>::log(o + eps<AccType>()) + (AccType(1)- t) * THCNumerics<AccType>::log(AccType(1) - o + eps<AccType>()));
   } 
 }
 
-template <typename RealType, typename AccType, typename Op>
+template <typename RealType, typename AccType>
 __global__
-void hipTorch_apply4(RealType* in1, 
-                     RealType* in2, 
-                     RealType* in3, 
-                     AccType* out, 
-                     long numElements, 
-                     Op op) 
+void hipTorch_apply_bce_weights(RealType* in1, 
+                                RealType* in2, 
+                                AccType* out, 
+                                long numElements) 
 {
+  RealType o = in1[index];
+  RealType t = in2[index];
+  RealType w = in3[index];
   CUDA_KERNEL_LOOP(index, numElements) {
-    out[index] = op(in1[index], in2[index], in3[index]);
+    out[index] =
+      - w * (t * THCNumerics<AccType>::log(o + eps<AccType>()) + (AccType(1) - t) * THCNumerics<AccType>::log(AccType(1) - o + eps<AccType>()));
+  } 
+}
+
+template <typename RealType, typename AccType>
+__global__
+void hipTorch_apply_updateGradInput(RealType* in1, 
+                                    RealType* in2, 
+                                    AccType* out, 
+                                    long numElements) 
+{
+  RealType o = in1[index];
+  RealType t = in2[index];
+  CUDA_KERNEL_LOOP(index, numElements) {
+    out[index] =
+      ScalarConvert<AccType,RealType>::to(- (t - o) / ((AccType(1) - o + eps<AccType>()) * (o + eps<AccType>())) * norm);
+  } 
+}
+
+template <typename RealType, typename AccType>
+__global__
+void hipTorch_apply_updateGradInput_weights(RealType* in1, 
+                                            RealType* in2, 
+                                            AccType* out, 
+                                            long numElements) 
+{
+  RealType o = in1[index];
+  RealType t = in2[index];
+  RealType w = in3[index];
+  CUDA_KERNEL_LOOP(index, numElements) {
+    out[index] =
+      ScalarConvert<AccType, RealType>::to(- (t - o) / ((AccType(1) - o + eps<AccType>()) * (o + eps<AccType>())) * norm * w);
   } 
 }
 

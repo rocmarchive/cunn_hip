@@ -75,12 +75,13 @@ void THNN_(BCECriterion_updateOutput)(
     // #endif
   } else {
     #if defined(THC_REAL_IS_FLOAT) || defined(THC_REAL_IS_DOUBLE)
-      hipLaunchKernelGGL((hipTorch_apply3<real,accreal,bce_functor<real,accreal> >), dim3(64), dim3(64), 0, 0, 
+      //hipLaunchKernelGGL((hipTorch_apply3<real,accreal,bce_functor<real,accreal> >), dim3(64), dim3(64), 0, 0, 
+      hipLaunchKernelGGL((hipTorch_apply_bce<real,accreal>), dim3(64), dim3(64), 0, 0, 
         THCTensor_(data)(state, input),
         THCTensor_(data)(state, target),
         tresult,
-        size,
-        bce_functor<real,accreal>());
+        size);
+        //bce_functor<real,accreal>());
       sum = bolt::amp::reduce(tresult_data, tresult_data+size, (accreal) 0, bolt::amp::plus<accreal>());
     #endif
   }
