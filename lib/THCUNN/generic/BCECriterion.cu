@@ -61,27 +61,24 @@ void THNN_(BCECriterion_updateOutput)(
   bolt::amp::Ubiquitous_iterator<real> tresult_data(tresult);
   accreal sum;
   if (weights) {
-    // #if defined(THC_REAL_IS_FLOAT) || defined(THC_REAL_IS_DOUBLE)
-    //   weights = THCTensor_(newContiguous)(state, weights);
-    //   hipLaunchKernelGGL(hipTorch_apply4<real,accreal>, 64, 64, 0, 0, 
-    //     THCTensor_(data)(state, input),
-    //     THCTensor_(data)(state, weights),
-    //     THCTensor_(data)(state, target),
-    //     tresult,
-    //     size,
-    //     bce_functor_weights<real,accreal>());
-    //   sum = bolt::amp::reduce(tresult_data, tresult_data+size, (accreal) 0, bolt::amp::plus<accreal>());
-    //   THCTensor_(free)(state, weights);
-    // #endif
+    #if defined(THC_REAL_IS_FLOAT) || defined(THC_REAL_IS_DOUBLE)
+      weights = THCTensor_(newContiguous)(state, weights);
+      hipLaunchKernelGGL((hipTorch_apply_bce_weights<real,accreal>), 64, 64, 0, 0, 
+        THCTensor_(data)(state, input),
+        THCTensor_(data)(state, weights),
+        THCTensor_(data)(state, target),
+        tresult,
+        size);
+      sum = bolt::amp::reduce(tresult_data, tresult_data+size, (accreal) 0, bolt::amp::plus<accreal>());
+      THCTensor_(free)(state, weights);
+    #endif
   } else {
     #if defined(THC_REAL_IS_FLOAT) || defined(THC_REAL_IS_DOUBLE)
-      //hipLaunchKernelGGL((hipTorch_apply3<real,accreal,bce_functor<real,accreal> >), dim3(64), dim3(64), 0, 0, 
       hipLaunchKernelGGL((hipTorch_apply_bce<real,accreal>), dim3(64), dim3(64), 0, 0, 
         THCTensor_(data)(state, input),
         THCTensor_(data)(state, target),
         tresult,
         size);
-        //bce_functor<real,accreal>());
       sum = bolt::amp::reduce(tresult_data, tresult_data+size, (accreal) 0, bolt::amp::plus<accreal>());
     #endif
   }
@@ -146,25 +143,25 @@ void THNN_(BCECriterion_updateGradInput)(
 #else
   if (weights) {
     weights = THCTensor_(newContiguous)(state, weights);
-    // #if defined(THC_REAL_IS_FLOAT) || defined(THC_REAL_IS_DOUBLE)
-    //   hipLaunchKernelGGL(hipTorch_apply4<real,accreal>, 64, 64, 0, 0, 
-    //     THCTensor_(data)(state, input),
-    //     THCTensor_(data)(state, target),
-    //     THCTensor_(data)(state, weights),
-    //     THCTensor_(data)(state, gradInput),
-    //     size,
-    //     bce_updateGradInput_functor_weights<real, accreal>(norm));
-    //   THCTensor_(free)(state, weights);
-    // #endif
+    #if defined(THC_REAL_IS_FLOAT) || defined(THC_REAL_IS_DOUBLE)
+      hipLaunchKernelGGL((hipTorch_apply_updateGradInput_weights<real,accreal>), 64, 64, 0, 0, 
+        THCTensor_(data)(state, input),
+        THCTensor_(data)(state, target),
+        THCTensor_(data)(state, weights),
+        THCTensor_(data)(state, gradInput),
+        size,
+        norm);
+      THCTensor_(free)(state, weights);
+    #endif
   } else {
-    // #if defined(THC_REAL_IS_FLOAT) || defined(THC_REAL_IS_DOUBLE)
-    //   hipLaunchKernelGGL(hipTorch_apply3<real,accreal>, 64, 64, 0, 0, 
-    //     THCTensor_(data)(state, input),
-    //     THCTensor_(data)(state, target),
-    //     THCTensor_(data)(state, gradInput),
-    //     size,
-    //     bce_updateGradInput_functor<real, accreal>(norm));
-    // #endif
+    #if defined(THC_REAL_IS_FLOAT) || defined(THC_REAL_IS_DOUBLE)
+      hipLaunchKernelGGL((hipTorch_apply_updateGradInput<real,accreal>), 64, 64, 0, 0, 
+        THCTensor_(data)(state, input),
+        THCTensor_(data)(state, target),
+        THCTensor_(data)(state, gradInput),
+        size,
+        norm);
+    #endif
   }
 
   // THCTensor_(free)(state, input);
