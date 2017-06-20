@@ -137,7 +137,7 @@ void THNN_(PReLU_accGradParameters)(
       if (ndim == 2)
       {
         // WSTHORNTON -- not implemented
-        // THCTensor_(sum)(state, gradWeightBuf, gradInput, 0, 1);
+        THCTensor_(sum)(state, gradWeightBuf, gradInput, 0, 1);
         THCTensor_(cadd)(state, gradWeight, gradWeight, scale, gradWeightBuf);
       }
       else
@@ -150,8 +150,8 @@ void THNN_(PReLU_accGradParameters)(
         THCTensor_(resize3d)(state, buffer, input->size[0], nOutputPlane, size3);
         THCTensor_(resize2d)(state, sumbuf, input->size[0], nOutputPlane);
         // WSTHORNTON -- not implemented
-        //THCTensor_(sum)(state, sumbuf, buffer, 2, 1);
-        //THCTensor_(sum)(state, gradWeightBuf, sumbuf, 0, 1);
+        THCTensor_(sum)(state, sumbuf, buffer, 2, 1);
+        THCTensor_(sum)(state, gradWeightBuf, sumbuf, 0, 1);
         THCTensor_(cadd)(state, gradWeight, gradWeight, scale, gradWeightBuf);
         THCTensor_(free)(state, buffer);
       }
