@@ -51,6 +51,7 @@ void THNN_(BatchNormalization_updateOutput)(
   hipStream_t s = THCState_getCurrentStream(state);
   hipDeviceProp_t *prop = THCState_getCurrentDeviceProperties(state);
 
+#if defined(THC_REAL_IS_FLOAT) || defined(THC_REAL_IS_DOUBLE)
   if (!train) {
     dim3 blocks(input.getSize(1));
     dim3 threads(getNumThreads(input.getSize(2)));
@@ -64,6 +65,7 @@ void THNN_(BatchNormalization_updateOutput)(
       saveMean, saveStd);
   }
   THCudaCheck(hipGetLastError());
+#endif
 }
 
 void THNN_(BatchNormalization_backward)(
@@ -86,12 +88,14 @@ void THNN_(BatchNormalization_backward)(
 
   hipStream_t s = THCState_getCurrentStream(state);
 
+#if defined(THC_REAL_IS_FLOAT) || defined(THC_REAL_IS_DOUBLE)
   dim3 blocks(gradOutput.getSize(1));
   dim3 threads(getNumThreads(gradOutput.getSize(2)));
   hipLaunchKernelGGL((BatchNormalizationBackward_kernel<real,  accreal,  DeviceTensor1, DeviceTensor3>), dim3(blocks), dim3(threads), 0, s, 
     input, gradOutput, gradInput, gradWeight, gradBias, weight, runningMean, runningVar,
     saveMean, saveStd, train, scale, eps);
   THCudaCheck(hipGetLastError());
+#endif
 }
 
 #undef DeviceTensor3
