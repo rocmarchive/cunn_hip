@@ -22,6 +22,15 @@ ELSE()
   SET(HIPBLAS_PATH $ENV{HIPBLAS_PATH})
 ENDIF()
 
+# HIPRNG_PATH
+IF(NOT DEFINED $ENV{HIPRNG_PATH})
+  SET(HIPRNG_PATH /opt/rocm/hcrng/)
+ELSE()
+  SET(HIPRNG_PATH $ENV{HIPRNG_PATH})
+ENDIF()
+
+
+
 SET(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" 
                       "${CMAKE_MODULE_PATH}"
                       "${HIP_PATH}/cmake")
@@ -52,6 +61,7 @@ IF (${PLATFORM} MATCHES "hcc")
   include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external/boost)
 ENDIF()
 include_directories(${HIP_PATH}/include)
+INCLUDE_DIRECTORIES(${HIPRNG_PATH}/include)
 
 MESSAGE( STATUS "HIP_CXX_FLAGS:         " ${HIP_CXX_FLAGS} )
 MESSAGE( STATUS "CMAKE_C_FLAGS:         " ${CMAKE_C_FLAGS} )

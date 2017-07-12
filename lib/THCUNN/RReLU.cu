@@ -11,7 +11,7 @@
   #include <curand_kernel.h>
 #else
   #include <hip/hip_hcc.h>
-  #include "MTGP/hiprand_mtgp32.h"
+  #include "hiprng_kernel.h"
 #endif
 
 // copied from cutorch/lib/THC/THCTensorRandom.cu
@@ -19,38 +19,37 @@
 #define BLOCK_SIZE 256
 #define NUM_BLOCKS(n) min((int)THCCeilDiv(n, (ptrdiff_t) BLOCK_SIZE), MAX_NUM_BLOCKS)
 
-#ifdef CURAND_PATH
-  template<typename T>
-  inline T __device__ curand_uniform_type(curandStateMtgp32 *state);
+template<typename T>
+inline T __device__ hiprng_uniform_type(hiprngStateMtgp32 *state);
 
-  #ifdef CUDA_HALF_TENSOR
-    template <>
-    inline half __device__ curand_uniform_type<half>(curandStateMtgp32 *state) {
-      return ScalarConvert<float, half>::to(curand_uniform(state));
-    }
-  #endif
-
-  template <>
-  inline float __device__ curand_uniform_type<float>(curandStateMtgp32 *state) {
-    return curand_uniform(state);
-  }
-  
-  template <>
-  inline double __device__ curand_uniform_type<double>(curandStateMtgp32 *state) {
-    return curand_uniform_double(state);
-  }
+#ifdef CUDA_HALF_TENSOR
+template <>
+inline half __device__ hiprng_uniform_type<half>(hiprngStateMtgp32 *state) {
+  return ScalarConvert<float, half>::to(hiprng_uniform(state));
+}
 #endif
 
-#ifdef CURAND_PATH
-  template <typename T>
-  __global__ void rreluUpdateOutputTrain(int n, curandStateMtgp32 *state,
+template <>
+inline float __device__ hiprng_uniform_type<float>(hiprngStateMtgp32 *state) {
+  return hiprng_uniform(state);
+}
+  
+template <>
+inline double __device__ hiprng_uniform_type<double>(hiprngStateMtgp32 *state) {
+  //return hiprng_uniform_double(state);
+  //TODO: double support
+  return hiprng_uniform(state);
+}
+
+template <typename T>
+__global__ void rreluUpdateOutputTrain(int n, hiprngStateMtgp32 *state,
     T *input, T* noise, T *output, double a, double b)
   {
     CUDA_KERNEL_LOOP(i, n)
     {
       if (input[i] <= 0)
       {
-        T r = curand_uniform_type<T>(&state[hipBlockIdx_x]);
+        T r = hiprng_uniform_type<T>(&state[hipBlockIdx_x]);
         r = ScalarConvert<double, T>::to(r * (b-a) + a);
         output[i] = input[i] * r;
         noise[i] = r;
@@ -61,42 +60,7 @@
         noise[i] = ScalarConvert<int, T>::to(1);
       }
     }
-  }
-#else
-  struct user_uniform_functor {
-    double _a;
-    double _b;
-    user_uniform_functor(double a, double b) __attribute__((hc, cpu)) : _a(a), _b(b) {}
-    inline double operator()(const float& x) const __attribute__((hc, cpu)) {
-      return x * (_b - _a) + _a;
-    }
-    // User should provide copy ctor
-    user_uniform_functor(const user_uniform_functor&other) __attribute__((hc, cpu)) : _a(other._a), _b(other._b) { }
-    // User should provide copy assign ctor
-    user_uniform_functor& operator = (const user_uniform_functor&other) __attribute__((hc, cpu)) {
-      _a = other._a;
-      _b = other._b;
-      return *this;
-    }
-  };
-  
-  template <typename T>
-  __global__ void rreluUpdateOutputTrain( int n, HipRandStateMtgp32 *state,
-    T* input, T*  noise, T* output, double a, double b)
-  {
-    CUDA_KERNEL_LOOP(i, n)
-    {
-      if (input[i] <= 0) {
-        output[i] = input[i] * noise[i];
-      }
-      else
-      {
-        output[i] = input[i];
-        noise[i] = ScalarConvert<int, T>::to(1);
-      }
-    }
-  }
-#endif
+}
 
 template <typename T>
 struct RReLUUpdateOutputEval_functor
