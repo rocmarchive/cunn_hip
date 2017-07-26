@@ -61,9 +61,9 @@ void THNN_(SparseLinear_updateOutput)(
   THCudaIntTensor_resize1d(state, colInds, nnz);
   THCudaIntTensor_resize1d(state, csrPtrs, batchnum+1);
 
-  // Get data ready for cusparse, need CudaInt buffers
+  // Get data ready for hipsparse, need CudaInt buffers
   // We do not need to sort, since rows are already in order
-  // If rows might get out of order in future implementations, or if cusparse
+  // If rows might get out of order in future implementations, or if hipsparse
   //    complains with an illegal memory access, sort like we do in AccGradParameters
   THCTensor_(select)(state, sel, input, 1, 0);
   copyCudaFloatingType(state, rowbuf, sel);
@@ -72,12 +72,10 @@ void THNN_(SparseLinear_updateOutput)(
   THCTensor_(select)(state, sel, input, 1, 2);
   THCTensor_(copyCuda)(state, values, sel);
 
-  init_cusparse();
-#ifdef __NVCC__
-  cusparseXcoo2csr(cusparse_handle,
+  init_hipsparse();
+  hipsparseXcoo2csr(hipsparse_handle,
       THCudaIntTensor_data(state, rowbuf), nnz, batchnum,
-      THCudaIntTensor_data(state, csrPtrs), CUSPARSE_INDEX_BASE_ONE);
-#endif
+      THCudaIntTensor_data(state, csrPtrs), HIPSPARSE_INDEX_BASE_ONE);
 
   // output = bias
   THCTensor_(resize2d)(state, buffer, outDim, batchnum);
@@ -88,18 +86,17 @@ void THNN_(SparseLinear_updateOutput)(
   }
 
   // output = W * x
-#ifdef __NVCC__
   real one = ScalarConvert<int, real>::to(1);
-  cusparseMatDescr_t descr = 0;
-  cusparseCreateMatDescr(&descr);
-  cusparseSetMatType(descr,CUSPARSE_MATRIX_TYPE_GENERAL);
-  cusparseSetMatIndexBase(descr,CUSPARSE_INDEX_BASE_ONE);
+  hipsparseMatDescr_t descr = 0;
+  hipsparseCreateMatDescr(&descr);
+  hipsparseSetMatType(descr,HIPSPARSE_MATRIX_TYPE_GENERAL);
+  hipsparseSetMatIndexBase(descr,HIPSPARSE_INDEX_BASE_ONE);
   #ifdef THC_REAL_IS_FLOAT
-  cusparseScsrmm(cusparse_handle,
+  hipsparseScsrmm(hipsparse_handle,
   #elif defined(THC_REAL_IS_DOUBLE)
-  cusparseDcsrmm(cusparse_handle,
+  hipsparseDcsrmm(hipsparse_handle,
   #endif
-      CUSPARSE_OPERATION_NON_TRANSPOSE,
+      HIPSPARSE_OPERATION_NON_TRANSPOSE,
       batchnum, outDim, inDim, nnz,
       &one,
       descr,
@@ -109,17 +106,14 @@ void THNN_(SparseLinear_updateOutput)(
       THCTensor_(data)(state, weight), inDim,
       &one, THCTensor_(data)(state, buffer), batchnum
   );
-#endif
   THCTensor_(transpose)(state, buffer, NULL, 0, 1);
 
   // We do work in the buffer to keep the output contiguous
   THCTensor_(copy)(state, output, buffer);
 
-#ifdef __NVCC__
-  cusparseDestroyMatDescr(descr);
+  hipsparseDestroyMatDescr(descr);
 
   descr = 0;
-#endif
   THCTensor_(free)(state, buffer);
   THCTensor_(free)(state, sel);
   THCTensor_(free)(state, values);
@@ -171,7 +165,7 @@ void THNN_(SparseLinear_accGradParameters)(
   THCudaIntTensor_resize1d(state, rowInds, nnz);
   THCudaIntTensor_resize1d(state, colPtrs, inDim+1);
 
-  // Get data ready for cusparse, need CudaInt buffers
+  // Get data ready for hipsparse, need CudaInt buffers
   THCTensor_(select)(state, sel, buf, 1, 0);
   copyCudaFloatingType(state, rowInds, sel);
   THCTensor_(select)(state, sel, buf, 1, 1);
@@ -179,13 +173,11 @@ void THNN_(SparseLinear_accGradParameters)(
   THCTensor_(select)(state, sel, buf, 1, 2);
   THCTensor_(copyCuda)(state, values, sel);
 
-  init_cusparse();
+  init_hipsparse();
   // Secretly coo2csc
-#ifdef __NVCC__
-  cusparseXcoo2csr(cusparse_handle,
+  hipsparseXcoo2csr(hipsparse_handle,
       THCudaIntTensor_data(state, colbuf), nnz, inDim,
-      THCudaIntTensor_data(state, colPtrs), CUSPARSE_INDEX_BASE_ONE);
-#endif
+      THCudaIntTensor_data(state, colPtrs), HIPSPARSE_INDEX_BASE_ONE);
 
   // FORTRAN expects contiguous col-major matricies
   THCTensor *tgradOutput = THCTensor_(new)(state);
@@ -194,18 +186,17 @@ void THNN_(SparseLinear_accGradParameters)(
   THCTensor_(copy)(state, buf, tgradOutput);
   THCTensor_(free)(state, tgradOutput);
 
-#ifdef __NVCC__
   real one = ScalarConvert<int, real>::to(1);
-  cusparseMatDescr_t descr = 0;
-  cusparseCreateMatDescr(&descr);
-  cusparseSetMatType(descr,CUSPARSE_MATRIX_TYPE_GENERAL);
-  cusparseSetMatIndexBase(descr,CUSPARSE_INDEX_BASE_ONE);
+  hipsparseMatDescr_t descr = 0;
+  hipsparseCreateMatDescr(&descr);
+  hipsparseSetMatType(descr,HIPSPARSE_MATRIX_TYPE_GENERAL);
+  hipsparseSetMatIndexBase(descr,HIPSPARSE_INDEX_BASE_ONE);
   #ifdef THC_REAL_IS_FLOAT
-  cusparseScsrmm(cusparse_handle,
+  hipsparseScsrmm(hipsparse_handle,
   #elif defined(THC_REAL_IS_DOUBLE)
-  cusparseDcsrmm(cusparse_handle,
+  hipsparseDcsrmm(hipsparse_handle,
   #endif
-      CUSPARSE_OPERATION_NON_TRANSPOSE,
+      HIPSPARSE_OPERATION_NON_TRANSPOSE,
       inDim, outDim, batchnum, nnz,
       &one,
       descr,
@@ -215,7 +206,6 @@ void THNN_(SparseLinear_accGradParameters)(
       THCTensor_(data)(state, buf), batchnum,
       &one, THCTensor_(data)(state, gradWeight), inDim
   );
-#endif
 
   THCTensor_(sum)(state, buf, gradOutput, 0, 1);
   THCTensor_(resize1d)(state, buf, outDim);
