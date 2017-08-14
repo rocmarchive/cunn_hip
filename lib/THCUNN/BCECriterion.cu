@@ -10,13 +10,13 @@
   #include <thrust/transform_reduce.h>
 
 template <typename T>
-__device__ T eps() {return 1e-12; }
+__host__ __device__ T eps() {return 1e-12; }
 
 template <>
-__device__ float eps() { return 1e-12f; }
+__host__ __device__ float eps() { return 1e-12f; }
 
 template <>
-__device__ double eps() { return 1e-12; }
+__host__ __device__ double eps() { return 1e-12; }
 
 
 template <typename Dtype, typename Acctype>
