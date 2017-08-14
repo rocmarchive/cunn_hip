@@ -5,11 +5,7 @@
 #include "THCHalf.h"
 #include "THCHalfAutoNumerics.cuh"
 
-#if THRUST_PATH
-  #include <thrust/functional.h>
-#else
-  #include <bolt/amp/functional.h>
-#endif
+#include <thrust/functional.h>
 
 #define MULTILABELMARGIN_THREADS 1024
 
@@ -70,11 +66,7 @@ __global__ void cunn_MultiLabelMarginCriterion_updateOutput_kernel(Dtype *output
   }
 
   // reduce
-#if THRUST_PATH
   Acctype totalSum = reduceBlock(sums, hipBlockDim_x, sum, thrust::plus<Acctype>(), (Acctype)0);
-#else
-  Acctype totalSum = reduceBlock(sums, hipBlockDim_x, sum, bolt::amp::plus<Acctype>(), (Acctype)0);
-#endif
   if (hipThreadIdx_x == 0) {
     if (sizeaverage) {
       *output_k = ScalarConvert<Acctype, Dtype>::to((totalSum / dim) / nframe);
@@ -136,11 +128,8 @@ __global__ void cunn_MultiLabelMarginCriterion_updateGradInput_kernel(Dtype *gra
     __syncthreads();
 
     // reduce sum
-#if THRUST_PATH
     Acctype totalSum = reduceBlock(sums, hipBlockDim_x, sum, thrust::plus<Acctype>(), (Acctype)0);
-#else
-    Acctype totalSum = reduceBlock(sums, hipBlockDim_x, sum, bolt::amp::plus<Acctype>(), (Acctype)0);
-#endif
+    
     if (hipThreadIdx_x == 0) {
       gradInput_k[target_idx] += ScalarConvert<Acctype, Dtype>::to(totalSum);
     }

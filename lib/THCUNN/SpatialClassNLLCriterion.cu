@@ -6,11 +6,7 @@
 #include "common.h"
 #include <THC/THCApply.cuh>
 
-#if THRUST_PATH
-  #include <thrust/functional.h>
-#else
-  #include <bolt/amp/functional.h>
-#endif
+#include <thrust/functional.h>
 
 template <typename T, typename AccumT>
 __global__ void cunn_SpatialClassNLLCriterion_updateOutput_kernel(
@@ -50,13 +46,8 @@ __global__ void cunn_SpatialClassNLLCriterion_updateOutput_kernel(
 
   __syncthreads();
 
-#if THRUST_PATH
   input_sum = reduceBlock(partial_sums, hipBlockDim_x, input_sum, thrust::plus<AccumT>(), AccumT(0));
   acc_weight = reduceBlock(partial_sums, hipBlockDim_x, acc_weight, thrust::plus<AccumT>(), AccumT(0));
-#else
-  input_sum = reduceBlock(partial_sums, hipBlockDim_x, input_sum, bolt::amp::plus<AccumT>(), AccumT(0));
-  acc_weight = reduceBlock(partial_sums, hipBlockDim_x, acc_weight, bolt::amp::plus<AccumT>(), AccumT(0));
-#endif
 
   if (hipThreadIdx_x == 0) {
     atomicAdd(total_weight, ScalarConvert<AccumT, T>::to(acc_weight));
