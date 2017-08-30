@@ -79,12 +79,12 @@ void THNN_(LookupTable_accGradParameters)(
       countIter, countIter + numel, origIndicesIter);*/
 
     // Sort; a stable sort is not required
-    /*thrust::sort_by_key(
+    thrust::sort_by_key(
 #if CUDA_VERSION >= 7000
       thrust::cuda::par(thrustAlloc).on(THCState_getCurrentStream(state)),
 #endif
       sortedIndicesIter, sortedIndicesIter + numel,
-      origIndicesIter, ThrustLTOp<long>());*/
+      origIndicesIter, ThrustLTOp<long>());
   }
 
   THCIndex_t *sortedIndices_data = THCIndexTensor_(data)(state, sortedIndices);

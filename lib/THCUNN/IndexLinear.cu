@@ -16,37 +16,15 @@ const long NNZ_PER_BLOCK_MAX = 1024;
 #define clamp(a, low, high) max(min((a), (high)), (low))
 #endif
 
-#ifndef ATOMIC_REAL_MINMAX
-#define ATOMIC_REAL_MINMAX(func)                                        \
-    __device__  void atomic_##func(double *address, double val) {       \
-        unsigned long long int* address_as_ull = (unsigned long long int*)address; \
-        unsigned long long int old = *address_as_ull;                   \
-        unsigned long long int assumed;                                 \
-        do {                                                            \
-            assumed = old;                                              \
-            old = atomicCAS(address_as_ull, assumed,                    \
-                            __double_as_longlong(func(val, __longlong_as_double(assumed)))); \
-        } while (assumed != old);                                       \
-    }                                                                   \
-    __device__  void atomic_##func(float *address, float val) {         \
-        int* address_as_int = (int*)address;                            \
-        int old = *address_as_int;                                      \
-        int assumed;                                                    \
-        do {                                                            \
-            assumed = old;                                              \
-            old = atomicCAS(address_as_int, assumed,                    \
-                            __float_as_int(func(val, __int_as_float(assumed)))); \
-        } while (assumed != old);                                       \
-    }                                                                   \
+__device__ double atomicExch(double *address, double val) {
+    unsigned long long int* address_as_ull = (unsigned long long int*)address;
+    unsigned long long res = atomicExch(address_as_ull, __double_as_longlong(val));
+    return __longlong_as_double(res);
+}
 
-ATOMIC_REAL_MINMAX(max)
-ATOMIC_REAL_MINMAX(min)
-#endif
 
 template<typename Ty, bool train>
-// WSTHORNTON -- global static
-//__global__ static
-__global__ 
+__global__ static
 void updateOutput(
     Ty *output,
     Ty *normalizedValues,
@@ -103,7 +81,6 @@ void updateOutput(
 
     Ty outVal = 0;
 // WSTHORNTON -- temporary comment kernel
-#if 0
     // Since the number of nonzero elements might be greater than local memory available,
     // Load only part of the row into local memory, perform partial dot, repeat until done.
     for (long id = batchStart; id < batchEnd; id += batchStride) {
@@ -121,8 +98,8 @@ void updateOutput(
                 Ty maxVal = nWeight[key * weightStride + 0];
                 if (absVal > maxVal) {
                     // Updating maxVal and invMaxVal. Go hogwild!
-                    atomic_max(nWeightCurr + 0, absVal);
-                    atomic_min(nWeightCurr + 1, 1.0/absVal);
+                    atomicExch(nWeightCurr + 0, absVal);
+                    atomicExch(nWeightCurr + 1, 1.0/absVal);
                 }
                 val = val * nWeightCurr[1] + nWeightCurr[3];
                 normalizedValues[id + tid] = val;
@@ -141,7 +118,6 @@ void updateOutput(
         }
         __syncthreads();
     }
-#endif
 
     // s_values is no longer used at this point. Reuse it for reducing outVal.
     // A reduction along the y dimension now gives a single output value along x.
@@ -166,9 +142,7 @@ void updateOutput(
 // to generate gradWeight of size [keysSize x outDim]
 // nth block along y dimension computes on the non zero elements from the nth batch.
 template<typename Ty>
-// WSTHORNTON -- global static
-//__global__ static
-__global__ 
+__global__ static
 void accGradWeight(
     Ty *gradWeight,
     const Ty *gradOutput,
@@ -240,9 +214,7 @@ void accGradWeight(
 // The gradBias is just a reduction of gradOutput along the batches.
 // There is only one block along y dimension performing the reduction.
 template<typename Ty, bool update>
-// WSTHORNTON -- global static
-//__global__ static
-__global__ 
+__global__ static
 void accGradBias(
     Ty *buffer,
     const Ty *gradOutput,
@@ -296,9 +268,7 @@ void accGradBias(
 // This kernel is launched batchSize number of times.
 // At each step in the iteration, the weights are updated in a sparse manner.
 template<typename Ty>
-// WSTHORNTON -- global static
-//__global__ static
-__global__ 
+__global__ static
 void updateWeight(
     Ty *weight,
     const Ty *gradWeight,
@@ -367,9 +337,7 @@ void updateWeight(
 // This kernel is launched batchSize number of times.
 // At each step in the iteration, the weights are updated in place in a sparse manner.
 template<typename Ty>
-// WSTHORNTON -- global static
-//__global__ static
-__global__ 
+__global__ static
 void accUpdateWeight(
     Ty *weight,
     const long weightStride,
