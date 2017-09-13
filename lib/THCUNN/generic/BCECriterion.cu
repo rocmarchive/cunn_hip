@@ -19,8 +19,6 @@ void THNN_(BCECriterion_updateOutput)(
 
   input = THCTensor_(newContiguous)(state, input);
   target = THCTensor_(newContiguous)(state, target);
-
-#ifdef THRUST_PATH
   thrust::device_ptr<real> input_data(THCTensor_(data)(state, input));
   thrust::device_ptr<real> target_data(THCTensor_(data)(state, target));
 
@@ -53,45 +51,6 @@ void THNN_(BCECriterion_updateOutput)(
   THCTensor_(free)(state, target);
 
   THCTensor_(set1d)(state, output, 0, ScalarConvert<accreal, real>::to(sum));
-#else
-  bolt::amp::Ubiquitous_iterator<real> input_data(THCTensor_(data)(state, input));
-  bolt::amp::Ubiquitous_iterator<real> target_data(THCTensor_(data)(state, target));
-  real* tresult = nullptr; 
-  hipMalloc((void**)&tresult, size*sizeof(real));
-  bolt::amp::Ubiquitous_iterator<real> tresult_data(tresult);
-  accreal sum;
-  if (weights) {
-    #if defined(THC_REAL_IS_FLOAT) || defined(THC_REAL_IS_DOUBLE)
-      weights = THCTensor_(newContiguous)(state, weights);
-      hipLaunchKernelGGL((hipTorch_apply_bce_weights<real,accreal>), 64, 64, 0, 0, 
-        THCTensor_(data)(state, input),
-        THCTensor_(data)(state, weights),
-        THCTensor_(data)(state, target),
-        tresult,
-        size);
-      sum = bolt::amp::reduce(tresult_data, tresult_data+size, (accreal) 0, bolt::amp::plus<accreal>());
-      THCTensor_(free)(state, weights);
-    #endif
-  } else {
-    #if defined(THC_REAL_IS_FLOAT) || defined(THC_REAL_IS_DOUBLE)
-      hipLaunchKernelGGL((hipTorch_apply_bce<real,accreal>), dim3(64), dim3(64), 0, 0, 
-        THCTensor_(data)(state, input),
-        THCTensor_(data)(state, target),
-        tresult,
-        size);
-      sum = bolt::amp::reduce(tresult_data, tresult_data+size, (accreal) 0, bolt::amp::plus<accreal>());
-    #endif
-  }
-  hipFree(tresult);
-
-  if (sizeAverage)
-    sum /= size;
-
-  THCTensor_(free)(state, input);
-  THCTensor_(free)(state, target);
-
-  THCTensor_(set1d)(state, output, 0, ScalarConvert<accreal, real>::to(sum));
-#endif
 }
 
 void THNN_(BCECriterion_updateGradInput)(
@@ -114,7 +73,6 @@ void THNN_(BCECriterion_updateGradInput)(
 
   THCTensor_(resizeAs)(state, gradInput, input);
 
-#ifdef THRUST_PATH
   thrust::device_ptr<real> input_data(THCTensor_(data)(state, input));
   thrust::device_ptr<real> target_data(THCTensor_(data)(state, target));
   thrust::device_ptr<real> gradInput_data(THCTensor_(data)(state, gradInput));
@@ -140,33 +98,6 @@ void THNN_(BCECriterion_updateGradInput)(
 
   THCTensor_(free)(state, input);
   THCTensor_(free)(state, target);
-#else
-  if (weights) {
-    weights = THCTensor_(newContiguous)(state, weights);
-    #if defined(THC_REAL_IS_FLOAT) || defined(THC_REAL_IS_DOUBLE)
-      hipLaunchKernelGGL((hipTorch_apply_updateGradInput_weights<real,accreal>), 64, 64, 0, 0, 
-        THCTensor_(data)(state, input),
-        THCTensor_(data)(state, target),
-        THCTensor_(data)(state, weights),
-        THCTensor_(data)(state, gradInput),
-        size,
-        norm);
-      THCTensor_(free)(state, weights);
-    #endif
-  } else {
-    #if defined(THC_REAL_IS_FLOAT) || defined(THC_REAL_IS_DOUBLE)
-      hipLaunchKernelGGL((hipTorch_apply_updateGradInput<real,accreal>), 64, 64, 0, 0, 
-        THCTensor_(data)(state, input),
-        THCTensor_(data)(state, target),
-        THCTensor_(data)(state, gradInput),
-        size,
-        norm);
-    #endif
-  }
-
-  // THCTensor_(free)(state, input);
-  // THCTensor_(free)(state, target);
-#endif
 }
 
 #endif

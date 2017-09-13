@@ -2,7 +2,6 @@
 #include "THCUNN.h"
 #include "common.h"
 
-#if THRUST_PATH
   #include "THCThrustAllocator.cuh"
   #include <thrust/device_ptr.h>
   #include <thrust/execution_policy.h>
@@ -12,7 +11,6 @@
     #include <thrust/system/cuda/execution_policy.h>
   #endif
   #include <thrust/unique.h>
-#endif
 
 #include "THCHalf.h"
 #include "THCHalfAutoNumerics.cuh"
@@ -181,8 +179,8 @@ struct pow_v
       return std::abs(xA);
     else if (normType == 2)
       return xA * xA;
-    else
-      return std::pow(std::abs(xA), normType);
+   // else
+      //return std::pow(std::abs(xA), normType);
   }
 };
 

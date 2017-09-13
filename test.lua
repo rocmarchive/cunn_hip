@@ -4118,7 +4118,7 @@ end
 
 function cunntest.Dropout()
    local p = 0.2 --prob of droping out a neuron
-   local input = makeNonContiguous(torch.CudaTensor(1000):fill((1-p)))
+   local input = makeNonContiguous(torch.CudaTensor(10):fill((1-p)))
    local module = nn.Dropout(p)
    module:cuda()
    -- version 2

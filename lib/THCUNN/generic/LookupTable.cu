@@ -62,7 +62,6 @@ void THNN_(LookupTable_accGradParameters)(
   {
     THCIndexTensor_(copy)(state, sortedIndices, input);
 
-#if THRUST_PATH
     THCThrustAllocator thrustAlloc(state);
 
     thrust::device_ptr<THCIndex_t>
@@ -73,11 +72,11 @@ void THNN_(LookupTable_accGradParameters)(
     // Fill sortedOrigIndices with sequential indices
     thrust::counting_iterator<THCIndex_t> countIter(TH_INDEX_BASE);
 
-    thrust::copy(
+    /*thrust::copy(
 #if CUDA_VERSION >= 7000
       thrust::cuda::par(thrustAlloc).on(THCState_getCurrentStream(state)),
 #endif
-      countIter, countIter + numel, origIndicesIter);
+      countIter, countIter + numel, origIndicesIter);*/
 
     // Sort; a stable sort is not required
     thrust::sort_by_key(
@@ -86,7 +85,6 @@ void THNN_(LookupTable_accGradParameters)(
 #endif
       sortedIndicesIter, sortedIndicesIter + numel,
       origIndicesIter, ThrustLTOp<long>());
-#endif // THRUST_PATH
   }
 
   THCIndex_t *sortedIndices_data = THCIndexTensor_(data)(state, sortedIndices);
@@ -97,7 +95,6 @@ void THNN_(LookupTable_accGradParameters)(
     THCIndexTensor_(resizeAs)(state, count, input);
     count_data = THCIndexTensor_(data)(state, count);
 
-#if THRUST_PATH
     THCThrustAllocator thrustAlloc(state);
     thrust::device_ptr<THCIndex_t> sortedIndices_ptr(sortedIndices_data);
     thrust::device_ptr<THCIndex_t> count_ptr(count_data);
@@ -105,7 +102,7 @@ void THNN_(LookupTable_accGradParameters)(
     // Compute an increasing sequence per unique item in sortedIndices:
     // sorted: 2 5 5 5 7 7 8 9 9
     //  count: 1 1 2 3 1 2 1 1 2
-    thrust::inclusive_scan_by_key(
+    /*thrust::inclusive_scan_by_key(
 #if CUDA_VERSION >= 7000
       thrust::cuda::par(thrustAlloc).on(THCState_getCurrentStream(state)),
 #endif
@@ -113,12 +110,12 @@ void THNN_(LookupTable_accGradParameters)(
       sortedIndices_ptr + numel,
       thrust::make_constant_iterator(1),
       count_ptr
-    );
+    );*/
 
     // Take the maximum of each count per unique key in reverse:
     // sorted: 2 5 5 5 7 7 8 9 9
     //  count: 1 3 3 3 2 2 1 2 2
-    thrust::inclusive_scan_by_key(
+    /*thrust::inclusive_scan_by_key(
 #if CUDA_VERSION >= 7000
       thrust::cuda::par(thrustAlloc).on(THCState_getCurrentStream(state)),
 #endif
@@ -128,8 +125,7 @@ void THNN_(LookupTable_accGradParameters)(
       thrust::make_reverse_iterator(count_ptr + numel),
       thrust::equal_to<long>(),
       thrust::maximum<long>()
-    );
-#endif // THRUST_PATH
+    );*/
   }
 
   dim3 grid(THCCeilDiv(numel, (ptrdiff_t) 4), THCCeilDiv(stride, (long) 128));
@@ -177,7 +173,6 @@ void THNN_(LookupTable_renorm)(
   long stride = THCTensor_(stride)(state, weight, 0);
 
   // get the unique indices
-#if THRUST_PATH
   thrust::device_ptr<real> weight_ptr(THCTensor_(data)(state, weight));
   thrust::device_ptr<THCIndex_t> idx_ptr(THCIndexTensor_(data)(state, idx));
   thrust::device_ptr<THCIndex_t> end_ptr(thrust::unique(idx_ptr, idx_ptr+numel));
@@ -191,7 +186,7 @@ void THNN_(LookupTable_renorm)(
     THCIndex_t k = idx_ptr[i] - TH_INDEX_BASE;
     thrust::device_ptr<real> row_ptr = weight_ptr + k * stride;
     accreal norm = thrust::transform_reduce(row_ptr, row_ptr + stride,
-      unary_pow, (accreal)0, binary_plus);
+    unary_pow, 0, binary_plus);
     norm = std::pow(norm, (accreal) (1.0 / normType));
     if (norm > ScalarConvert<real, accreal>::to(maxNorm))
     {
@@ -199,7 +194,6 @@ void THNN_(LookupTable_renorm)(
       thrust::transform(row_ptr, row_ptr + stride, row_ptr, unary_mul);
     }
   }
-#endif
 }
 
 #endif
