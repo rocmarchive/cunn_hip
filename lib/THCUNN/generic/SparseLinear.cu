@@ -85,35 +85,9 @@ void THNN_(SparseLinear_updateOutput)(
     THCTensor_(copy)(state, sel, bias);
   }
 
-  THCTensor *weight_trans = THCTensor_(new)(state);
-  THCTensor_(resize2d)(state, weight_trans, outDim, inDim);
   THCTensor *ones = THCTensor_(new)(state);
   THCTensor_(resize1d)(state, ones, 1);
   THCTensor_(fill)(state, ones, 1);
-
-#ifdef THC_REAL_IS_FLOAT
-  float* weight_h = (float*) malloc(sizeof(float)*outDim*inDim);
-  float* weight_trans_h = (float*) malloc(sizeof(float)*outDim*inDim);
-  hipMemcpy(weight_h, THCTensor_(data)(state, weight), sizeof(float)*outDim*inDim, hipMemcpyDeviceToHost);
-#elif defined(THC_REAL_IS_DOUBLE)
-  double* weight_h = (double*) malloc(sizeof(double)*outDim*inDim);
-  double* weight_trans_h = (double*) malloc(sizeof(double)*outDim*inDim);
-  hipMemcpy(weight_h, THCTensor_(data)(state, weight), sizeof(double)*outDim*inDim, hipMemcpyDeviceToHost);
-#endif
-
-  for (int i = 0; i < outDim; i++)
-  {
-    for (int j = 0; j < inDim; j++)
-    {
-      weight_trans_h[j*outDim + i] = weight_h[i*inDim + j];
-    }
-  }
-
-#ifdef THC_REAL_IS_FLOAT
-  hipMemcpy(THCTensor_(data)(state, weight_trans), weight_trans_h, sizeof(float)*outDim*inDim, hipMemcpyHostToDevice);
-#elif defined(THC_REAL_IS_DOUBLE)
-  hipMemcpy(THCTensor_(data)(state, weight_trans), weight_trans_h, sizeof(double)*outDim*inDim, hipMemcpyHostToDevice);
-#endif
 
   // output = W * x
   real one = ScalarConvert<int, real>::to(1);
@@ -122,18 +96,19 @@ void THNN_(SparseLinear_updateOutput)(
   hipsparseSetMatType(descr,HIPSPARSE_MATRIX_TYPE_GENERAL);
   hipsparseSetMatIndexBase(descr,HIPSPARSE_INDEX_BASE_ONE);
 #ifdef THC_REAL_IS_FLOAT
-  hipsparseScsrmm(hipsparse_handle,
+  hipsparseScsrmm2(hipsparse_handle,
 #elif defined(THC_REAL_IS_DOUBLE)
-  hipsparseDcsrmm(hipsparse_handle,
+  hipsparseDcsrmm2(hipsparse_handle,
 #endif
       HIPSPARSE_OPERATION_NON_TRANSPOSE,
+      HIPSPARSE_OPERATION_TRANSPOSE,
       batchnum, outDim, inDim, nnz,
       THCTensor_(data)(state, ones),
       descr,
       THCTensor_(data)(state, values),
       THCudaIntTensor_data(state, csrPtrs),
       THCudaIntTensor_data(state, colInds),
-      THCTensor_(data)(state, weight_trans), outDim,
+      THCTensor_(data)(state, weight), inDim,
       THCTensor_(data)(state, ones),
       THCTensor_(data)(state, buffer), outDim
   );
@@ -144,10 +119,7 @@ void THNN_(SparseLinear_updateOutput)(
   hipsparseDestroyMatDescr(descr);
 
   descr = 0;
-  free(weight_h);
-  free(weight_trans_h);
   THCTensor_(free)(state, ones);
-  THCTensor_(free)(state, weight_trans);
   THCTensor_(free)(state, buffer);
   THCTensor_(free)(state, sel);
   THCTensor_(free)(state, values);
@@ -220,6 +192,10 @@ void THNN_(SparseLinear_accGradParameters)(
   THCTensor_(copy)(state, buf, tgradOutput);
   THCTensor_(free)(state, tgradOutput);
 
+  THCTensor *ones = THCTensor_(new)(state);
+  THCTensor_(resize1d)(state, ones, 1);
+  THCTensor_(fill)(state, ones, 1);
+
   real one = ScalarConvert<int, real>::to(1);
   hipsparseMatDescr_t descr = 0;
   hipsparseCreateMatDescr(&descr);
@@ -232,13 +208,14 @@ void THNN_(SparseLinear_accGradParameters)(
   #endif
       HIPSPARSE_OPERATION_NON_TRANSPOSE,
       inDim, outDim, batchnum, nnz,
-      &one,
+      THCTensor_(data)(state, ones),
       descr,
       THCTensor_(data)(state, values),
       THCudaIntTensor_data(state, colPtrs),
       THCudaIntTensor_data(state, rowInds),
       THCTensor_(data)(state, buf), batchnum,
-      &one, THCTensor_(data)(state, gradWeight), inDim
+      THCTensor_(data)(state, ones),
+      THCTensor_(data)(state, gradWeight), inDim
   );
 
   THCTensor_(sum)(state, buf, gradOutput, 0, 1);
