@@ -202,11 +202,12 @@ void THNN_(SparseLinear_accGradParameters)(
   hipsparseSetMatType(descr,HIPSPARSE_MATRIX_TYPE_GENERAL);
   hipsparseSetMatIndexBase(descr,HIPSPARSE_INDEX_BASE_ONE);
   #ifdef THC_REAL_IS_FLOAT
-  hipsparseScsrmm(hipsparse_handle,
+  hipsparseScsrmm2(hipsparse_handle,
   #elif defined(THC_REAL_IS_DOUBLE)
-  hipsparseDcsrmm(hipsparse_handle,
+  hipsparseDcsrmm2(hipsparse_handle,
   #endif
       HIPSPARSE_OPERATION_NON_TRANSPOSE,
+      HIPSPARSE_OPERATION_TRANSPOSE,
       inDim, outDim, batchnum, nnz,
       THCTensor_(data)(state, ones),
       descr,
@@ -215,8 +216,14 @@ void THNN_(SparseLinear_accGradParameters)(
       THCudaIntTensor_data(state, rowInds),
       THCTensor_(data)(state, buf), batchnum,
       THCTensor_(data)(state, ones),
-      THCTensor_(data)(state, gradWeight), inDim
+      THCTensor_(data)(state, gradWeight), outDim
   );
+
+  THCTensor *tgradWeight = THCTensor_(new)(state);
+  THCTensor_(resize2d)(state, tgradWeight, inDim, outDim);
+  THCTensor_(copy)(state, tgradWeight, gradWeight);
+  THCTensor_(transpose)(state, gradWeight, tgradWeight, 0, 1);
+  THCTensor_(free)(state, tgradWeight);
 
   THCTensor_(sum)(state, buf, gradOutput, 0, 1);
   THCTensor_(resize1d)(state, buf, outDim);

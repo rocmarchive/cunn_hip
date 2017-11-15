@@ -801,26 +801,29 @@ function cunntest.SparseLinear_backward()
     for k, typename in ipairs(typenames) do
         if typename ~= "torch.CudaHalfTensor" then
             local ctype = t2cpu[typename]
-            local gslin = nn.SparseLinear(ini,inj):type(typename)
-            local sslin = nn.Linear(ini,inj):type(ctype)
+            --local gslin = nn.SparseLinear(ini,inj):type(typename)
+            --local sslin = nn.Linear(ini,inj):type(ctype)
+            local module = nn.SparseLinear(ini,inj):type(ctype)
+            local sslin = module
+            local gslin = module:clone():type(typename)
             gslin.weight = sslin.weight:clone():type(typename)
             gslin.bias = sslin.bias:clone():type(typename)
 
             -- Create a random sparse vector
             local input = {}
-            local nonsparse = torch.zeros(inb, ini):type(ctype)
+            --local nonsparse = torch.zeros(inb, ini):type(ctype)
             for i=1,inb do
                 local nnz = math.random(3, 5)
                 local inds = torch.randperm(ini)[{{1,nnz}}]
                 input[i] = torch.Tensor(nnz, 2):type(ctype)
                 input[i]:select(2,1):copy(inds)
                 input[i]:select(2,2):copy(torch.rand(nnz):type(typename):type(ctype))
-                nonsparse[i]:scatter(1, input[i]:select(2,1):long(), input[i]:select(2,2))
+                --nonsparse[i]:scatter(1, input[i]:select(2,1):long(), input[i]:select(2,2))
             end
 
             local gradOutput = makeNonContiguous(torch.randn(inb, inj):type(typename):type(ctype))
-            sslin:forward(nonsparse)
-            local groundgrad = sslin:backward(nonsparse, gradOutput)
+            sslin:forward(input)
+            local groundgrad = sslin:backward(input, gradOutput)
             sslin:zeroGradParameters()
             local groundweight = sslin.gradWeight
             local groundbias = sslin.gradBias
