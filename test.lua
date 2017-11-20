@@ -5269,7 +5269,7 @@ function cunntest.PReLU_forward()
     local h = math.random(1,100)
 
     for k, typename in ipairs(typenames) do
-      local input = torch.randn(nOutputPlane,h,w):type(typename)
+      local input = torch.randn(h,nOutputPlane,w):type(typename)
 
       local ctype = t2cpu[typename]
       input = makeNonContiguous(input:type(ctype))
@@ -5292,7 +5292,7 @@ function cunntest.PReLU_backward()
     local h = math.random(1,10)
 
     for k, typename in ipairs(typenames) do
-        local input = torch.randn(nOutputPlane, h, w):type(typename)
+        local input = torch.randn(h,nOutputPlane,w):type(typename)
         local gradOutput = torch.randn(#input):type(typename)
         local ctype = t2cpu[typename]
         input = makeNonContiguous(input:type(ctype))
