@@ -881,7 +881,7 @@ local function BatchNormalization_forward(moduleName, inputSize)
          string.format('error on state (forward) with %s', typename))
       mytester:assertlt((gbnorm.running_mean:double() - sbnorm.running_mean:double()):abs():max(),
          precision_forward_type(precision_forward, typename, gbnorm.running_mean:abs():max()),
-         string.format('error on running_mean (forward) with %s', typenanme))
+         string.format('error on running_mean (forward) with %s', typename))
       mytester:assertlt((gbnorm.running_var:double() - sbnorm.running_var:double()):abs():max(),
          precision_forward_type(precision_forward, typename, gbnorm.running_var:abs():max()),
          string.format('error on running_var (forward) with %s', typename))
