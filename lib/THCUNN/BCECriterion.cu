@@ -51,7 +51,7 @@ struct bce_updateGradInput_functor
 {
   const Dtype norm;
 
-  bce_updateGradInput_functor(Dtype norm_)
+  __host__ __device__ bce_updateGradInput_functor(Dtype norm_)
     : norm(norm_)
   {}
 
@@ -70,7 +70,7 @@ struct bce_updateGradInput_functor_weights
 {
   const Dtype norm;
 
-  bce_updateGradInput_functor_weights(Dtype norm_)
+  __host__ __device__ bce_updateGradInput_functor_weights(Dtype norm_)
     : norm(norm_)
   {}
 

@@ -168,10 +168,10 @@ __global__ void cunn_LookupTable_accGradParametersKernel(
  * Keep the norm of weight smaller than maxNorm
  */
 template <typename Dtype, typename Acctype>
-struct pow_v
+struct pow_v_
 {
   Acctype normType;
-  pow_v(Dtype v) : normType(ScalarConvert<Dtype, Acctype>::to(v)) {}
+  __host__ __device__ pow_v_(Dtype v) : normType(ScalarConvert<Dtype, Acctype>::to(v)) {}
   __host__ __device__
   Acctype operator()(const Dtype& x) const {
     Acctype xA = ScalarConvert<Dtype, Acctype>::to(x);
@@ -179,16 +179,16 @@ struct pow_v
       return std::abs(xA);
     else if (normType == 2)
       return xA * xA;
-   // else
-      //return std::pow(std::abs(xA), normType);
+    //else
+    // return std::pow(std::abs(xA), normType);
   }
 };
 
 template <typename T>
-struct multiply_s
+struct multiply_s_
 {
   T scale;
-  multiply_s(T s) : scale(s) {}
+  __host__ __device__ multiply_s_(T s) : scale(s) {}
   __host__ __device__
   T operator()(const T& x) const {
     return x * scale;

@@ -5566,7 +5566,7 @@ function cunntest.VolumetricDilatedConvolution()
    end
 end
 
-function cunntest.LookupTable_forward()
+--[[function cunntest.LookupTable_forward()
    local nVocab = 10000
    local nDim = 100
    local nInput = 1000
@@ -5668,7 +5668,7 @@ function cunntest.LookupTable_backward()
       mytester:assertlt(weightGradError:abs():max(), precision_backward_type(precision_backward, typename),
           string.format('error on weight with %s', typename))
    end
-end
+end]]--
 
 function cunntest.getParameters()
   -- tensors are non-contiguous but compact; they can be gathered
