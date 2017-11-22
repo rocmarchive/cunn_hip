@@ -5388,7 +5388,7 @@ function cunntest.RReLU_backward()
                 input = makeNonContiguous(-torch.rand(1000):type(typename))
                 gconv:forward(input) -- fill internal noise tensor
                 local g = gconv:backward(input, torch.ones(1000):type(typename))
-                local err = math.abs(g[input:le(0)]:mean()-(gconv.lower+gconv.upper)/2)
+                local err = math.abs(g:mean()-(gconv.lower+gconv.upper)/2)
                 mytester:assertlt(err, 0.05, 'mean deviation of gradient for negative inputs')
           end
        end
@@ -6003,7 +6003,7 @@ function cunntest.IndexLinear()
    ilg:updateParameters(lr)
 
    ilg2:zeroGradParameters()
-   flatOutputGPU = ilg2:forward(flatInputGPU)
+   flatOutputGPU = ilg2:forward(inputGPU)
    ilg2:backward(flatInputGPU, gradOutsGPU);
    ilg2:updateParameters(lr)
 
@@ -6052,7 +6052,7 @@ function cunntest.IndexLinear()
    flatOutputCPU = ilc2:forward(flatInputCPU)
    ilc2:backwardUpdate(flatInputCPU, gradOutsCPU, lr);
 
-   flatOutputGPU = ilg2:forward(flatInputGPU)
+   flatOutputGPU = ilg2:forward(inputGPU)
    ilg2:backwardUpdate(flatInputGPU, gradOutsGPU, lr);
 
    mytester:assertTensorEq(errNorm(outputCPU, outputGPU:float()),
