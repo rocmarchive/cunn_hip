@@ -5566,7 +5566,7 @@ function cunntest.VolumetricDilatedConvolution()
    end
 end
 
---[[function cunntest.LookupTable_forward()
+function cunntest.LookupTable_forward()
    local nVocab = 10000
    local nDim = 100
    local nInput = 1000
@@ -5588,7 +5588,7 @@ end
    end
 end
 
-function cunntest.LookupTable_backward()
+[[--function cunntest.LookupTable_backward()
    local grid = {
       nInput = {10, 101, 1000, 10007},
       nVocab = {100, 10000},
