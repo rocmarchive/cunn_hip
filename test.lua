@@ -5588,7 +5588,7 @@ function cunntest.LookupTable_forward()
    end
 end
 
-[[--function cunntest.LookupTable_backward()
+--[[function cunntest.LookupTable_backward()
    local grid = {
       nInput = {10, 101, 1000, 10007},
       nVocab = {100, 10000},
