@@ -10,7 +10,8 @@ void THNN_(ClassNLLCriterion_updateOutput)(
            THCTensor *output,
            bool sizeAverage,
            THCTensor *weights,
-           THCTensor *total_weight) {
+           THCTensor *total_weight,
+           long ignore_index) {
   THCUNN_check_dim_size(state, output, 1, 0, 1);
   THCUNN_check_dim_size(state, total_weight, 1, 0, 1);
 
@@ -95,7 +96,8 @@ void THNN_(ClassNLLCriterion_updateGradInput)(
            THCTensor *gradInput,
            bool sizeAverage,
            THCTensor *weights,
-           THCTensor *total_weight) {
+           THCTensor *total_weight,
+           long ignore_index) {
   if (THCIndexTensor_(nDimension)(state, target) > 1) {
     THError("multi-target not supported");
   }
