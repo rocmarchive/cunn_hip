@@ -11,9 +11,12 @@ const int THREADS_Y = THREADS_PER_BLOCK / THREADS_X;
 const int REPEAT = 32;
 const long NNZ_PER_BLOCK_MAX = 1024;
 
-/* sign MACRO */
 #ifndef clamp
 #define clamp(a, low, high) max(min((a), (high)), (low))
+#endif
+
+#ifndef THNN_INDEXLINEAR_SIGN
+#define THNN_INDEXLINEAR_SIGN(a) ( ( (a) < 0 )  ?  -1   : ( (a) > 0 ) )
 #endif
 
 __device__ double atomicExch(double *address, double val) {
@@ -104,7 +107,8 @@ void updateOutput(
                 val = val * nWeightCurr[1] + nWeightCurr[3];
                 normalizedValues[id + tid] = val;
             } else {
-                val = clamp(val * nWeightCurr[1], -1.0, 1.0) + nWeightCurr[3];
+                Ty absVal = fabs(val);
+                val = (absVal > nWeightCurr[0] ? THNN_INDEXLINEAR_SIGN(val):val*nWeightCurr[1]) + nWeightCurr[3];
             }
         }
 
