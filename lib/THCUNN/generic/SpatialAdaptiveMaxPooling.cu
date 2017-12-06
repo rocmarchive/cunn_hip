@@ -46,7 +46,7 @@ void THNN_(SpatialAdaptiveMaxPooling_updateOutput)(
     dim3 threads(32,8);
 
     // run maxpool kernel
-    hipLaunchKernelGGL((adaptivemaxpool), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), input_data, output_data,
+    hipLaunchKernelGGL((adaptivemaxpool<real>), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), input_data, output_data,
                                    indices_data+nInputPlane*nOutputCols*nOutputRows, indices_data,
                                    nInputPlane, nInputRows, nInputCols, nOutputRows, nOutputCols,
                                    istride_h, istride_w, istride_d);
@@ -78,7 +78,7 @@ void THNN_(SpatialAdaptiveMaxPooling_updateOutput)(
     dim3 threads(32,8);
 
     // run maxpool kernel
-    hipLaunchKernelGGL((adaptivemaxpool), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), input_data, output_data,
+    hipLaunchKernelGGL((adaptivemaxpool<real>), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), input_data, output_data,
                                    indices_data+nbatch*nInputPlane*nOutputCols*nOutputRows, indices_data,
                                    nInputPlane, nInputRows, nInputCols, nOutputRows, nOutputCols,
                                    istride_h, istride_w, istride_d);
@@ -130,14 +130,14 @@ void THNN_(SpatialAdaptiveMaxPooling_updateGradInput)(
     if(atomic)
     {
       // run updateGradInput kernel, accumulate gradients atomically
-      hipLaunchKernelGGL((atomicadaptivemaxgradinput), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), gradInput_data, gradOutput_data,
+      hipLaunchKernelGGL((atomicadaptivemaxgradinput<real>), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), gradInput_data, gradOutput_data,
                                           indices_data+nInputPlane*nOutputCols*nOutputRows, indices_data,
                                           nInputPlane, nInputRows, nInputCols, nOutputRows, nOutputCols);
     }
     else
     {
       // run updateGradInput kernel
-      hipLaunchKernelGGL((atomicadaptivemaxgradinput), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), gradInput_data, gradOutput_data,
+      hipLaunchKernelGGL((atomicadaptivemaxgradinput<real>), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), gradInput_data, gradOutput_data,
                                           indices_data+nInputPlane*nOutputCols*nOutputRows, indices_data,
                                           nInputPlane, nInputRows, nInputCols, nOutputRows, nOutputCols);
     }
@@ -168,14 +168,14 @@ void THNN_(SpatialAdaptiveMaxPooling_updateGradInput)(
     if(atomic)
     {
       // run updateGradInput kernel, accumulate gradients atomically
-      hipLaunchKernelGGL((atomicadaptivemaxgradinput), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), gradInput_data, gradOutput_data,
+      hipLaunchKernelGGL((atomicadaptivemaxgradinput<real>), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), gradInput_data, gradOutput_data,
                                           indices_data+nbatch*nInputPlane*nOutputCols*nOutputRows, indices_data,
                                           nInputPlane, nInputRows, nInputCols, nOutputRows, nOutputCols);
     }
     else
     {
       // run updateGradInput kernel, accumulate gradients atomically
-      hipLaunchKernelGGL((adaptivemaxgradinput), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), gradInput_data, gradOutput_data,
+      hipLaunchKernelGGL((adaptivemaxgradinput<real>), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), gradInput_data, gradOutput_data,
                                           indices_data+nbatch*nInputPlane*nOutputCols*nOutputRows, indices_data,
                                           nInputPlane, nInputRows, nInputCols, nOutputRows, nOutputCols);
     }

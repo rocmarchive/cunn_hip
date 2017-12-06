@@ -70,7 +70,7 @@ void THNN_(SpatialSubSampling_updateOutput)(
     dim3 threads(32,8);
 
     // run subsample kernel
-    hipLaunchKernelGGL((subsample<real, accreal>), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), 
+    hipLaunchKernelGGL((subsample<real, accreal>), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state),
       input_data, output_data, weight_data, bias_data,
       nInputPlane, nInputRows, nInputCols, kH, kW, dH, dW);
     THCudaCheck(hipGetLastError());
@@ -94,7 +94,7 @@ void THNN_(SpatialSubSampling_updateOutput)(
     dim3 threads(32,8);
 
     // run subsample kernel
-    hipLaunchKernelGGL((subsample<real, accreal>), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), 
+    hipLaunchKernelGGL((subsample<real, accreal>), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state),
       input_data, output_data, weight_data, bias_data,
       nInputPlane, nInputRows, nInputCols, kH, kW, dH, dW);
     THCudaCheck(hipGetLastError());
@@ -140,11 +140,11 @@ void THNN_(SpatialSubSampling_updateGradInput)(
 
     // run updateGradInput kernel
     if (kH <= dH && kW <= dW) {
-      hipLaunchKernelGGL((subgradinput), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), 
+      hipLaunchKernelGGL((subgradinput<real>), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state),
         gradInput_data, gradOutput_data, weight_data,
         nInputPlane, nInputRows, nInputCols, kH, kW, dH, dW);
     } else {
-      hipLaunchKernelGGL((subgradinputAtomic), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), 
+      hipLaunchKernelGGL((subgradinputAtomic<real>), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state),
         gradInput_data, gradOutput_data, weight_data,
         nInputPlane, nInputRows, nInputCols, kH, kW, dH, dW);
     }
@@ -171,11 +171,11 @@ void THNN_(SpatialSubSampling_updateGradInput)(
 
     // run updateGradInput kernel
     if (kH <= dH && kW <= dW) {
-      hipLaunchKernelGGL((subgradinput), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), 
+      hipLaunchKernelGGL((subgradinput<real>), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state),
         gradInput_data, gradOutput_data, weight_data,
         nInputPlane, nInputRows, nInputCols, kH, kW, dH, dW);
     } else {
-      hipLaunchKernelGGL((subgradinputAtomic), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), 
+      hipLaunchKernelGGL((subgradinputAtomic<real>), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state),
         gradInput_data, gradOutput_data, weight_data,
         nInputPlane, nInputRows, nInputCols, kH, kW, dH, dW);
     }
@@ -217,7 +217,7 @@ void THNN_(SpatialSubSampling_accGradParameters)(
     dim3 threads(32,8);
 
     // run gradweight kernel
-    hipLaunchKernelGGL((subgradweight<real, accreal>), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), 
+    hipLaunchKernelGGL((subgradweight<real, accreal>), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state),
       input_data, gradOutput_data, gradWeight_data, gradBias_data,
       nInputPlane, nInputRows, nInputCols, kH, kW, dH, dW, scale);
     THCudaCheck(hipGetLastError());
@@ -242,7 +242,7 @@ void THNN_(SpatialSubSampling_accGradParameters)(
     // run gradweight kernel
     long sl;
     for (sl=0; sl<nbatch; sl++) {
-      hipLaunchKernelGGL((subgradweight<real, accreal>), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), 
+      hipLaunchKernelGGL((subgradweight<real, accreal>), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state),
         input_data + sl*input->stride[0],
         gradOutput_data + sl*gradOutput->stride[0],
         gradWeight_data, gradBias_data,

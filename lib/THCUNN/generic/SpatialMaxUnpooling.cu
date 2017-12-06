@@ -38,7 +38,7 @@ void THNN_(SpatialMaxUnpooling_updateOutput)(
 
   int count = THCTensor_(nElement)(state, input);
 
-  hipLaunchKernelGGL((MaxUnpoolForward), dim3(GET_BLOCKS(count)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state) , count, THCTensor_(data)(state, input), THCIndexTensor_(data)(state, indices),
+  hipLaunchKernelGGL((MaxUnpoolForward<real>), dim3(GET_BLOCKS(count)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state) , count, THCTensor_(data)(state, input), THCIndexTensor_(data)(state, indices),
       batchSize, nInputPlane, nInputRows, nInputCols, oheight, owidth, THCTensor_(data)(state, output));
   THCudaCheck(hipGetLastError());
 
@@ -90,7 +90,7 @@ void THNN_(SpatialMaxUnpooling_updateGradInput)(
 
   int count = THCTensor_(nElement)(state, input);
 
-  hipLaunchKernelGGL((MaxUnpoolBackward), dim3(GET_BLOCKS(count)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state) , count, THCTensor_(data)(state, gradOutput), THCIndexTensor_(data)(state, indices),
+  hipLaunchKernelGGL((MaxUnpoolBackward<real>), dim3(GET_BLOCKS(count)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state) , count, THCTensor_(data)(state, gradOutput), THCIndexTensor_(data)(state, indices),
       batchSize, nInputPlane, nInputRows, nInputCols, oheight, owidth, THCTensor_(data)(state, gradInput));
   THCudaCheck(hipGetLastError());
 

@@ -42,7 +42,7 @@ void THNN_(SpatialAdaptiveAveragePooling_updateOutput)(
     dim3 threads(32,8);
 
     // run averagepool kernel
-    hipLaunchKernelGGL((adaptiveaveragepool), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), input_data, output_data,
+    hipLaunchKernelGGL((adaptiveaveragepool<real>), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), input_data, output_data,
                                    nInputPlane, nInputRows, nInputCols, nOutputRows, nOutputCols,
                                    istride_h, istride_w, istride_d);
     THCudaCheck(hipGetLastError());
@@ -71,7 +71,7 @@ void THNN_(SpatialAdaptiveAveragePooling_updateOutput)(
     dim3 threads(32,8);
 
     // run averagepool kernel
-    hipLaunchKernelGGL((adaptiveaveragepool), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), input_data, output_data,
+    hipLaunchKernelGGL((adaptiveaveragepool<real>), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), input_data, output_data,
                                    nInputPlane, nInputRows, nInputCols, nOutputRows, nOutputCols,
                                    istride_h, istride_w, istride_d);
     THCudaCheck(hipGetLastError());
@@ -119,13 +119,13 @@ void THNN_(SpatialAdaptiveAveragePooling_updateGradInput)(
     if(atomic)
     {
       // run updateGradInput kernel, accumulate gradients atomically
-      hipLaunchKernelGGL((atomicadaptiveaveragegradinput), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), gradInput_data, gradOutput_data,
+      hipLaunchKernelGGL((atomicadaptiveaveragegradinput<real>), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), gradInput_data, gradOutput_data,
                                           nInputPlane, nInputRows, nInputCols, nOutputRows, nOutputCols);
     }
     else
     {
       // run updateGradInput kernel
-      hipLaunchKernelGGL((adaptiveaveragegradinput), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), gradInput_data, gradOutput_data,
+      hipLaunchKernelGGL((adaptiveaveragegradinput<real>), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), gradInput_data, gradOutput_data,
                                           nInputPlane, nInputRows, nInputCols, nOutputRows, nOutputCols);
     }
     THCudaCheck(hipGetLastError());
@@ -154,13 +154,13 @@ void THNN_(SpatialAdaptiveAveragePooling_updateGradInput)(
     if(atomic)
     {
       // run updateGradInput kernel, accumulate gradients atomically
-      hipLaunchKernelGGL((atomicadaptiveaveragegradinput), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), gradInput_data, gradOutput_data,
+      hipLaunchKernelGGL((atomicadaptiveaveragegradinput<real>), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), gradInput_data, gradOutput_data,
                                           nInputPlane, nInputRows, nInputCols, nOutputRows, nOutputCols);
     }
     else
     {
       // run updateGradInput kernel, accumulate gradients atomically
-      hipLaunchKernelGGL((adaptiveaveragegradinput), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), gradInput_data, gradOutput_data,
+      hipLaunchKernelGGL((adaptiveaveragegradinput<real>), dim3(blocks), dim3(threads), 0, THCState_getCurrentStream(state), gradInput_data, gradOutput_data,
                                           nInputPlane, nInputRows, nInputCols, nOutputRows, nOutputCols);
     }
     THCudaCheck(hipGetLastError());

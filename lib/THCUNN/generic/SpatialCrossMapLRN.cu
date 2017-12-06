@@ -35,12 +35,12 @@ void LRNforward(THCState* state, THCTensor* input, THCTensor* output,
   input = THCTensor_(newContiguous)(state, input);
 
   int n_threads = batchSize * imsize_h * imsize_w;
-  hipLaunchKernelGGL((LRNFillScale<real, accreal>), dim3(GET_BLOCKS(n_threads)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state), 
-      n_threads, THCTensor_(data)(state, input), batchSize, nInputPlane, imsize_h, imsize_w, local_size,
+  hipLaunchKernelGGL((LRNFillScale<real, accreal>), dim3(GET_BLOCKS(n_threads)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state),
+      (int)n_threads, THCTensor_(data)(state, input), batchSize, nInputPlane, imsize_h, imsize_w, local_size,
       alpha / local_size, k, THCTensor_(data)(state, scale));
   n_threads *= nInputPlane;
   THCudaCheck(hipGetLastError());
-  hipLaunchKernelGGL((LRNComputeOutput), dim3(GET_BLOCKS(n_threads)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state), 
+  hipLaunchKernelGGL((LRNComputeOutput<real>), dim3(GET_BLOCKS(n_threads)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state),
     n_threads, THCTensor_(data)(state, input), THCTensor_(data)(state, scale), -beta, THCTensor_(data)(state, output));
   THCudaCheck(hipGetLastError());
 
@@ -81,7 +81,7 @@ void LRNbackward(THCState* state, THCTensor* input, THCTensor* output,
   gradOutput = THCTensor_(newContiguous)(state, gradOutput);
 
   int n_threads = batchSize * imsize_h * imsize_w;
-  hipLaunchKernelGGL((LRNComputeDiff<real, accreal>), dim3(GET_BLOCKS(n_threads)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state), 
+  hipLaunchKernelGGL((LRNComputeDiff<real, accreal>), dim3(GET_BLOCKS(n_threads)), dim3(CUDA_NUM_THREADS), 0, THCState_getCurrentStream(state),
       n_threads, THCTensor_(data)(state, input), THCTensor_(data)(state, output),
       THCTensor_(data)(state, scale), THCTensor_(data)(state, gradOutput), batchSize, nInputPlane, imsize_h, imsize_w,
       local_size, -beta, (ScalarConvert<int, real>::to(2)) * alpha * beta / local_size,
