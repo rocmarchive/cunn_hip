@@ -18,7 +18,8 @@ __global__ void cunn_ClassNLLCriterion_updateOutput_kernel1(Dtype *output,
                                                            THCIndex_t  *target,
                                                            Dtype *weights,
                                                            int size_average,
-                                                           int n_classes) {
+                                                           int n_classes,
+                                                           long ignore_index) {
 #if defined(__HIP_PLATFORM_NVCC__)
   assert(hipThreadIdx_x == 0 && hipThreadIdx_y == 0 && hipThreadIdx_z == 0);
 #endif
@@ -27,14 +28,16 @@ __global__ void cunn_ClassNLLCriterion_updateOutput_kernel1(Dtype *output,
   // updateOutput_kernel.
 
   int t = (int)*target - TH_INDEX_BASE;
+  if (t != ignore_index) {
 #if defined(__HIP_PLATFORM_NVCC__)
-  assert(t >= 0 && t < n_classes);
+    assert(t >= 0 && t < n_classes);
 #endif
-  Dtype cur_weight = weights ? weights[t] : ScalarConvert<int, Dtype>::to(1);
-  *output = -cur_weight * input[t];
-  *total_weight = cur_weight;
-  if (size_average && *total_weight > 0) {
-    *output /= *total_weight;
+    Dtype cur_weight = weights ? weights[t] : ScalarConvert<int, Dtype>::to(1);
+    *output = -cur_weight * input[t];
+    *total_weight = cur_weight;
+    if (size_average && *total_weight > 0) {
+      *output /= *total_weight;
+    }
   }
 }
 
@@ -47,7 +50,8 @@ __global__ void cunn_ClassNLLCriterion_updateOutput_kernel(Dtype *output,
                                                            int size_average,
                                                            int nframe,
                                                            int ndim,
-                                                           int n_classes) {
+                                                           int n_classes,
+                                                           long ignore_index) {
   __shared__ Acctype shInputs[NTHREADS], acc_weight[NTHREADS];
   int i, t;
   Dtype cur_weight;
@@ -56,12 +60,14 @@ __global__ void cunn_ClassNLLCriterion_updateOutput_kernel(Dtype *output,
   acc_weight[hipThreadIdx_x] = ScalarConvert<int, Acctype>::to(0);
   for (i = hipThreadIdx_x; i < nframe; i += NTHREADS) {
       t = target[i] - TH_INDEX_BASE;
+      if (t != ignore_index) {
 #if defined(__HIP_PLATFORM_NVCC__)
-      assert(t >= 0 && t < n_classes);
+        assert(t >= 0 && t < n_classes);
 #endif
-      cur_weight = weights ? weights[t] : ScalarConvert<int, Dtype>::to(1);
-      shInputs[hipThreadIdx_x] -= input[i * ndim + t] * cur_weight;
-      acc_weight[hipThreadIdx_x] += cur_weight;
+        cur_weight = weights ? weights[t] : ScalarConvert<int, Dtype>::to(1);
+        shInputs[hipThreadIdx_x] -= input[i * ndim + t] * cur_weight;
+        acc_weight[hipThreadIdx_x] += cur_weight;
+      }
   }
   __syncthreads();
 
@@ -93,17 +99,20 @@ __global__ void cunn_ClassNLLCriterion_updateGradInput_kernel1(
   THCIndex_t* target,
   Dtype* total_weight,
   int size_average,
-  int n_classes)
+  int n_classes,
+  long ignore_index)
 {
   if (*total_weight <= 0) {
     return;
   }
   Dtype norm = size_average ? (ScalarConvert<int, Dtype>::to(1) / *total_weight) : ScalarConvert<int, Dtype>::to(1);
   int t = (int)*target - TH_INDEX_BASE;
+  if (t != ignore_index) {
 #if defined(__HIP_PLATFORM_NVCC__)
-  assert(t >= 0 && t < n_classes);
+    assert(t >= 0 && t < n_classes);
 #endif
-  gradInput[t] = -(weights ? weights[t] : ScalarConvert<int, Dtype>::to(1)) * norm;
+    gradInput[t] = -(weights ? weights[t] : ScalarConvert<int, Dtype>::to(1)) * norm;
+  }
 }
 
 template <typename Dtype>
@@ -115,7 +124,8 @@ __global__ void cunn_ClassNLLCriterion_updateGradInput_kernel(
   int size_average,
   int nframe,
   int ndim,
-  int n_classes)
+  int n_classes,
+  long ignore_index)
 {
   if (*total_weight <= 0) {
     return;
@@ -125,10 +135,12 @@ __global__ void cunn_ClassNLLCriterion_updateGradInput_kernel(
 
   for (i = hipThreadIdx_x; i < nframe; i += NTHREADS) {
     t = (int)target[i] - TH_INDEX_BASE;
+    if (t != ignore_index) {
 #if defined(__HIP_PLATFORM_NVCC__)
-    assert(t >= 0 && t < n_classes);
+      assert(t >= 0 && t < n_classes);
 #endif
-    gradInput[i * ndim + t] = -(weights ? weights[t] : ScalarConvert<int, Dtype>::to(1)) * norm;
+      gradInput[i * ndim + t] = -(weights ? weights[t] : ScalarConvert<int, Dtype>::to(1)) * norm;
+    }
   }
 }
 

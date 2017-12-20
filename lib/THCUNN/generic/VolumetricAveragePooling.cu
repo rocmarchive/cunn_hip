@@ -7,12 +7,11 @@ static inline void THNN_(VolumetricAveragePooling_shapeCheck)(
                          THCState *state,
                          THCTensor *input,
                          THCTensor *gradOutput,
-                         int kT,
-                         int kW,
-                         int kH,
-                         int dT,
-                         int dW,
-                         int dH) {
+                         int kT, int kW, int kH,
+                         int dT, int dW, int dH,
+                         int padT, int padW, int padH,
+                         bool ceil_mode)
+{
   int inputSlices;
   int inputTime;
   int inputHeight;
@@ -67,9 +66,39 @@ static inline void THNN_(VolumetricAveragePooling_shapeCheck)(
     THArgCheck(false, 2, "4D or 5D tensor expected, but got: %d", input->nDimension);
   }
 
-  int outputTime   = (inputTime   - kT) / dT + 1;
-  int outputHeight = (inputHeight - kH) / dH + 1;
-  int outputWidth  = (inputWidth  - kW) / dW + 1;
+  // The second argument is the index of padH.
+  THArgCheck(kT/2 >= padT && kW/2 >= padW && kH/2 >= padH, 11,
+             "pad should not be greater than half of kernel size, but got "
+             "padT = %d, padW = %d, padH = %d, kT = %d, kW = %d, kH = %d",
+             padT, padW, padH, kT, kW, kH);
+
+  int outputTime;
+  int outputHeight;
+  int outputWidth;
+
+  if (ceil_mode)
+  {
+    outputTime   = ceil(float(inputTime   - kT + 2*padT) / float(dT)) + 1;
+    outputHeight = ceil(float(inputHeight - kH + 2*padH) / float(dH)) + 1;
+    outputWidth  = ceil(float(inputWidth  - kW + 2*padW) / float(dW)) + 1;
+  }
+  else
+  {
+    outputTime   = floor(float(inputTime   - kT + 2*padT) / float(dT)) + 1;
+    outputHeight = floor(float(inputHeight - kH + 2*padH) / float(dH)) + 1;
+    outputWidth  = floor(float(inputWidth  - kW + 2*padW) / float(dW)) + 1;
+  }
+  if (padT || padW || padH)
+  {
+    // ensure that the last pooling starts inside the image
+    // needed to avoid problems in ceil mode
+    if ((outputTime   - 1)*dT >= inputTime   + padT)
+      --outputTime;
+    if ((outputHeight - 1)*dH >= inputHeight + padH)
+      --outputHeight;
+    if ((outputWidth  - 1)*dW >= inputWidth  + padW)
+      --outputWidth;
+  }
 
   if (gradOutput != NULL) {
      THCUNN_check_dim_size(state, gradOutput, ndim, dimN, inputSlices);
@@ -84,7 +113,10 @@ void THNN_(VolumetricAveragePooling_updateOutput)(
            THCTensor *input,
            THCTensor *output,
            int kT, int kW, int kH,
-           int dT, int dW, int dH)
+           int dT, int dW, int dH,
+           int padT, int padW, int padH,
+           bool ceil_mode,
+           bool count_include_pad)
 {
   int batchSize;
   int inputSlices;
@@ -104,7 +136,8 @@ void THNN_(VolumetricAveragePooling_updateOutput)(
   }
 
   THNN_(VolumetricAveragePooling_shapeCheck)
-       (state, input, NULL, kT, kW, kH, dT, dW, dH);
+       (state, input, NULL, kT, kW, kH, dT, dW, dH,
+        padT, padW, padH, ceil_mode);
 
   if (THCTensor_(nDimension)(state, input) == 4)
   {
@@ -125,9 +158,33 @@ void THNN_(VolumetricAveragePooling_updateOutput)(
     inputWidth  = THCTensor_(size)(state, input, 4);
   }
 
-  int outputTime   = (inputTime   - kT) / dT + 1;
-  int outputHeight = (inputHeight - kH) / dH + 1;
-  int outputWidth  = (inputWidth  - kW) / dW + 1;
+  int outputTime;
+  int outputHeight;
+  int outputWidth;
+
+  if (ceil_mode)
+  {
+    outputTime   = ceil(float(inputTime   - kT + 2*padT) / float(dT)) + 1;
+    outputHeight = ceil(float(inputHeight - kH + 2*padH) / float(dH)) + 1;
+    outputWidth  = ceil(float(inputWidth  - kW + 2*padW) / float(dW)) + 1;
+  }
+  else
+  {
+    outputTime   = floor(float(inputTime   - kT + 2*padT) / float(dT)) + 1;
+    outputHeight = floor(float(inputHeight - kH + 2*padH) / float(dH)) + 1;
+    outputWidth  = floor(float(inputWidth  - kW + 2*padW) / float(dW)) + 1;
+  }
+  if (padT || padH || padW)
+  {
+    // ensure that the last pooling starts inside the image
+    // needed to avoid problems in ceil mode
+    if ((outputTime   - 1)*dT >= inputTime   + padT)
+      --outputTime;
+    if ((outputHeight - 1)*dH >= inputHeight + padH)
+      --outputHeight;
+    if ((outputWidth  - 1)*dW >= inputWidth  + padW)
+      --outputWidth;
+  }
 
   if (input->nDimension == 4) /* 4D */
   {
@@ -165,7 +222,6 @@ void THNN_(VolumetricAveragePooling_updateOutput)(
               THCCeilDiv(outputHeight, static_cast<int>(block.y)),
               totalZ > 65535 ? 65535 : totalZ);
 
-    accreal normFactor = ScalarConvert<int, accreal>::to(1) / static_cast<accreal>(kT * kH * kW);
     switch (kW)
       {
         LAUNCH_UPDATE_OUTPUT_KERNEL_WIDTH(1);
@@ -181,7 +237,8 @@ void THNN_(VolumetricAveragePooling_updateOutput)(
                                                                     cudaOutput,
                                                                     kT, kH, kW,
                                                                     dT, dH, dW,
-                                                                    normFactor,
+                                                                    padT, padH, padW,
+                                                                    count_include_pad,
                                                                     offsetZ
                                                                     );
         break;
@@ -199,11 +256,15 @@ void THNN_(VolumetricAveragePooling_updateGradInput)(
            THCTensor *gradOutput,
            THCTensor *gradInput,
            int kT, int kW, int kH,
-           int dT, int dW, int dH)
+           int dT, int dW, int dH,
+           int padT, int padW, int padH,
+           bool ceil_mode,
+           bool count_include_pad)
 {
 
   THNN_(VolumetricAveragePooling_shapeCheck)
-       (state, input, gradOutput, kT, kW, kH, dT, dW, dH);
+       (state, input, gradOutput, kT, kW, kH, dT, dW, dH,
+        padT, padW, padH, ceil_mode);
   bool kernelsOverlap = (dT < kT) || (dH < kH) || (dW < kW);
 
   // Resize and initialize result tensor.
@@ -267,7 +328,8 @@ void THNN_(VolumetricAveragePooling_updateGradInput)(
 
   // Optimizing for stride 1 is probably only of limited value, but this
   // specialization yields 3x speedup over the atomicAdd implementation.
-  if (dT == 1 && dH == 1 && dW == 1)
+  // Padding must be 0, otherwise, pool size may change.
+  if (dT == 1 && dH == 1 && dW == 1 && padT == 0 && padH == 0 && padW == 0)
   {
     int totalZ = inputTime * inputSlices * batchSize;
     int offsetZ = 0;
@@ -293,13 +355,15 @@ void THNN_(VolumetricAveragePooling_updateGradInput)(
                 totalZ > 65535 ? 65535 : totalZ);
       if (kernelsOverlap)
         {
-          hipLaunchKernelGGL((cuda_VolumetricAveragePooling_updateGradInput_atomicAdd<real, accreal>), dim3(grid), dim3(block), 0, 0, 
-            cudaGradOutput, cudaGradInput, kT, kH, kW, dT, dH, dW, offsetZ);
+          hipLaunchKernelGGL((cuda_VolumetricAveragePooling_updateGradInput_atomicAdd<real, accreal>), dim3(grid), dim3(block), 0, 0,
+            cudaGradOutput, cudaGradInput, kT, kH, kW, dT, dH, dW,
+            padT, padH, padW, count_include_pad, offsetZ);
         }
       else
         {
-          hipLaunchKernelGGL((cuda_VolumetricAveragePooling_updateGradInput<real, accreal>), dim3(grid), dim3(block), 0, 0, 
-             cudaGradOutput, cudaGradInput, kT, kH, kW, dT, dH, dW, offsetZ);
+          hipLaunchKernelGGL((cuda_VolumetricAveragePooling_updateGradInput<real, accreal>), dim3(grid), dim3(block), 0, 0,
+             cudaGradOutput, cudaGradInput, kT, kH, kW, dT, dH, dW,
+             padT, padH, padW, count_include_pad, offsetZ);
         }
       THCudaCheck(hipGetLastError());
       totalZ -= 65535;
