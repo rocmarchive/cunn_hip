@@ -107,9 +107,7 @@ __device__ __forceinline__ T powerGradN(const T in, const T power) {
 // [batch][feature dim][optional dim 1][optional dim 2]
 template <typename T,
           int Width,
-          int Stride,
-          T (*PowerFunc)(T in, T power),
-          T (*RootFunc)(T in, T power)>
+          int Stride>
 __global__ void
 featureLPPoolingUpdateOutput(const THCDeviceTensor<T, 4> input,
                              THCDeviceTensor<T, 4> output,
@@ -155,7 +153,7 @@ featureLPPoolingUpdateOutput(const THCDeviceTensor<T, 4> input,
   for (int i = 0; i < Width - Stride; ++i) {
     const T data =
       input[batch][startInputFeature + i][dim1Point][dim2Point];
-    in[i] = PowerFunc(data, power);
+    in[i] = powerN(data, power);
   }
 
   for (int outputFeature = startOutputFeature;
@@ -171,7 +169,7 @@ featureLPPoolingUpdateOutput(const THCDeviceTensor<T, 4> input,
       for (int i = 0; i < Stride; ++i) {
         const T data =
           input[batch][nextInputFeature + i][dim1Point][dim2Point];
-        in[Width - Stride + i] = PowerFunc(data, power);
+        in[Width - Stride + i] = powerN(data, power);
       }
     } else {
       int nextInputFeature = outputFeature * Stride;
@@ -179,7 +177,7 @@ featureLPPoolingUpdateOutput(const THCDeviceTensor<T, 4> input,
 #pragma unroll
       for (int i = 0; i < Width; ++i) {
         T data = input[batch][nextInputFeature + i][dim1Point][dim2Point];
-        in[i] = PowerFunc(data, power);
+        in[i] = powerN(data, power);
       }
     }
 
@@ -189,7 +187,7 @@ featureLPPoolingUpdateOutput(const THCDeviceTensor<T, 4> input,
       val = THCNumerics<T>::add(val, in[i]);
     }
 
-    val = RootFunc(val, power);
+    val = rootN(val, power);
     output[batch][outputFeature][dim1Point][dim2Point] = val;
 
     if (Stride < Width) {
@@ -213,8 +211,7 @@ featureLPPoolingUpdateOutput(const THCDeviceTensor<T, 4> input,
 // PowerGradFunc implements x^(p - 1)
 template <typename T,
           int Width,
-          int Stride,
-          T (*PowerGradFunc)(T in, T arg)>
+          int Stride>
 __global__ void
 featureLPPoolingUpdateGradInput(const THCDeviceTensor<T, 4> gradOutput,
                                 const THCDeviceTensor<T, 4> input,
@@ -347,7 +344,7 @@ featureLPPoolingUpdateGradInput(const THCDeviceTensor<T, 4> gradOutput,
         // Calculate grad * (x_i / f(x_is))^(p - 1)
         const T val = THCNumerics<T>::mul(
           gradOut,
-          PowerGradFunc(THCNumerics<T>::div(in[i], out), power));
+          powerGradN(THCNumerics<T>::div(in[i], out), power));
 
         gradInput[batch][inputFeature][dim1Point][dim2Point] =
           THCNumerics<T>::add(
@@ -362,7 +359,7 @@ featureLPPoolingUpdateGradInput(const THCDeviceTensor<T, 4> gradOutput,
         // Calculate grad * (x_i / f(x_is))^(p - 1)
         T val = THCNumerics<T>::mul(
           gradOut,
-          PowerGradFunc(THCNumerics<T>::div(in[i], out), power));
+          powerGradN(THCNumerics<T>::div(in[i], out), power));
 
         // We don't overlap other threads for this range
         if (inputFeature >= exclusiveStartInputFeature &&
@@ -435,27 +432,11 @@ runFeatureLPPoolingUpdateOutput(THCState* state,
   dim3 grid(nonFeatureSizeBlocks, featureBlocks, input.getSize(0));
   dim3 block(blockSize);
 
-#define L2_STRIDE_CASE(STRIDE, WIDTH)                                   \
-  case STRIDE:                                                          \
-    hipLaunchKernelGGL((detail::featureLPPoolingUpdateOutput<T, WIDTH, STRIDE, detail::power2, detail::root2>), grid, block, 0, stream, \
-                                   input, output,                       \
-                                   ScalarConvert<float, T>::to(power)); \
-    return true;
-
-#define L2_WIDTH_CASE(WIDTH)                    \
-  case WIDTH:                                   \
-    switch (stride) {                           \
-      L2_STRIDE_CASE(1, WIDTH);                 \
-      L2_STRIDE_CASE(2, WIDTH);                 \
-      L2_STRIDE_CASE(3, WIDTH);                 \
-      L2_STRIDE_CASE(4, WIDTH);                 \
-    }
-
 #define LP_STRIDE_CASE(STRIDE, WIDTH)                                   \
   case STRIDE:                                                          \
-    hipLaunchKernelGGL((detail::featureLPPoolingUpdateOutput<T, WIDTH, STRIDE, detail::powerN, detail::rootN>), grid, block, 0, stream, \
+    hipLaunchKernelGGL((detail::featureLPPoolingUpdateOutput<T, WIDTH, STRIDE>), grid, block, 0, stream, \
                                    input, output,                       \
-                                   ScalarConvert<float, T>::to(power)); \
+                                   (T)(power)); \
     return true;
 
 #define LP_WIDTH_CASE(WIDTH)                    \
@@ -467,42 +448,22 @@ runFeatureLPPoolingUpdateOutput(THCState* state,
       LP_STRIDE_CASE(4, WIDTH);                 \
     }
 
-  if (power == 2.0f) {
-    switch (width) {
-      L2_WIDTH_CASE(2);
-      L2_WIDTH_CASE(3);
-      L2_WIDTH_CASE(4);
-      L2_WIDTH_CASE(5);
-      L2_WIDTH_CASE(6);
-      L2_WIDTH_CASE(7);
-      L2_WIDTH_CASE(8);
-      L2_WIDTH_CASE(9);
-      L2_WIDTH_CASE(10);
-      L2_WIDTH_CASE(11);
-      L2_WIDTH_CASE(12);
-      L2_WIDTH_CASE(13);
-      L2_WIDTH_CASE(14);
-      L2_WIDTH_CASE(15);
-      L2_WIDTH_CASE(16);
-    }
-  } else {
-    switch (width) {
-      LP_WIDTH_CASE(2);
-      LP_WIDTH_CASE(3);
-      LP_WIDTH_CASE(4);
-      LP_WIDTH_CASE(5);
-      LP_WIDTH_CASE(6);
-      LP_WIDTH_CASE(7);
-      LP_WIDTH_CASE(8);
-      LP_WIDTH_CASE(9);
-      LP_WIDTH_CASE(10);
-      LP_WIDTH_CASE(11);
-      LP_WIDTH_CASE(12);
-      LP_WIDTH_CASE(13);
-      LP_WIDTH_CASE(14);
-      LP_WIDTH_CASE(15);
-      LP_WIDTH_CASE(16);
-    }
+  switch (width) {
+    LP_WIDTH_CASE(2);
+    LP_WIDTH_CASE(3);
+    LP_WIDTH_CASE(4);
+    LP_WIDTH_CASE(5);
+    LP_WIDTH_CASE(6);
+    LP_WIDTH_CASE(7);
+    LP_WIDTH_CASE(8);
+    LP_WIDTH_CASE(9);
+    LP_WIDTH_CASE(10);
+    LP_WIDTH_CASE(11);
+    LP_WIDTH_CASE(12);
+    LP_WIDTH_CASE(13);
+    LP_WIDTH_CASE(14);
+    LP_WIDTH_CASE(15);
+    LP_WIDTH_CASE(16);
   }
 
   // Otherwise, we have an unhandled width and/or stride.
@@ -565,27 +526,11 @@ runFeatureLPPoolingUpdateGradInput(THCState* state,
   dim3 grid(nonFeatureSizeBlocks, featureBlocks, input.getSize(0));
   dim3 block(blockSize);
 
-#define L2_STRIDE_CASE(STRIDE, WIDTH)                                   \
-  case STRIDE:                                                          \
-    hipLaunchKernelGGL((detail::featureLPPoolingUpdateGradInput<T, WIDTH, STRIDE, detail::powerGrad2>), grid, block, 0, stream, \
-            gradOutput, input, output, gradInput,                       \
-            ScalarConvert<float, T>::to(power));                        \
-    return true;
-
-#define L2_WIDTH_CASE(WIDTH)                    \
-  case WIDTH:                                   \
-    switch (stride) {                           \
-      L2_STRIDE_CASE(1, WIDTH);                 \
-      L2_STRIDE_CASE(2, WIDTH);                 \
-      L2_STRIDE_CASE(3, WIDTH);                 \
-      L2_STRIDE_CASE(4, WIDTH);                 \
-    }
-
 #define LP_STRIDE_CASE(STRIDE, WIDTH)                                   \
   case STRIDE:                                                          \
-    hipLaunchKernelGGL((detail::featureLPPoolingUpdateGradInput<T, WIDTH, STRIDE, detail::powerGradN>), grid, block, 0, stream, \
+    hipLaunchKernelGGL((detail::featureLPPoolingUpdateGradInput<T, WIDTH, STRIDE>), grid, block, 0, stream, \
             gradOutput, input, output, gradInput,                       \
-            ScalarConvert<float, T>::to(power));                        \
+            (T)(power));                        \
     return true;
 
 #define LP_WIDTH_CASE(WIDTH)                    \
@@ -597,42 +542,22 @@ runFeatureLPPoolingUpdateGradInput(THCState* state,
       LP_STRIDE_CASE(4, WIDTH);                 \
     }
 
-  if (power == 2.0f) {
-    switch (width) {
-      L2_WIDTH_CASE(2);
-      L2_WIDTH_CASE(3);
-      L2_WIDTH_CASE(4);
-      L2_WIDTH_CASE(5);
-      L2_WIDTH_CASE(6);
-      L2_WIDTH_CASE(7);
-      L2_WIDTH_CASE(8);
-      L2_WIDTH_CASE(9);
-      L2_WIDTH_CASE(10);
-      L2_WIDTH_CASE(11);
-      L2_WIDTH_CASE(12);
-      L2_WIDTH_CASE(13);
-      L2_WIDTH_CASE(14);
-      L2_WIDTH_CASE(15);
-      L2_WIDTH_CASE(16);
-    }
-  } else {
-    switch (width) {
-      LP_WIDTH_CASE(2);
-      LP_WIDTH_CASE(3);
-      LP_WIDTH_CASE(4);
-      LP_WIDTH_CASE(5);
-      LP_WIDTH_CASE(6);
-      LP_WIDTH_CASE(7);
-      LP_WIDTH_CASE(8);
-      LP_WIDTH_CASE(9);
-      LP_WIDTH_CASE(10);
-      LP_WIDTH_CASE(11);
-      LP_WIDTH_CASE(12);
-      LP_WIDTH_CASE(13);
-      LP_WIDTH_CASE(14);
-      LP_WIDTH_CASE(15);
-      LP_WIDTH_CASE(16);
-    }
+  switch (width) {
+    LP_WIDTH_CASE(2);
+    LP_WIDTH_CASE(3);
+    LP_WIDTH_CASE(4);
+    LP_WIDTH_CASE(5);
+    LP_WIDTH_CASE(6);
+    LP_WIDTH_CASE(7);
+    LP_WIDTH_CASE(8);
+    LP_WIDTH_CASE(9);
+    LP_WIDTH_CASE(10);
+    LP_WIDTH_CASE(11);
+    LP_WIDTH_CASE(12);
+    LP_WIDTH_CASE(13);
+    LP_WIDTH_CASE(14);
+    LP_WIDTH_CASE(15);
+    LP_WIDTH_CASE(16);
   }
 
   // Otherwise, we have an unhandled width and/or stride.
